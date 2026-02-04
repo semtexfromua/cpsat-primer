@@ -4,66 +4,64 @@
 <!-- ./chapters/00_intro.md -->
 <!-- EDIT THIS PART VIA 00_intro.md -->
 
-# The CP-SAT Primer: Using and Understanding Google OR-Tools' CP-SAT Solver
+# Праймер CP-SAT: використання та розуміння розв’язувача CP-SAT з Google OR-Tools
 
 
-_By [Dominik Krupke](https://krupke.cc), TU Braunschweig, with contributions
-from Leon Lan, Michael Perk, and
-[others](https://github.com/d-krupke/cpsat-primer/graphs/contributors)._
+_Автор: [Dominik Krupke](https://krupke.cc), TU Braunschweig, за участі Leon Lan, Michael Perk та
+[інших](https://github.com/d-krupke/cpsat-primer/graphs/contributors)._ 
 
 <!-- Introduction Paragraph --->
 
-Many [combinatorially difficult](https://en.wikipedia.org/wiki/NP-hardness)
-optimization problems can, despite their proven theoretical hardness, be solved
-reasonably well in practice. The most successful approach is to use
-[Mixed Integer Linear Programming](https://en.wikipedia.org/wiki/Integer_programming)
-(MIP) to model the problem and then use a solver to find a solution. The most
-successful solvers for MIPs are, e.g., [Gurobi](https://www.gurobi.com/),
+Багато [комбінаторно складних](https://en.wikipedia.org/wiki/NP-hardness)
+задач оптимізації, попри доведену теоретичну складність, на практиці можна
+розв’язувати достатньо добре. Найуспішніший підхід — застосувати
+[змішане цілочисельне лінійне програмування](https://en.wikipedia.org/wiki/Integer_programming)
+(MIP) для моделювання задачі, а потім скористатися розв’язувачем для пошуку
+розв’язку. Найуспішніші MIP-розв’язувачі, наприклад
+[Gurobi](https://www.gurobi.com/),
 [CPLEX](https://www.ibm.com/analytics/cplex-optimizer),
-[COPT Cardinal Solver](https://www.copt.de/), and
+[COPT Cardinal Solver](https://www.copt.de/) та
 [FICO Xpress Optimization](https://www.fico.com/en/products/fico-xpress-optimization),
-which are all commercial and expensive (though, mostly free for academics).
-There are also some open source solvers (e.g., [SCIP](https://www.scipopt.org/)
-and [HiGHS](https://highs.dev/)), but they are often not as powerful as the
-commercial ones (yet). However, even when investing in such a solver, the
-underlying techniques
-([Branch and Bound](https://en.wikipedia.org/wiki/Branch_and_bound) &
-[Cut](https://en.wikipedia.org/wiki/Branch_and_cut) on
-[Linear Relaxations](https://en.wikipedia.org/wiki/Linear_programming_relaxation))
-struggle with some optimization problems, especially if the problem contains a
-lot of logical constraints that a solution has to satisfy. In this case, the
-[Constraint Programming](https://en.wikipedia.org/wiki/Constraint_programming)
-(CP) approach may be more successful. For Constraint Programming, there are many
-open source solvers, but they usually do not scale as well as MIP-solvers and
-are worse in optimizing objective functions. While MIP-solvers are frequently
-able to optimize problems with hundreds of thousands of variables and
-constraints, the classical CP-solvers often struggle with problems with more
-than a few thousand variables and constraints. However, the relatively new
-[CP-SAT](https://developers.google.com/optimization/cp/cp_solver) of Google's
-[OR-Tools](https://github.com/google/or-tools/) suite shows to overcome many of
-the weaknesses and provides a viable alternative to MIP-solvers, being
-competitive for many problems and sometimes even superior.
+є комерційними і дорогими (хоча здебільшого безплатними для академічної спільноти).
+Існують також деякі розв’язувачі з відкритим кодом (наприклад, [SCIP](https://www.scipopt.org/)
+і [HiGHS](https://highs.dev/)), але вони часто ще не такі потужні, як комерційні.
+Втім, навіть інвестуючи у такий розв’язувач, базові техніки
+([гілок і меж](https://en.wikipedia.org/wiki/Branch_and_bound) та
+[відтинань](https://en.wikipedia.org/wiki/Branch_and_cut) на
+[лінійних релаксаціях](https://en.wikipedia.org/wiki/Linear_programming_relaxation))
+не завжди справляються з певними задачами оптимізації, особливо якщо задача містить
+багато логічних обмежень, яким має відповідати розв’язок. У такому випадку
+підхід [програмування з обмеженнями](https://en.wikipedia.org/wiki/Constraint_programming)
+(CP) може бути успішнішим. Для CP існує чимало розв’язувачів з відкритим кодом,
+але вони зазвичай не масштабуються так добре, як MIP-розв’язувачі, і гірше
+оптимізують цільові функції. Хоча MIP-розв’язувачі часто здатні оптимізувати задачі
+з сотнями тисяч змінних і обмежень, класичні CP-розв’язувачі часто мають труднощі
+з задачами, де змінних і обмежень більше кількох тисяч. Однак відносно новий
+[CP-SAT](https://developers.google.com/optimization/cp/cp_solver) у складі
+[OR-Tools](https://github.com/google/or-tools/) від Google демонструє, що може
+подолати багато з цих слабких місць і є життєздатною альтернативою MIP-розв’язувачам,
+конкуруючи з ними для багатьох задач і інколи навіть перевершуючи їх.
 
-As a quick demonstration of CP-SAT's capabilities - particularly for those less
-familiar with optimization frameworks - let us solve an instance of the NP-hard
-Knapsack Problem. This classic optimization problem requires selecting a subset
-of items, each with a specific weight and value, to maximize the total value
-without exceeding a weight limit. Although a recursive algorithm is easy to
-implement, 100 items yield approximately $2^{100} \approx 10^{30}$ possible
-solutions. Even with a supercomputer performing $10^{18}$ operations per second,
-it would take more than 31,000 years to evaluate all possibilities.
+Як швидку демонстрацію можливостей CP-SAT — особливо для тих, хто менш
+знайомий з оптимізаційними фреймворками — розв’яжімо екземпляр NP-складної
+задачі про рюкзак (Knapsack). Ця класична оптимізаційна задача вимагає вибрати
+підмножину предметів, кожен із певною вагою та цінністю, щоб максимізувати
+загальну цінність, не перевищивши обмеження на вагу. Хоча рекурсивний алгоритм
+легко реалізувати, 100 предметів дають приблизно $2^{100} \approx 10^{30}$
+можливих розв’язків. Навіть надпотужний комп’ютер, що виконує $10^{18}$ операцій
+за секунду, потребував би понад 31 000 років, щоб перевірити всі можливості.
 
-Here is how you can solve it using CP-SAT:
+Ось як це можна розв’язати за допомогою CP-SAT:
 
 ```python
 from ortools.sat.python import cp_model  # pip install -U ortools
 
-# Specifying the input
+# Задаємо вхідні дані
 weights = [395, 658, 113, 185, 336, 494, 294, 295, 256, 530, 311, 321, 602, 855, 209, 647, 520, 387, 743, 26, 54, 420, 667, 971, 171, 354, 962, 454, 589, 131, 342, 449, 648, 14, 201, 150, 602, 831, 941, 747, 444, 982, 732, 350, 683, 279, 667, 400, 441, 786, 309, 887, 189, 119, 209, 532, 461, 420, 14, 788, 691, 510, 961, 528, 538, 476, 49, 404, 761, 435, 729, 245, 204, 401, 347, 674, 75, 40, 882, 520, 692, 104, 512, 97, 713, 779, 224, 357, 193, 431, 442, 816, 920, 28, 143, 388, 23, 374, 905, 942]
 values = [71, 15, 100, 37, 77, 28, 71, 30, 40, 22, 28, 39, 43, 61, 57, 100, 28, 47, 32, 66, 79, 70, 86, 86, 22, 57, 29, 38, 83, 73, 91, 54, 61, 63, 45, 30, 51, 5, 83, 18, 72, 89, 27, 66, 43, 64, 22, 23, 22, 72, 10, 29, 59, 45, 65, 38, 22, 68, 23, 13, 45, 34, 63, 34, 38, 30, 82, 33, 64, 100, 26, 50, 66, 40, 85, 71, 54, 25, 100, 74, 96, 62, 58, 21, 35, 36, 91, 7, 19, 32, 77, 70, 23, 43, 78, 98, 30, 12, 76, 38]
 capacity = 2000
 
-# Now we solve the problem
+# Тепер розв’язуємо задачу
 model = cp_model.CpModel()
 xs = [model.new_bool_var(f"x_{i}") for i in range(len(weights))]
 
@@ -75,8 +73,8 @@ model.maximize(accumulated_value)
 solver = cp_model.CpSolver()
 solver.solve(model)
 
-print("Optimal selection:", [i for i, x in enumerate(xs) if solver.value(x)])
-print("Total packed value:", solver.objective_value)
+print("Оптимальний вибір:", [i for i, x in enumerate(xs) if solver.value(x)])
+print("Загальна цінність:", solver.objective_value)
 ```
 
 ```
@@ -84,168 +82,165 @@ Optimal selection: [2, 14, 19, 20, 29, 33, 52, 53, 54, 58, 66, 72, 76, 77, 81, 8
 Total packed value: 1161.0
 ```
 
-How long did CP-SAT take? On my machine, it found the provably best solution
-from $2^{100}$ possibilities in just 0.01 seconds. Feel free to try it on yours.
-CP-SAT does not evaluate all solutions; it uses advanced techniques to make
-deductions and prune the search space. While more efficient approaches than a
-naive recursive algorithm exist, matching CP-SAT’s performance would require
-significant time and effort. And this is just the beginning - CP-SAT can tackle
-much more complex problems, as we will see in this primer.
+Скільки часу це зайняло? На моїй машині CP-SAT знайшов доведено найкращий
+розв’язок серед $2^{100}$ можливостей лише за 0,01 секунди. Спробуйте й на
+своїй. CP-SAT не перебирає всі розв’язки — він використовує просунуті техніки,
+щоб робити висновки й обрізати простір пошуку. Хоча існують ефективніші підходи,
+ніж наївний рекурсивний алгоритм, досягти продуктивності CP-SAT без значних
+зусиль було б складно. І це лише початок — як побачимо в цьому праймері, CP-SAT
+може розв’язувати значно складніші задачі.
 
 > [!TIP]
 >
-> Not convinced yet of why tools like CP-SAT are amazing? Maybe Marco Lübbecke
-> can convince you in his 12-minute TEDx talk
+> Ще не переконані, чому інструменти на кшталт CP-SAT — це круто? Можливо,
+> Марко Люббеке переконає вас у 12-хвилинній доповіді TEDx
 > [Anything you can do I can do better](https://www.youtube.com/watch?v=Dc38La-Xvog)
-> about mathematical optimization.
+> про математичну оптимізацію.
 
-### Content
+### Зміст
 
-Whether you are from the MIP community seeking alternatives or CP-SAT is your
-first optimization solver, this book will guide you through the fundamentals of
-CP-SAT in the first part, demonstrating all its features. The second part will
-equip you with the skills needed to build and deploy optimization algorithms
-using CP-SAT.
+Незалежно від того, чи ви прийшли зі спільноти MIP у пошуках альтернатив, чи
+CP-SAT є вашим першим оптимізаційним розв’язувачем, ця книга проведе вас через
+основи CP-SAT у першій частині, демонструючи всі його можливості. Друга частина
+дасть вам навички, потрібні для побудови й розгортання оптимізаційних алгоритмів
+з використанням CP-SAT.
 
-The first part introduces the fundamentals of CP-SAT, starting with a chapter on
-installation. This chapter guides you through setting up CP-SAT and outlines the
-necessary hardware requirements. The next chapter provides a simple example of
-using CP-SAT, explaining the mathematical notation and its approximation in
-Python with overloaded operators. You will then progress to basic modeling,
-learning how to create variables, objectives, and fundamental constraints in
-CP-SAT.
+Перша частина вводить у фундаментальні принципи CP-SAT, починаючи з розділу
+про встановлення. У цьому розділі пояснюється, як налаштувати CP-SAT і які
+апаратні вимоги потрібні. Далі наведено простий приклад використання CP-SAT,
+із поясненням математичної нотації та її наближення в Python за допомогою
+перевантажених операторів. Потім ви перейдете до базового моделювання — як
+створювати змінні, цілі та фундаментальні обмеження в CP-SAT.
 
-Following this, a chapter on advanced modeling will teach you how to handle
-complex constraints, such as circuit constraints and intervals, with practical
-examples. Another chapter discusses specifying CP-SAT's behavior, including
-setting time limits and using parallelization. You will also find a chapter on
-interpreting CP-SAT logs, which helps you understand how well CP-SAT is managing
-your problem. Additionally, there is an overview of the underlying techniques
-used in CP-SAT. The first part concludes with a chapter comparing CP-SAT with
-other optimization techniques and tools, providing a broader context.
+Далі розділ про просунуте моделювання навчить працювати зі складними обмеженнями,
+наприклад обмеженнями на контури (circuit) і інтервали, із практичними прикладами.
+Інший розділ пояснює, як задавати поведінку CP-SAT, зокрема встановлювати ліміти
+часу та використовувати паралелізацію. Також є розділ про інтерпретацію логів
+CP-SAT, який допомагає зрозуміти, наскільки добре CP-SAT керується з вашою задачею.
+Крім того, подано огляд базових технік, використаних у CP-SAT. Перша частина
+завершується розділом, що порівнює CP-SAT з іншими техніками та інструментами
+оптимізації, розміщуючи його в ширшому контексті.
 
-The second part delves into more advanced topics, focusing on general skills
-like coding patterns and benchmarking rather than specific CP-SAT features. A
-chapter on coding patterns offers basic design patterns for creating
-maintainable algorithms with CP-SAT. Another chapter explains how to provide
-your optimization algorithm as a service by building an optimization API. There
-is also a chapter on developing powerful heuristics using CP-SAT for
-particularly difficult or large problems. The second part concludes with a
-chapter on benchmarking, offering guidance on how to scientifically benchmark
-your model and interpret the results.
+Друга частина заглиблюється в просунуті теми, зосереджуючись на загальних
+навичках, таких як патерни кодування та бенчмаркінг, а не на конкретних функціях
+CP-SAT. Розділ про патерни кодування пропонує базові шаблони проєктування для
+створення підтримуваних алгоритмів із CP-SAT. Інший розділ пояснює, як надати
+ваш оптимізаційний алгоритм як сервіс, побудувавши оптимізаційне API. Також є
+розділ про розробку потужних евристик із використанням CP-SAT для особливо
+складних або великих задач. Друга частина завершується розділом про бенчмаркінг
+— як науково порівнювати моделі та інтерпретувати результати.
 
-### Target Audience
+### Цільова аудиторія
 
-I wrote this book for my computer science students at TU Braunschweig, and it is
-used as supplementary material in my algorithm engineering courses. Initially,
-we focused on Mixed Integer Programming (MIP), with CP-SAT discussed as an
-alternative. However, we recently began using CP-SAT as the first optimization
-solver due to its high-level interface, which is much easier for beginners to
-grasp. Despite this shift, because MIP is more commonly used, the book includes
-numerous comparisons to MIP. Thus, it is designed to be beginner-friendly while
-also addressing the needs of MIP users seeking alternatives.
+Я написав цю книгу для студентів комп’ютерних наук TU Braunschweig, і вона
+використовується як додатковий матеріал у моїх курсах з інженерії алгоритмів.
+Спочатку ми зосереджувалися на змішаному цілочисельному програмуванні (MIP), а
+CP-SAT розглядали як альтернативу. Однак нещодавно ми почали використовувати
+CP-SAT як перший оптимізаційний розв’язувач завдяки його високорівневому
+інтерфейсу, який значно легше засвоювати початківцям. Попри цю зміну, оскільки
+MIP використовується частіше, книга містить багато порівнянь із MIP. Тож вона
+дружня до початківців, але водночас враховує потреби користувачів MIP, які
+шукають альтернативи.
 
-Unlike other books aimed at mathematical optimization or operations research
-students, this one, aimed at computer science students, emphasizes coding over
-mathematics or business cases, providing a hands-on approach to learning
-optimization. The second part of the book can also be interesting for more
-advanced users, providing content that I found missing in other books on
-optimization.
+На відміну від інших книг, орієнтованих на студентів математичної оптимізації
+чи дослідження операцій, ця книга, адресована студентам комп’ютерних наук,
+наголошує на коді більше, ніж на математиці чи бізнес-кейсах, пропонуючи
+практичний підхід до навчання оптимізації. Друга частина книги також може бути
+цікавою більш просунутим користувачам, оскільки містить те, чого мені бракувало
+в інших книгах про оптимізацію.
 
-### Table of Content
+### Зміст книги
 
-**Part 1: The Basics**
+**Частина 1: Основи**
 
-1. [Installation](#01-installation): Quick installation guide.
-2. [Example](#02-example): A short example, showing the usage of CP-SAT.
-3. [Basic Modeling](#04-modelling): An overview of variables, objectives, and
-   constraints.
-4. [Advanced Modeling](#04B-advanced-modelling): More complex constraints, such
-   as circuit constraints and intervals.
-5. [Parameters](#05-parameters): How to specify CP-SATs behavior, if needed.
-   Timelimits, hints, assumptions, parallelization, ...
-6. [Understanding the Log](#understanding-the-log): How to interpret the log
-7. [How does it work?](#07-under-the-hood): After we know what we can do with
-   CP-SAT, we look into how CP-SAT will do all these things.
-8. [Alternatives](#03-big-picture): An overview of the different optimization
-   techniques and tools available. Putting CP-SAT into context.
-9. [MathOpt as a Modeling Layer](#chapters-mathopt): A new modeling layer in
-   OR-Tools that allows using CP-SAT as a backend solver, but also MIP solvers
-   such as Gurobi or HiGHS.
+1. [Встановлення](#01-installation): швидкий гайд зі встановлення.
+2. [Приклад](#02-example): короткий приклад використання CP-SAT.
+3. [Базове моделювання](#04-modelling): огляд змінних, цілей і обмежень.
+4. [Просунуте моделювання](#04B-advanced-modelling): складніші обмеження, такі як
+   обмеження на контури й інтервали.
+5. [Параметри](#05-parameters): як задавати поведінку CP-SAT за потреби.
+   Ліміти часу, підказки, припущення, паралелізація тощо.
+6. [Розуміння логів](#understanding-the-log): як інтерпретувати лог.
+7. [Як це працює?](#07-under-the-hood): після того як ми зрозуміємо, що можемо
+   робити з CP-SAT, подивимося, як CP-SAT це реалізує.
+8. [Альтернативи](#03-big-picture): огляд різних технік і інструментів
+   оптимізації. Розміщення CP-SAT у контексті.
+9. [MathOpt як шар моделювання](#chapters-mathopt): новий шар моделювання в
+   OR-Tools, який дозволяє використовувати CP-SAT як бекенд-розв’язувач, а також
+   MIP-розв’язувачі, такі як Gurobi або HiGHS.
 
-**Part 2: Advanced Topics**
+**Частина 2: Просунуті теми**
 
-7. [Coding Patterns](#06-coding-patterns): Basic design patterns for creating
-   maintainable algorithms.
-8. [(Draft) Test-Driven Development](#test-driven-optimization): How to develop
-   your optimization algorithm using test-driven development.
-9. [Building an Optimization API](#building_an_optimization_api) How to build a
-   scalable API for long running optimization jobs.
-10. [CP-SAT vs. ML vs. QC](#chapters-machine-learning): A comparison of CP-SAT
-    with Machine Learning and Quantum Computing.
-11. [Large Neighborhood Search](#09-lns): The use of CP-SAT to create more
-    powerful heuristics.
-12. [Benchmarking your Model](#08-benchmarking): How to benchmark your model and
-    how to interpret the results.
+7. [Патерни кодування](#06-coding-patterns): базові шаблони проєктування для
+   створення підтримуваних алгоритмів.
+8. [(Чернетка) Розробка через тести](#test-driven-optimization): як розробляти
+   оптимізаційний алгоритм із застосуванням test-driven development.
+9. [Побудова оптимізаційного API](#building_an_optimization_api) як створити
+   масштабоване API для довготривалих оптимізаційних задач.
+10. [CP-SAT vs. ML vs. QC](#chapters-machine-learning): порівняння CP-SAT з
+    машинним навчанням та квантовими обчисленнями.
+11. [Пошук у великій околиці](#09-lns): використання CP-SAT для створення
+    потужніших евристик.
+12. [Бенчмаркінг вашої моделі](#08-benchmarking): як порівнювати вашу модель та
+    інтерпретувати результати.
 
-### Background
+### Передумови
 
 <!-- Background --->
 
-This book assumes you are fluent in Python, and have already been introduced to
-combinatorial optimization problems. In case you are just getting into
-combinatorial optimization and are learning on your own, I recommend starting
-with the free Coursera course,
+Ця книга передбачає, що ви вільно володієте Python і вже знайомі з комбінаторними
+задачами оптимізації. Якщо ж ви лише починаєте вивчати комбінаторну оптимізацію
+самостійно, рекомендую почати з безкоштовного курсу Coursera
 [Discrete Optimization](https://www.coursera.org/learn/discrete-optimization),
-taught by Pascal Van Hentenryck and Carleton Coffrin. This course provides a
-comprehensive introduction in a concise format.
+який читають Pascal Van Hentenryck та Carleton Coffrin. Цей курс дає
+всебічний вступ у стислому форматі.
 
-For an engaging exploration of a classic problem within this domain,
-[In Pursuit of the Traveling Salesman by Bill Cook](https://press.princeton.edu/books/paperback/9780691163529/in-pursuit-of-the-traveling-salesman)
-is highly recommended. This book, along with this
-[YouTube talk](https://www.youtube.com/watch?v=5VjphFYQKj8) by the author that
-lasts about an hour, offers a practical case study of the well-known Traveling
-Salesman Problem. It not only introduces fundamental techniques but also delves
-into the community and historical context of the field.
+Для захопливого занурення в класичну задачу цієї галузі дуже рекомендую
+[In Pursuit of the Traveling Salesman від Bill Cook](https://press.princeton.edu/books/paperback/9780691163529/in-pursuit-of-the-traveling-salesman).
+Ця книга разом із
+[YouTube-доповіддю](https://www.youtube.com/watch?v=5VjphFYQKj8) автора,
+що триває близько години, пропонує практичний кейс із добре відомою задачею
+комівояжера. Вона не лише знайомить з базовими техніками, а й заглиблюється в
+спільноту та історичний контекст цієї сфери.
 
-Additionally, the article
+Крім того, стаття
 [Mathematical Programming](https://www.gurobi.com/resources/math-programming-modeling-basics/)
-by CP-SAT's competitor Gurobi offers an insightful introduction to mathematical
-programming and modeling. In this context, the term "Programming" does not refer
-to coding; rather, it originates from an earlier usage of the word "program",
-which denoted a plan of action or a schedule. If this distinction is new to you,
-it is a strong indication that you would benefit from reading this article.
+від конкурента CP-SAT — Gurobi — дає змістовний вступ до математичного
+програмування та моделювання. У цьому контексті слово «Programming» не означає
+написання коду; воно походить від раннього значення слова «program», що
+означало план дій або розклад. Якщо ця відмінність для вас нова, це сильний
+сигнал, що вам варто прочитати цю статтю.
 
-> **About the Lead Author:** [Dr. Dominik Krupke](https://krupke.cc) is a
-> postdoctoral researcher with the
-> [Algorithms Division](https://www.ibr.cs.tu-bs.de/alg) at TU Braunschweig. He
-> specializes in practical solutions to NP-hard problems. Initially focused on
-> theoretical computer science, he now applies his expertise to solve what was
-> once deemed impossible, frequently with the help of CP-SAT. This primer on
-> CP-SAT, first developed as course material for his students, has been extended
-> in his spare time to cater to a wider audience.
+> **Про головного автора:** [д-р Dominik Krupke](https://krupke.cc) —
+> постдокторський дослідник у
+> [Algorithms Division](https://www.ibr.cs.tu-bs.de/alg) TU Braunschweig. Він
+> спеціалізується на практичних рішеннях NP-складних задач. Починав у
+> теоретичній інформатиці, а нині застосовує свою експертизу для розв’язання
+> того, що раніше вважали неможливим, часто за допомогою CP-SAT. Цей праймер
+> по CP-SAT спершу був створений як навчальний матеріал для його студентів, а
+> згодом у вільний час розширений для ширшої аудиторії.
 >
-> **Contributors:** This primer has been enriched by the contributions of
-> [several individuals](https://github.com/d-krupke/cpsat-primer/graphs/contributors).
-> Notably, Leon Lan played a key role in restructuring the content and offering
-> critical feedback, while Michael Perk significantly enhanced the section on
-> the reservoir constraint. I also extend my gratitude to all other contributors
-> who identified and corrected errors, improved the text, and offered valuable
-> insights.
+> **Учасники:** цей праймер збагатили внески
+> [кількох людей](https://github.com/d-krupke/cpsat-primer/graphs/contributors).
+> Зокрема, Leon Lan відіграв ключову роль у реструктуризації матеріалу та
+> наданні критичного зворотного зв’язку, а Michael Perk суттєво покращив
+> розділ про обмеження reservoir. Також дякую всім іншим учасникам, які
+> знаходили й виправляли помилки, покращували текст і ділилися цінними ідеями.
 
-> **Found a mistake?** Please open an issue or a pull request. You can also just
-> write me a quick mail to `krupked@gmail.com`.
+> **Знайшли помилку?** Будь ласка, відкрийте issue або pull request. Можна
+> також просто написати мені листа на `krupked@gmail.com`.
 
-> **Want to contribute?** If you are interested in contributing, please open an
-> issue or email me with a brief description of your proposal. We can then
-> discuss the details. I welcome all assistance and am open to expanding the
-> content. Contributors to any section or similar input will be recognized as
-> coauthors.
+> **Хочете долучитися?** Якщо ви зацікавлені у внеску, будь ласка, відкрийте
+> issue або напишіть мені email із коротким описом вашої пропозиції. Тоді ми
+> зможемо обговорити деталі. Я вітаю будь-яку допомогу і відкритий до
+> розширення контенту. Учасники будь-якого розділу чи подібних внесків будуть
+> визнані співавторами.
 
-> **Want to use/share this content?** This tutorial can be freely used under
-> [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/). Smaller parts can
-> even be copied without any acknowledgement for non-commercial, educational
-> purposes.
+> **Хочете використати/поширювати цей контент?** Цей туторіал можна вільно
+> використовувати за ліцензією
+> [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/). Невеликі частини
+> можна копіювати навіть без зазначення авторства для некомерційних
+> освітніх цілей.
 
 
 ---
@@ -254,71 +249,70 @@ it is a strong indication that you would benefit from reading this article.
 <!-- ./chapters/01_installation.md -->
 <!-- EDIT THIS PART VIA 01_installation.md -->
 
-# Part 1: The Basics
+# Частина 1: Основи
 
 <a name="01-installation"></a>
 
-## Installation
+## Встановлення
 
-We are using Python 3 in this primer and assume that you have a working Python 3
-installation as well as the basic knowledge to use it. There are also interfaces
-for other languages, but Python 3 is, in my opinion, the most convenient one, as
-the mathematical expressions in Python are very close to the mathematical
-notation (allowing you to spot mathematical errors much faster). Only for huge
-models, you may need to use a compiled language such as C++ due to performance
-issues. For smaller models, you will not notice any performance difference.
+У цьому праймері ми використовуємо Python 3 і припускаємо, що у вас є робоча
+інсталяція Python 3 та базові навички роботи з ним. Існують інтерфейси й для
+інших мов, але Python 3, на мою думку, найзручніший, адже математичні вирази в
+Python дуже близькі до математичної нотації (це дозволяє швидше помічати
+математичні помилки). Лише для дуже великих моделей може знадобитися
+скомпільована мова на кшталт C++ через питання продуктивності. Для менших
+моделей ви не помітите різниці у швидкодії.
 
-The installation of CP-SAT, which is part of the OR-Tools package, is very easy
-and can be done via Python's package manager
+Встановити CP-SAT, який є частиною пакета OR-Tools, дуже просто — це можна
+зробити через менеджер пакетів Python
 [pip](https://pip.pypa.io/en/stable/).
 
 ```shell
 pip3 install -U ortools
 ```
 
-This command will also update an existing installation of OR-Tools. As this tool
-is in active development, it is recommended to update it frequently. We actually
-encountered wrong behavior, i.e., bugs, in earlier versions that then have been
-fixed by updates (this was on some more advanced features, do not worry about
-correctness with basic usage).
+Ця команда також оновить наявну інсталяцію OR-Tools. Оскільки інструмент активно
+розвивається, рекомендується часто оновлюватися. Ми навіть стикалися з
+некоректною поведінкою (тобто багами) у ранніх версіях, які згодом виправили в
+оновленнях (це стосувалося більш просунутих можливостей — не хвилюйтеся щодо
+коректності базового використання).
 
-I personally like to use [Jupyter Notebooks](https://jupyter.org/) for
-experimenting with CP-SAT.
+Особисто я люблю використовувати [Jupyter Notebooks](https://jupyter.org/) для
+експериментів із CP-SAT.
 
-### What hardware do you need?
+### Яке обладнання потрібне?
 
-It is important to note that for CP-SAT usage, you do not need the capabilities
-of a supercomputer. A standard laptop is often sufficient for solving many
-problems. The primary requirements are CPU power and memory bandwidth, with a
-GPU being unnecessary.
+Важливо розуміти, що для використання CP-SAT вам не потрібні можливості
+суперкомп’ютера. Стандартного ноутбука часто достатньо для розв’язання багатьох
+задач. Основні вимоги — потужність CPU та пропускна здатність пам’яті; GPU не
+потрібен.
 
-In terms of CPU power, the key is balancing the number of cores with the
-performance of each individual core. CP-SAT leverages all available cores by
-default, implementing different strategies on each.
-[Depending on the number of cores, CP-SAT will behave differently](https://github.com/google/or-tools/blob/main/ortools/sat/docs/troubleshooting.md#improving-performance-with-multiple-workers).
-However, the effectiveness of these strategies can vary, and it is usually not
-apparent which one will be most effective. A higher single-core performance
-means that your primary strategy will operate more swiftly. I recommend a
-minimum of 4 cores and 16GB of RAM.
+Щодо процесорної потужності, ключовим є баланс між кількістю ядер і швидкодією
+кожного окремого ядра. CP-SAT за замовчуванням використовує всі доступні ядра,
+застосовуючи різні стратегії на кожному з них.
+[Залежно від кількості ядер CP-SAT поводиться по-різному](https://github.com/google/or-tools/blob/main/ortools/sat/docs/troubleshooting.md#improving-performance-with-multiple-workers).
+Однак ефективність цих стратегій може відрізнятися, і заздалегідь зазвичай
+незрозуміло, яка буде найкращою. Вища продуктивність одного ядра означає, що
+ваша основна стратегія працюватиме швидше. Я рекомендую мінімум 4 ядра та 16 ГБ
+оперативної пам’яті.
 
-While CP-SAT is quite efficient in terms of memory usage, the amount of
-available memory can still be a limiting factor in the size of problems you can
-tackle. When it came to setting up our lab for extensive benchmarking at TU
-Braunschweig, we faced a choice between desktop machines and more expensive
-workstations or servers. We chose desktop machines equipped with AMD Ryzen 9
-7900 CPUs (Intel would be equally suitable) and 96GB of DDR5 RAM, managed using
-Slurm. This decision was driven by the fact that the performance gains from
-higher-priced workstations or servers were relatively marginal compared to their
-significantly higher costs. When on the road, I am often still able to do stuff
-with my old Intel Macbook Pro from 2018 with an i7 and only 16GB of RAM, but
-large models will overwhelm it. My workstation at home with AMD Ryzen 7 5700X
-and 32GB of RAM on the other hand rarely has any problems with the models I am
-working on.
+Хоча CP-SAT доволі ощадний щодо пам’яті, обсяг доступної оперативної пам’яті все
+одно може бути обмежувальним фактором для розміру задач. Коли ми налаштовували
+лабораторію для масштабного бенчмаркінгу в TU Braunschweig, постало питання
+вибору між настільними ПК і дорожчими робочими станціями чи серверами. Ми
+обрали настільні машини з процесорами AMD Ryzen 9 7900 (Intel теж підійшов би)
+та 96 ГБ DDR5, керовані через Slurm. Це рішення було зумовлене тим, що приріст
+продуктивності від дорожчих робочих станцій або серверів був відносно невеликим
+порівняно зі значно вищою ціною. У дорозі я часто й досі можу працювати на
+своєму старому Intel Macbook Pro 2018 року з i7 і лише 16 ГБ RAM, але великі
+моделі його перевантажують. Натомість моя домашня робоча станція з AMD Ryzen 7
+5700X і 32 ГБ RAM рідко має проблеми з моделями, над якими я працюю.
 
-For further guidance, consider the
-[hardware recommendations for the Gurobi solver](https://support.gurobi.com/hc/en-us/articles/8172407217041-What-hardware-should-I-select-when-running-Gurobi-),
-which are likely to be similar. Since we frequently use Gurobi in addition to
-CP-SAT, our hardware choices were also influenced by their recommendations.
+Для додаткових рекомендацій зверніть увагу на
+[апаратні рекомендації для розв’язувача Gurobi](https://support.gurobi.com/hc/en-us/articles/8172407217041-What-hardware-should-I-select-when-running-Gurobi-),
+які, ймовірно, будуть схожими. Оскільки ми часто використовуємо Gurobi поряд із
+CP-SAT, наші апаратні рішення також були частково зумовлені їхніми
+рекомендаціями.
 
 <!-- This file was generated by the `build.py` script. Do not edit it manually. -->
 <!-- ./chapters/02_example.md -->
@@ -326,66 +320,64 @@ CP-SAT, our hardware choices were also influenced by their recommendations.
 
 <a name="02-example"></a>
 
-## A Simple Example
+## Простий приклад
 
 
-Before we dive into any internals, let us take a quick look at a simple
-application of CP-SAT. This example is so simple that you could solve it by
-hand, but know that CP-SAT would (probably) be fine with you adding a thousand
-(maybe even ten- or hundred-thousand) variables and constraints more. The basic
-idea of using CP-SAT is, analogous to MIPs, to define an optimization problem in
-terms of variables, constraints, and objective function, and then let the solver
-find a solution for it. We call such a formulation that can be understood by the
-corresponding solver a _model_ for the problem. For people not familiar with
-this
-[declarative approach](https://programiz.pro/resources/imperative-vs-declarative-programming/),
-you can compare it to SQL, where you also just state what data you want, not how
-to get it. However, it is not purely declarative, because it can still make a
-huge(!) difference how you model the problem and getting that right takes some
-experience and understanding of the internals. You can still get lucky for
-smaller problems (let us say a few hundred to thousands of variables) and obtain
-optimal solutions without having an idea of what is going on. The solvers can
-handle more and more 'bad' problem models effectively with every year.
+Перш ніж заглиблюватися у внутрішні деталі, швидко погляньмо на просте
+застосування CP-SAT. Приклад настільки простий, що його можна розв’язати вручну,
+але пам’ятайте, що CP-SAT (ймовірно) нормально впорається, якщо ви додасте
+тисячу (а можливо й десятки чи сотні тисяч) змінних і обмежень більше. Базова
+ідея використання CP-SAT, подібно до MIP, — визначити оптимізаційну задачу через
+змінні, обмеження й цільову функцію, а потім дозволити розв’язувачу знайти
+розв’язок. Таку формалізацію, яку відповідний розв’язувач може зрозуміти,
+називають _моделлю_ задачі. Для тих, хто не знайомий із
+[декларативним підходом](https://programiz.pro/resources/imperative-vs-declarative-programming/),
+можна провести аналогію з SQL: ви описуєте, які дані хочете отримати, а не як
+їх добути. Втім, це не суто декларативний підхід, адже те, _як_ ви моделюєте
+задачу, може мати величезне (!) значення, і правильне моделювання потребує
+досвіду та розуміння внутрішньої роботи. Для невеликих задач (скажімо, кілька
+сотень або тисяч змінних) ви можете просто «пощастити» й отримати оптимальні
+розв’язки, не маючи чіткого уявлення про те, що відбувається. Розв’язувачі
+щороку все краще справляються з «поганими» моделями.
 
 > [!NOTE]
 >
-> A **model** in mathematical programming refers to a mathematical description
-> of a problem, consisting of variables, constraints, and optionally an
-> objective function that can be understood by the corresponding solver class.
-> _Modelling_ refers to transforming a problem (instance) into the corresponding
-> framework, e.g., by making all constraints linear as required for Mixed
-> Integer Linear Programming. Be aware that the
-> [SAT](https://en.wikipedia.org/wiki/SAT_solver)-community uses the term
-> _model_ to refer to a (feasible) variable assignment, i.e., solution of a
-> SAT-formula. If you struggle with this terminology, maybe you want to read
-> this short guide on
+> **Модель** у математичному програмуванні означає математичний опис задачі, що
+> складається зі змінних, обмежень і, за потреби, цільової функції, яку може
+> розуміти відповідний клас розв’язувачів. _Моделювання_ — це перетворення
+> задачі (екземпляра) у відповідну форму, наприклад перетворення всіх обмежень
+> у лінійні, як цього вимагає змішане цілочисельне лінійне програмування. Зауважте,
+> що спільнота [SAT](https://en.wikipedia.org/wiki/SAT_solver) використовує
+> термін _model_ для позначення (допустимого) присвоєння змінних, тобто розв’язку
+> SAT-формули. Якщо ви плутаєтеся в термінах, можливо, варто прочитати короткий
+> гайд
 > [Math Programming Modelling Basics](https://www.gurobi.com/resources/math-programming-modeling-basics/).
 
-Our first problem has no deeper meaning, except for showing the basic workflow
-of creating the variables (x and y), adding the constraint $x+y<=30$ on them,
-setting the objective function (maximize $30x + 50y$), and obtaining a solution:
+Наша перша задача не має глибшого сенсу, окрім демонстрації базового робочого
+процесу: створення змінних (x і y), додавання обмеження $x+y<=30$, задання цілі
+(максимізувати $30x + 50y$) і отримання розв’язку:
 
 ```python
 from ortools.sat.python import cp_model
 
 model = cp_model.CpModel()
 
-# Variables
+# Змінні
 x = model.new_int_var(0, 100, "x")
 y = model.new_int_var(0, 100, "y")
 
-# Constraints
+# Обмеження
 model.add(x + y <= 30)
 
-# Objective
+# Ціль
 model.maximize(30 * x + 50 * y)
 
-# Solve
+# Розв’язання
 solver = cp_model.CpSolver()
 status_code = solver.solve(model)
 status_name = solver.status_name()
 
-# Print the solver status and the optimal solution.
+# Виводимо статус розв’язувача та оптимальний розв’язок.
 print(f"{status_name} ({status_code})")
 print(f"x={solver.value(x)},  y={solver.value(y)}")
 ```
@@ -393,41 +385,39 @@ print(f"x={solver.value(x)},  y={solver.value(y)}")
     OPTIMAL (4)
     x=0,  y=30
 
-Pretty easy, right? For solving a generic problem, not just one specific
-instance, you would of course create a dictionary or list of variables and use
-something like `model.add(sum(vars)<=n)`, because you do not want to create the
-model by hand for larger instances.
+Дуже просто, так? Для розв’язання загальної задачі, а не одного конкретного
+екземпляра, ви, звісно, створите словник або список змінних і використаєте
+щось на кшталт `model.add(sum(vars)<=n)`, адже ви не хочете вручну створювати
+модель для великих екземплярів.
 
-The solver can return five different statuses:
+Розв’язувач може повертати п’ять різних статусів:
 
-| Status          | Code | Description                                                                                                                                                                           |
-| --------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `UNKNOWN`       | 0    | The solver has not run for long enough.                                                                                                                                               |
-| `MODEL_INVALID` | 1    | The model is invalid. You will rarely see that status.                                                                                                                                |
-| `FEASIBLE`      | 2    | The model has a feasible, but not necessarily optimal, solution. If your model does not have an objective, every feasible model will return `OPTIMAL`, which may be counterintuitive. |
-| `INFEASIBLE`    | 3    | The model has no feasible solution. This means that your constraints are too restrictive.                                                                                             |
-| `OPTIMAL`       | 4    | The model has an optimal solution. If your model does not have an objective, `OPTIMAL` is returned instead of `FEASIBLE`.                                                             |
+| Статус          | Код | Опис                                                                                                                                                                                         |
+| --------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `UNKNOWN`       | 0    | Розв’язувач працював недостатньо довго.                                                                                                                                                       |
+| `MODEL_INVALID` | 1    | Модель некоректна. Такий статус трапляється рідко.                                                                                                                                            |
+| `FEASIBLE`      | 2    | Модель має допустимий, але не обов’язково оптимальний, розв’язок. Якщо цільова функція відсутня, кожна допустима модель повертає `OPTIMAL`, що може бути неочевидно.                        |
+| `INFEASIBLE`    | 3    | Модель не має допустимого розв’язку. Це означає, що обмеження надто жорсткі.                                                                                                                   |
+| `OPTIMAL`       | 4    | Модель має оптимальний розв’язок. Якщо цільова функція відсутня, повертається `OPTIMAL` замість `FEASIBLE`.                                                                                   |
 
 > [!TIP]
 >
-> The status `UNBOUNDED` does _not_ exist, as CP-SAT does not have unbounded
-> variables. Classical MIP solvers allow unbounded variables, which can lead to
-> unbounded solutions, meaning that the objective function can grow indefinitely
-> without reaching a maximum or minimum value. In constraint programming,
-> unbounded domains are usually neither allowed nor useful. However, in linear
-> programming, they are important, e.g., when exploiting duality.
+> Статусу `UNBOUNDED` _немає_, оскільки в CP-SAT немає необмежених змінних.
+> Класичні MIP-розв’язувачі дозволяють необмежені змінні, що може призводити до
+> необмежених розв’язків, тобто цільова функція може необмежено зростати або
+> спадати без досягнення максимуму чи мінімуму. У програмуванні з обмеженнями
+> необмежені домени зазвичай не допускаються і не є корисними. Натомість у
+> лінійному програмуванні вони важливі, наприклад при використанні двоїстості.
 
-For larger models, CP-SAT will unfortunately not always able to compute an
-optimal solution. However, the good news is that the solver will likely still
-find a satisfactory solution and provide a bound on the optimal solution. Once
-you reach this point, understanding how to interpret the solver's log becomes
-crucial for analyzing the solver's performance. We will learn more about this
-later.
+Для великих моделей CP-SAT, на жаль, не завжди зможе знайти оптимальний
+розв’язок. Але гарна новина в тому, що розв’язувач, ймовірно, все одно знайде
+задовільний розв’язок і надасть межу для оптимального значення. На цьому етапі
+вміння інтерпретувати лог розв’язувача стає критично важливим для аналізу його
+продуктивності. Про це ми поговоримо пізніше.
 
-### Mathematical Model
+### Математична модель
 
-The mathematical model of the code above would usually be written by experts
-something like this:
+Математична модель наведеного вище коду зазвичай записується експертами так:
 
 ```math
 \max 30x + 50y
@@ -449,16 +439,15 @@ something like this:
 x,y \in \mathbb{Z}
 ```
 
-The `s.t.` stands for `subject to`, sometimes also read as `such that`.
+` s.t.` означає `subject to`, інколи також читають як `such that`.
 
-### Overloading
+### Перевантаження операторів
 
-One aspect of using CP-SAT solver that often poses challenges for learners is
-understanding operator overloading in Python and the distinction between the two
-types of variables involved. In this context, `x` and `y` serve as mathematical
-variables. That is, they are placeholders that will only be assigned specific
-values during the solving phase. To illustrate this more clearly, let us explore
-an example within the Python shell:
+Один із аспектів використання CP-SAT, що часто викликає труднощі у новачків, —
+це розуміння перевантаження операторів у Python і відмінностей між двома типами
+змінних. У цьому контексті `x` і `y` — це математичні змінні. Тобто це
+заглушки, яким конкретні значення будуть присвоєні лише під час розв’язання.
+Щоб проілюструвати це точніше, розгляньмо приклад у Python-оболонці:
 
 ```pycon
 >>> model = cp_model.CpModel()
@@ -473,71 +462,68 @@ sum(x(0..100), 1)
 <ortools.sat.python.cp_model.BoundedLinearExpression object at 0x7d8d5a765df0>
 ```
 
-In this example, `x` is not a conventional number but a placeholder defined to
-potentially assume any value between 0 and 100. When 1 is added to `x`, the
-result is a new placeholder representing the sum of `x` and 1. Similarly,
-comparing this sum to 1 produces another placeholder, which encapsulates the
-comparison of the sum with 1. These placeholders do not hold concrete values at
-this stage but are essential for defining constraints within the model.
-Attempting operations like `if x + 1 <= 1: print("True")` will trigger a
-`NotImplementedError`, as the condition `x+1<=1` cannot be evaluated directly.
+У цьому прикладі `x` — не звичайне число, а заглушка, що потенційно може
+приймати будь-яке значення між 0 і 100. Коли до `x` додаємо 1, результатом
+стає нова заглушка, що представляє суму `x` і 1. Аналогічно, порівняння цієї
+суми з 1 породжує ще одну заглушку, яка інкапсулює сам факт порівняння. На цьому
+етапі ці заглушки не мають конкретних значень, але вони потрібні для опису
+обмежень моделі. Спроба виконати операцію на кшталт `if x + 1 <= 1: print("True")`
+викличе `NotImplementedError`, адже умова `x+1<=1` не може бути безпосередньо
+оцінена.
 
-Although this approach to defining models might initially seem perplexing, it
-facilitates a closer alignment with mathematical notation, which in turn can
-make it easier to identify and correct errors in the modeling process.
+Хоча такий спосіб опису моделей може спочатку здаватися дивним, він дозволяє
+наблизитися до математичної нотації, що, у свою чергу, полегшує виявлення та
+виправлення помилок у моделі.
 
-### More examples
+### Більше прикладів
 
-If you are not yet satisfied,
-[this folder contains many Jupyter Notebooks with examples from the developers](https://github.com/google/or-tools/tree/stable/examples/notebook/sat).
-For example
+Якщо вам замало,
+[ця папка містить багато Jupyter Notebook-прикладів від розробників](https://github.com/google/or-tools/tree/stable/examples/notebook/sat).
+Наприклад:
 
 - [multiple_knapsack_sat.ipynb](https://github.com/google/or-tools/blob/stable/examples/notebook/sat/multiple_knapsack_sat.ipynb)
-  shows how to solve a multiple knapsack problem.
+  показує, як розв’язати задачу про кілька рюкзаків.
 - [nurses_sat.ipynb](https://github.com/google/or-tools/blob/stable/examples/notebook/sat/nurses_sat.ipynb)
-  shows how to schedule the shifts of nurses.
+  показує, як складати графік змін медсестер.
 - [bin_packing_sat.ipynb](https://github.com/google/or-tools/blob/stable/examples/notebook/sat/bin_packing_sat.ipynb)
-  shows how to solve a bin packing problem.
-- ... (if you know more good examples I should mention here, please let me
-  know!)
+  показує, як розв’язати задачу пакування в контейнери (bin packing).
+- ... (якщо ви знаєте ще гарні приклади, які варто згадати тут — дайте знати!)
 
-Further, you can find an extensive and beginner-friendly example on scheduling
-workers
-[here](https://pganalyze.com/blog/a-practical-introduction-to-constraint-programming-using-cp-sat).
+Крім того, є великий і дружній до початківців приклад розкладу працівників
+[тут](https://pganalyze.com/blog/a-practical-introduction-to-constraint-programming-using-cp-sat).
 
-Now that you have seen a minimal model, let us explore the various options
-available for problem modeling. While an experienced optimizer might be able to
-handle most problems using just the elements previously discussed, clearly
-expressing your intentions can help CP-SAT optimize your problem more
-effectively.
+Тепер, коли ви побачили мінімальну модель, давайте розглянемо різні варіанти
+моделювання задач. Хоча досвідчений оптимізатор може впоратися з більшістю задач,
+використовуючи лише щойно описані елементи, чітке формулювання ваших намірів
+може допомогти CP-SAT ефективніше оптимізувати задачу.
 
 > [!TIP]
 >
-> Optimization problems are everywhere in the real world. If you want a quick
-> overview of practical applications, the video
+> Оптимізаційні задачі всюди в реальному світі. Якщо вам потрібен швидкий
+> огляд практичних застосувань, відео
 > [Optimization 360 (Optimization Everywhere)](https://www.youtube.com/watch?v=bWbCjedszc0&list=PLHiHZENG6W8B7f6OEiDg5Gj0Jz35iZ17Z&index=3)
-> from Gurobi's Opti 202 Training highlights a variety of domains where
-> optimization plays a key role.
+> з тренінгу Gurobi Opti 202 показує різноманітні домени, де
+> оптимізація відіграє ключову роль.
 >
-> Here is a summary table of example problems from the video:
+> Ось підсумкова таблиця прикладів задач з відео:
 >
-> | **Problem / Domain**                    | **Optimization Challenge**                                                                                                           |
+> | **Задача / Домен**                      | **Оптимізаційний виклик**                                                                                                            |
 > | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-> | Milk & Dairy Processing                 | Blend raw milk with varying fat/protein contents into consistent end products like milk, butter, and cheese.                         |
-> | Power Grid Operation                    | Plan and dispatch electricity generation across multiple time horizons while maintaining grid stability and regulatory requirements. |
-> | Pet Food Formulation                    | Choose ingredient mixes that minimize cost while meeting nutritional constraints and availability limits.                            |
-> | Car Supply Chain & Inventory            | Decide which car models and configurations to stock at dealerships to balance demand, customization, and inventory costs.            |
-> | Environmental Compliance (Toyota)       | Allocate vehicle production across markets to meet diverse emissions and fuel-efficiency regulations at minimal cost.                |
-> | Parts Logistics & Pre-Sequencing (Audi) | Sequence thousands of car parts into limited staging areas and deliver them to the assembly line in the correct order.               |
-> | School Redistricting                    | Assign students to schools under constraints like capacity, travel distance, community continuity, and fairness.                     |
-> | ATM Cash Replenishment                  | Schedule deliveries of cash to ATMs to minimize idle capital and transportation costs while preventing shortages.                    |
-> | Workforce Shift Scheduling              | Assign staff to shifts while respecting fairness, workload limits, legal rules, and organizational needs.                            |
-> | Forestry & Sustainable Harvesting       | Plan harvesting and planting over decades to maximize long-term yield and carbon storage while ensuring sustainability.              |
-> | Package Delivery (Last Mile)            | Assign packages to routes and drivers efficiently at massive scale while accounting for geography and driver familiarity.            |
-> | Food Truck Location                     | Select daily locations for a fleet of food trucks to maximize expected profit given spatial demand.                                  |
-> | Sports Scheduling / Team Assignment     | Create balanced match schedules or fair teams while respecting skill levels and participant constraints.                             |
-> | Grocery Store Pricing                   | Jointly set prices of hundreds of interrelated products to maximize revenue while accounting for substitution effects.               |
-> | Food Delivery Platforms (Instacart)     | Match drivers, customers, and restaurants under uncertain demand and availability to deliver orders efficiently and reliably.        |
+> | Переробка молока та молочної продукції  | Змішати сире молоко з різним вмістом жиру/білка, щоб отримати стабільні кінцеві продукти (молоко, масло, сир).                       |
+> | Робота енергомережі                     | Планувати та диспетчеризувати генерацію електроенергії на кількох горизонтах часу, підтримуючи стабільність мережі та регуляторні вимоги. |
+> | Формування кормів для тварин            | Обирати суміші інгредієнтів, що мінімізують вартість, дотримуючись харчових обмежень і лімітів доступності.                         |
+> | Ланцюг постачання авто та запаси        | Визначати, які моделі та конфігурації авто тримати в дилерів, балансуючи попит, кастомізацію та витрати на запаси.                  |
+> | Екологічна відповідність (Toyota)       | Розподіляти виробництво авто між ринками, щоб дотриматися норм викидів і паливної ефективності з мінімальною вартістю.              |
+> | Логістика деталей і попереднє секвенсування (Audi) | Упорядковувати тисячі деталей авто в обмежених зонах і доставляти їх на конвеєр у правильному порядку.                      |
+> | Перерозподіл шкільних округів           | Призначати учнів до шкіл з урахуванням місткості, відстані, цілісності спільноти та справедливості.                                |
+> | Поповнення готівки в банкоматах          | Планувати доставки готівки до банкоматів, мінімізуючи простоювання капіталу та транспортні витрати, запобігаючи дефіциту.           |
+> | Планування змін персоналу               | Призначати працівників на зміни, дотримуючись справедливості, лімітів навантаження, правових вимог і потреб організації.           |
+> | Лісове господарство та стале вирубування | Планувати рубки та висадку протягом десятиліть, максимізуючи довгостроковий врожай і збереження вуглецю при сталому підході.        |
+> | Доставка посилок (останній кілометр)    | Призначати посилки на маршрути та водіїв у великому масштабі, враховуючи географію й знайомість водія з місцевістю.                 |
+> | Локації фудтраків                       | Обирати щоденні місця для автопарку фудтраків, максимізуючи очікуваний прибуток з огляду на просторовий попит.                      |
+> | Спортивні розклади / розподіл команд    | Створювати збалансовані розклади матчів або чесні команди з урахуванням рівнів навичок і обмежень учасників.                       |
+> | Ціноутворення супермаркетів             | Спільно встановлювати ціни на сотні взаємопов’язаних товарів, максимізуючи дохід із урахуванням ефектів заміщення.                  |
+> | Платформи доставки їжі (Instacart)      | Зіставляти водіїв, клієнтів і ресторани за умов невизначеного попиту та доступності, щоб доставляти замовлення ефективно і надійно. |
 
 <!-- This file was generated by the `build.py` script. Do not edit it manually. -->
 <!-- ./chapters/04_modelling.md -->
@@ -545,319 +531,305 @@ effectively.
 
 <a name="04-modelling"></a>
 
-## Basic Modeling
+## Базове моделювання
 
 
-In this chapter, we dive into the basic modeling capabilities of CP-SAT. CP-SAT
-provides an extensive set of constraints, closer to high-level modeling
-languages like MiniZinc than to traditional Mixed Integer Programming (MIP). For
-example, it offers constraints like `all_different` and
-`add_multiplication_equality`. These advanced features reduce the need for
-modeling complex logic strictly through linear constraints, though they also
-increase the interface's complexity. However, not all constraints are equally
-efficient; linear and boolean constraints are generally most efficient, whereas
-constraints like `add_multiplication_equality` can be significantly more
-resource-intensive.
+У цьому розділі ми занурюємося в базові можливості моделювання CP-SAT. CP-SAT
+надає широкий набір обмежень, ближчий до високорівневих мов моделювання на кшталт
+MiniZinc, ніж до традиційного змішаного цілочисельного програмування (MIP).
+Наприклад, він пропонує обмеження `all_different` та
+`add_multiplication_equality`. Такі просунуті можливості зменшують потребу
+моделювати складну логіку виключно через лінійні обмеження, хоча й роблять
+інтерфейс складнішим. Водночас не всі обмеження однаково ефективні: лінійні та
+булеві обмеження зазвичай найефективніші, тоді як обмеження на кшталт
+`add_multiplication_equality` можуть суттєво вимагати більше ресурсів.
 
 > [!TIP]
 >
-> If you are transitioning from Mixed Integer Programming (MIP), you might be
-> used to manually implementing higher-level constraints and optimizing Big-M
-> parameters for better performance. With CP-SAT, such manual adjustments are
-> generally unnecessary. CP-SAT operates differently from typical MIP solvers by
-> relying less on linear relaxation and more on its underlying SAT-solver and
-> propagators to efficiently manage logical constraints. Embrace the
-> higher-level constraints—they are often more efficient in CP-SAT.
+> Якщо ви переходите зі змішаного цілочисельного програмування (MIP), ви можете
+> бути звиклими вручну реалізовувати високорівневі обмеження і підбирати параметри
+> Big-M для кращої продуктивності. У CP-SAT такі ручні налаштування зазвичай не
+> потрібні. CP-SAT працює інакше, ніж типові MIP-розв’язувачі, менше спираючись
+> на лінійну релаксацію і більше — на внутрішній SAT-розв’язувач та пропагатори,
+> які ефективно керують логічними обмеженнями. Користуйтеся високорівневими
+> обмеженнями — вони часто ефективніші в CP-SAT.
 
-This primer has been expanded to cover all constraints across two chapters,
-complete with various examples to illustrate the contexts in which they can be
-used. However, mastering modeling involves much more than just an understanding
-of constraints. It requires a deep appreciation of the principles and techniques
-that make models effective and applicable to real-world problems.
+Цей праймер розширено так, щоб охопити всі обмеження в двох розділах, із різними
+прикладами, які ілюструють контексти їхнього застосування. Однак майстерність
+моделювання — це значно більше, ніж знання обмежень. Вона вимагає глибокого
+розуміння принципів і технік, що роблять моделі ефективними та застосовними до
+реальних задач.
 
-For a more detailed exploration of modeling, consider "Model Building in
-Mathematical Programming" by H. Paul Williams, which offers extensive insight
-into the subject, including practical applications. While this book is not
-specific to CP-SAT, the foundational techniques and concepts are broadly
-applicable. Additionally, for those new to this area or transitioning from MIP
-solutions, studying Gurobi's modeling approach through this
-[video course](https://www.youtube.com/playlist?list=PLHiHZENG6W8CezJLx_cw9mNqpmviq3lO9)
-might prove helpful. While many principles overlap, some strategies unique to
-CP-SAT can better address cases where traditional MIP-solvers struggle.
+Для детальнішого вивчення моделювання варто звернутися до книги
+«Model Building in Mathematical Programming» автора H. Paul Williams, яка
+дає ґрунтовне уявлення про предмет і містить практичні приклади. Хоча ця книга
+не специфічна для CP-SAT, базові техніки та концепції є універсальними. Також
+тим, хто лише знайомиться з темою або переходить з MIP-рішень, може бути корисно
+вивчити підхід до моделювання в Gurobi через цей
+[відеокурс](https://www.youtube.com/playlist?list=PLHiHZENG6W8CezJLx_cw9mNqpmviq3lO9).
+Хоча багато принципів збігаються, деякі стратегії, специфічні для CP-SAT, краще
+покривають випадки, де традиційні MIP-розв’язувачі мають труднощі.
 
-Additional resources on mathematical modeling (not CP-SAT specific):
+Додаткові ресурси з математичного моделювання (не специфічні для CP-SAT):
 
-- [Math Programming Modeling Basics by Gurobi](https://www.gurobi.com/resources/math-programming-modeling-basics/):
-  This resource provides a solid introduction to the basics of mathematical
-  modeling.
+- [Math Programming Modeling Basics від Gurobi](https://www.gurobi.com/resources/math-programming-modeling-basics/):
+  ресурс дає міцний вступ до основ математичного моделювання.
 - [Modeling with Gurobi Python](https://www.youtube.com/playlist?list=PLHiHZENG6W8CezJLx_cw9mNqpmviq3lO9):
-  A comprehensive video course on modeling with Gurobi, highlighting concepts
-  that are also applicable to CP-SAT.
-- [Model Building in Mathematical Programming by H. Paul Williams](https://www.wiley.com/en-us/Model+Building+in+Mathematical+Programming%2C+5th+Edition-p-9781118443330):
-  An extensive guide to mathematical modeling techniques.
+  комплексний відеокурс із моделювання в Gurobi, який підкреслює концепції,
+  що також застосовні до CP-SAT.
+- [Model Building in Mathematical Programming від H. Paul Williams](https://www.wiley.com/en-us/Model+Building+in+Mathematical+Programming%2C+5th+Edition-p-9781118443330):
+  докладний путівник із технік математичного моделювання.
 
 > [!TIP]
 >
-> For getting started with implementing optimization models in general, I highly
-> recommend the blog post
+> Для старту з побудови оптимізаційних моделей загалом я дуже рекомендую допис
 > [The Art Of Not Making It An Art](https://www.gurobi.com/resources/optimization-modeling-the-art-of-not-making-it-an-art/).
-> It excellently summarizes the fundamental principles of successfully managing
-> an optimization project, independent of the concrete language or solver.
+> Він чудово підсумовує фундаментальні принципи успішного ведення
+> оптимізаційного проєкту незалежно від конкретної мови чи розв’язувача.
 
 ---
 
-**Elements:**
+**Елементи:**
 
-- [Variables](#04-modelling-variables): `new_int_var`, `new_bool_var`,
+- [Змінні](#04-modelling-variables): `new_int_var`, `new_bool_var`,
   `new_constant`, `new_int_var_series`, `new_bool_var_series`
-  - [Custom Domain Variables](#04-modelling-domain-variables):
+  - [Змінні з користувацьким доменом](#04-modelling-domain-variables):
     `new_int_var_from_domain`
-- [Objectives](#04-modelling-objectives): `minimize`, `maximize`
-- [Linear Constraints](#04-modelling-linear-constraints): `add`,
+- [Цілі](#04-modelling-objectives): `minimize`, `maximize`
+- [Лінійні обмеження](#04-modelling-linear-constraints): `add`,
   `add_linear_constraint`
-- [Logical Constraints (Propositional Logic)](#04-modelling-logic-constraints):
+- [Логічні обмеження (пропозиційна логіка)](#04-modelling-logic-constraints):
   `add_implication`, `add_bool_or`, `add_at_least_one`, `add_at_most_one`,
   `add_exactly_one`, `add_bool_and`, `add_bool_xor`
-- [Conditional Constraints (Reification)](#04-modelling-conditional-constraints):
+- [Умовні обмеження (реїфікація)](#04-modelling-conditional-constraints):
   `only_enforce_if`
-- [Absolute Values and Max/Min](#04-modelling-absmaxmin): `add_min_equality`,
+- [Абсолютні значення та Max/Min](#04-modelling-absmaxmin): `add_min_equality`,
   `add_max_equality`, `add_abs_equality`
-- [Multiplication, Division, and Modulo](#04-modelling-multdivmod):
+- [Множення, ділення і модуль](#04-modelling-multdivmod):
   `add_modulo_equality`, `add_multiplication_equality`, `add_division_equality`
 - [All Different](#04-modelling-alldifferent): `add_all_different`
-- [Domains and Combinations](#04-modelling-table): `add_allowed_assignments`,
+- [Домени та комбінації](#04-modelling-table): `add_allowed_assignments`,
   `add_forbidden_assignments`
-- [Array/Element Constraints](#04-modelling-element): `add_element`,
+- [Масиви/обмеження елемента](#04-modelling-element): `add_element`,
   `add_inverse`
 
-The more advanced constraints `add_circuit`, `add_multiple_circuit`,
+Більш просунуті обмеження `add_circuit`, `add_multiple_circuit`,
 `add_automaton`,`add_reservoir_constraint`,
 `add_reservoir_constraint_with_active`, `new_interval_var`,
 `new_interval_var_series`, `new_fixed_size_interval_var`,
 `new_optional_interval_var`, `new_optional_interval_var_series`,
 `new_optional_fixed_size_interval_var`,
 `new_optional_fixed_size_interval_var_series`, `add_no_overlap`,
-`add_no_overlap_2d`, and `add_cumulative` are discussed in the next chapter.
+`add_no_overlap_2d` та `add_cumulative` розглянуто в наступному розділі.
 
 ---
 
 <a name="04-modelling-variables"></a>
 
-### Variables
+### Змінні
 
-There are two important types of variables in CP-SAT: Booleans and Integers
-(which are actually converted to Booleans, but more on this later). There are
-also, e.g.,
-[interval variables](https://developers.google.com/optimization/reference/python/sat/python/cp_model#intervalvar),
-but they are actually rather a combination of integral variables and discussed
-[later](#04-modelling-intervals). For the integer variables, you have to specify
-a lower and an upper bound.
+У CP-SAT є два важливі типи змінних: булеві та цілочисельні
+(які насправді перетворюються на булеві, але про це пізніше). Є також, наприклад,
+[інтервальні змінні](https://developers.google.com/optimization/reference/python/sat/python/cp_model#intervalvar),
+але це радше комбінація цілочисельних змінних, і їх розглянуто
+[пізніше](#04-modelling-intervals). Для цілочисельних змінних потрібно задати
+нижню та верхню межі.
 
 ```python
 model = cp_model.CpModel()
 
-# Integer variable z with bounds -100 <= z <= 100
-z = model.new_int_var(-100, 100, "z")  # new syntax
-z_ = model.NewIntVar(-100, 100, "z_")  # old syntax
+# Цілочисельна змінна z з межами -100 <= z <= 100
+z = model.new_int_var(-100, 100, "z")  # новий синтаксис
+z_ = model.NewIntVar(-100, 100, "z_")  # старий синтаксис
 
-# Boolean variable b
-b = model.new_bool_var("b")  # new syntax
-b_ = model.NewBoolVar("b_")  # old syntax
+# Булева змінна b
+b = model.new_bool_var("b")  # новий синтаксис
+b_ = model.NewBoolVar("b_")  # старий синтаксис
 
-# Implicitly available negation of b:
-not_b = ~b  # will be 1 if b is 0 and 0 if b is 1
-not_b_ = b.Not()  # old syntax
+# Неявне заперечення b:
+not_b = ~b  # буде 1, якщо b = 0, і 0, якщо b = 1
+not_b_ = b.Not()  # старий синтаксис
 ```
 
-Additionally, you can use `model.new_int_var_series` and
-`model.new_bool_var_series` to create multiple variables at once from a pandas
-Index. This is especially useful if your data is given in a pandas DataFrame.
-However, there is no performance benefit in using this method, it is just more
-convenient.
+Додатково можна використовувати `model.new_int_var_series` і
+`model.new_bool_var_series`, щоб створювати кілька змінних одразу з pandas Index.
+Це особливо зручно, якщо дані подані в pandas DataFrame. Проте з точки зору
+продуктивності виграшу немає — це лише зручніше.
 
 ```python
 model = cp_model.CpModel()
 
-# Create an Index from 0 to 9
+# Створюємо Index від 0 до 9
 index = pd.Index(range(10), name="index")
 
-# Create a pandas Series with 10 integer variables matching the index
+# Створюємо pandas Series з 10 цілочисельних змінних відповідно до індексу
 xs = model.new_int_var_series("x", index, 0, 100)
 
-# List of boolean variables
+# Список булевих змінних
 df = pd.DataFrame(
     data={"weight": [1 for _ in range(10)], "value": [3 for _ in range(10)]},
     index=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
 )
 bs = model.new_bool_var_series("b", df.index)  # noqa: F841
 
-# Using the dot product on the pandas DataFrame is actually a pretty
-# convenient way to create common linear expressions.
+# Використання добутку для pandas DataFrame — доволі зручний спосіб
+# створювати типові лінійні вирази.
 model.add(bs @ df["weight"] <= 100)
 model.maximize(bs @ df["value"])
 ```
 
-Additionally, there is the `new_constant`-method, which allows you to create a
-variable that is constant. This allows you to safely replace variables by
-constants. This is primarily useful for boolean variables, as constant integer
-variables can in most cases be simply replaced by plain integers.
+Також існує метод `new_constant`, який дозволяє створити змінну зі сталим
+значенням. Це дає змогу безпечно замінювати змінні на константи. Це насамперед
+корисно для булевих змінних, адже константні цілочисельні змінні в більшості
+випадків можна просто замінити звичайними цілими числами.
 
 > [!TIP]
 >
-> In an older project, I observed that maintaining tight bounds on integer
-> variables can significantly impact performance. Employing a heuristic to find
-> a reasonable initial solution, which then allowed for tighter bounds, proved
-> worthwhile, even though the bounds were just a few percent tighter. Although
-> this project was several years ago and CP-SAT has advanced considerably since
-> then, I still recommend keeping the bounds on the variables' ranges as tight
-> as possible.
+> У старому проєкті я помітив, що підтримання тісних меж для цілочисельних
+> змінних може суттєво впливати на продуктивність. Використання евристики для
+> пошуку прийнятного початкового розв’язку, що дало змогу звузити межі,
+> виявилося виправданим, навіть якщо межі були всього на кілька відсотків
+> тіснішими. Хоча це було кілька років тому, і CP-SAT значно розвинувся, я й
+> досі рекомендую тримати межі значень змінних якомога більш тісними.
 
-There are no continuous/floating point variables (or even constants) in CP-SAT:
-If you need floating point numbers, you have to approximate them with integers
-by some resolution. For example, you could simply multiply all values by 100 for
-a step size of 0.01. A value of 2.35 would then be represented by 235. This
-_could_ probably be implemented in CP-SAT directly, but doing it explicitly is
-not difficult, and it has numerical implications that you should be aware of.
+У CP-SAT немає неперервних/дійсних змінних (і навіть констант): якщо вам потрібні
+дійсні числа, їх треба апроксимувати цілими числами з певною роздільною здатністю.
+Наприклад, можна просто помножити всі значення на 100 для кроку 0,01. Значення
+2,35 тоді буде представлене як 235. Це, ймовірно, можна було б реалізувати
+безпосередньо в CP-SAT, але явна реалізація не складна і має числові наслідки,
+про які варто пам’ятати.
 
-The absence of continuous variables may appear as a substantial limitation,
-especially for those with a background in linear optimization where continuous
-variables are typically regarded as the simpler component. However, if your
-problem includes only a few continuous variables that must be approximated using
-large integers and involves complex constraints such as absolute values, while
-the majority of the problem is dominated by logical constraints, CP-SAT can
-often outperform mixed-integer programming solvers. It is only when a problem
-contains a substantial number of continuous variables and benefits significantly
-from strong linear relaxation that mixed-integer programming solvers will have a
-distinct advantage, despite CP-SAT having a propagator based on the dual simplex
-method.
+Відсутність неперервних змінних може здаватися суттєвим обмеженням, особливо для
+тих, хто має досвід у лінійній оптимізації, де неперервні змінні зазвичай
+вважаються простішою частиною. Проте, якщо ваша задача містить лише кілька
+неперервних змінних, які потрібно апроксимувати великими цілими числами, і
+містить складні обмеження, як-от абсолютні значення, тоді як більшість задачі
+домінована логічними обмеженнями, CP-SAT часто може перевершити розв’язувачі
+змішаного цілочисельного програмування. Лише тоді, коли задача має значну
+кількість неперервних змінних і суттєво виграє від сильної лінійної релаксації,
+MIP-розв’язувачі матимуть виражену перевагу, попри те, що CP-SAT має пропагатор
+на основі двоїстого симплекс-методу.
 
-I analyzed the impact of resolution (i.e., the factor by which floating point
-numbers are multiplied) on the runtime of CP-SAT, finding that the effect varied
-depending on the problem. For one problem, the runtime increased only
-logarithmically with the resolution, allowing the use of a very high resolution
-of 100,000x without significant issues. In contrast, for another problem, the
-runtime increased roughly linearly with the resolution, making high resolutions
-impractical. The runtime for different factors in this case was: 1x: 0.02s, 10x:
-0.7s, 100x: 7.6s, 1000x: 75s, and 10,000x: over 15 minutes, even though the
-solution remained the same, merely scaled. Therefore, while high resolutions may
-be feasible for some problems using CP-SAT, it is essential to verify their
-influence on runtime, as the impact can be considerable.
+Я аналізував вплив роздільної здатності (тобто множника, на який множаться
+дійсні числа) на час виконання CP-SAT і виявив, що ефект залежить від задачі.
+Для однієї задачі час виконання зростав лише логарифмічно з роздільною
+здатністю, що дозволило використовувати дуже високу роздільну здатність 100 000x
+без значних проблем. Натомість для іншої задачі
+час виконання зростав приблизно лінійно з роздільною здатністю, що робило високі
+роздільні здатності непрактичними. Час виконання для різних множників у цьому
+випадку був таким: 1x: 0,02 с, 10x: 0,7 с, 100x: 7,6 с, 1000x: 75 с, 10 000x:
+понад 15 хвилин, хоча розв’язок залишався тим самим, лише масштабованим. Тому,
+хоча високі роздільні здатності можуть бути прийнятними для деяких задач у
+CP-SAT, важливо перевіряти їхній вплив на час виконання, оскільки він може бути
+значним.
 
-In my experience, boolean variables are crucial in many combinatorial
-optimization problems. For instance, the famous Traveling Salesman Problem
-consists solely of boolean variables. Therefore, implementing a solver that
-specializes in boolean variables using a SAT-solver as a foundation, such as
-CP-SAT, is a sensible approach. CP-SAT leverages the strengths of SAT-solving
-techniques, which are highly effective for problems dominated by boolean
-variables.
+З мого досвіду, булеві змінні є критично важливими в багатьох комбінаторних
+оптимізаційних задачах. Наприклад, відома задача комівояжера складається лише з
+булевих змінних. Тому реалізація розв’язувача, що спеціалізується на булевих
+змінних і базується на SAT-розв’язувачі (як CP-SAT), є логічним підходом. CP-SAT
+використовує сильні сторони SAT-технік, які дуже ефективні для задач, де
+домінують булеві змінні.
 
-You may wonder why it is necessary to explicitly name the variables in CP-SAT.
-While there does not appear to be a technical reason for this requirement,
-naming the variables can be extremely helpful for debugging purposes.
-Understanding the naming scheme of the variables allows you to more easily
-interpret the internal representation of the model, facilitating the
-identification and resolution of issues. To be fair, there have only been a few
-times when I actually needed to take a closer at the internal representation,
-and in most of the cases I would have preferred not to have to name the
-variables.
+Ви можете запитати, чому в CP-SAT потрібно явно задавати імена змінних. Хоча
+технічної необхідності для цього, здається, немає, іменування змінних може бути
+надзвичайно корисним для налагодження. Розуміння схеми імен дозволяє легше
+інтерпретувати внутрішнє представлення моделі і швидше знаходити проблеми. Якщо
+чесно, лише кілька разів мені справді доводилося уважно дивитися на внутрішнє
+представлення, і в більшості випадків я б волів не витрачати час на іменування
+змінних.
 
 <a name="04-modelling-domain-variables"></a>
 
-#### Custom Domain Variables
+#### Змінні з користувацьким доменом
 
-When dealing with integer variables that you know will only need to take certain
-values, or when you wish to limit their possible values, custom domain variables
-can become interesting. Unlike regular integer variables, which must have a
-domain between a given range of values (e.g., $\[ 1, 100 \]$), domain variables
-can specify a custom set of values as domain (e.g., $\\{1, 31, 57 \\}$). This
-can improve efficiency if the variable’s feasible values are substantially
-reduced. However, it also introduces drawbacks, which we discuss below.
+Коли ви працюєте з цілочисельними змінними, які, як ви знаєте, можуть набувати
+лише певних значень, або хочете обмежити їх можливі значення, змінні з
+користувацьким доменом можуть бути цікавими. На відміну від звичайних
+цілочисельних змінних, які мають домен у вигляді інтервалу (наприклад, $[1, 100]$),
+змінні з доменом можуть задавати конкретний набір значень (наприклад,
+$\{1, 31, 57\}$). Це може підвищити ефективність, якщо допустимі значення змінної
+суттєво зменшені. Однак це також має недоліки, які ми розглянемо нижче.
 
-CP-SAT works by converting all integer variables into boolean variables
-(warning: simplification). For each potential value, it creates two boolean
-variables: one indicating whether the integer variable is equal to this value,
-and another indicating whether it is less than or equal to it. This is called an
-_order encoding_. At first glance, this might suggest that using domain
-variables is always preferable, as it appears to reduce the number of boolean
-variables needed.
+CP-SAT працює шляхом перетворення всіх цілочисельних змінних на булеві
+(увага: спрощення). Для кожного можливого значення він створює дві булеві
+змінні: одна позначає, що цілочисельна змінна дорівнює цьому значенню, а інша
+— що вона менша або дорівнює йому. Це називається _order encoding_. На перший
+погляд, це може свідчити, що доменні змінні завжди кращі, адже вони зменшують
+кількість необхідних булевих змінних.
 
-However, CP-SAT employs a lazy creation strategy for these boolean variables.
-This means it only generates them as needed, based on the solver's
-decision-making process. Therefore, an integer variable with a wide range - say,
-from 0 to 100 - will not immediately result in 200 boolean variables. It might
-lead to the creation of only a few, depending on the solver's requirements.
+Однак CP-SAT використовує стратегію лінивого створення цих булевих змінних. Це
+означає, що вони генеруються лише за потреби, залежно від процесу прийняття
+рішень розв’язувачем. Тому цілочисельна змінна з широким діапазоном — скажімо,
+від 0 до 100 — не призведе одразу до створення 200 булевих змінних. Може бути
+створено лише кілька, залежно від потреб розв’язувача.
 
-Limiting the domain of a variable can have drawbacks. First, if the assumptions
-about admissible values are incorrect, it may introduce subtle and
-difficult-to-detect bugs. Therefore, it is advisable to prioritize correctness
-before attempting such optimizations. Second, specifying an explicit domain can
-significantly increase the model size, as the solver must handle a list of
-discrete values rather than a simple lower and upper bound. For example, if a
-variable is restricted to even values, it would be inefficient to define a
-domain consisting of all even numbers. In this case, a better approach is to
-substitute the variable $x$ with $2x'$, and subsequently multiply $x'$ by $2$ in
-the final solution. Third, in certain instances, the use of custom domains may
-delay the discovery of an initial solution. Since CP-SAT relies on its powerful
-neighborhood search to improve solutions after the first feasible one is found,
-this delay can hinder solver performance. Unless the domain restriction itself
-encodes a meaningful modeling constraint, it is generally preferable to defer
-its use until performance optimization becomes necessary.
+Обмеження домену змінної може мати недоліки. По-перше, якщо припущення щодо
+допустимих значень помилкові, це може спричинити тонкі й важковиявні баги. Тому
+варто спершу забезпечити коректність, а оптимізації застосовувати вже потім.
+По-друге, явне задання домену може суттєво збільшити розмір моделі, адже
+розв’язувач має працювати зі списком дискретних значень, а не просто з нижньою
+і верхньою межами. Наприклад, якщо змінна має приймати лише парні значення,
+неефективно визначати домен, що складається з усіх парних чисел. Краще замінити
+змінну $x$ на $2x'$, а в кінцевому розв’язку помножити $x'$ на 2. По-третє, у
+деяких випадках використання користувацьких доменів може відкласти знаходження
+першого допустимого розв’язку. Оскільки CP-SAT покладається на потужний пошук у
+околицях для покращення розв’язків після знаходження першого допустимого, така
+затримка може погіршити продуктивність. Якщо обмеження домену не є суттєвою
+частиною моделювання, зазвичай краще відкласти його до етапу оптимізації
+продуктивності.
 
-If you choose to utilize domain variables for their benefits in specific
-scenarios, here is how to define them:
+Якщо ви все ж вирішите використовувати доменні змінні, ось як їх визначити:
 
 ```python
 from ortools.sat.python import cp_model
 
 model = cp_model.CpModel()
 
-# Define a domain with selected values
+# Визначаємо домен із вибраних значень
 domain = cp_model.Domain.from_values([2, 5, 8, 10, 20, 50, 90])
 
-# Can also be done via intervals
+# Це також можна зробити через інтервали
 domain_2 = cp_model.Domain.from_intervals([[8, 12], [14, 20]])
 
-# There are also some operations available
+# Доступні деякі операції з доменами
 domain_3 = domain.union_with(domain_2)
 
-# Create a domain variable within this defined domain
+# Створюємо доменну змінну в межах цього домену
 x = model.new_int_var_from_domain(domain, "x")
 ```
 
-This example illustrates the process of creating a domain variable `x` that can
-only take on the values specified in `domain`. This method is particularly
-useful when you are working with variables that only have a meaningful range of
-possible values within your problem's context.
+Цей приклад демонструє створення доменної змінної `x`, яка може набувати лише
+значень, заданих у `domain`. Це особливо корисно, коли в контексті задачі
+змінні мають сенс лише в обмеженому наборі значень.
 
 <a name="04-modelling-objectives"></a>
 
-### Objectives
+### Цілі
 
-Not every problem necessitates an objective; sometimes, finding a feasible
-solution is sufficient. CP-SAT excels at finding feasible solutions, a task at
-which mixed-integer programming (MIP) solvers often do not perform as well.
-However, CP-SAT is also capable of effective optimization, which is an area
-where older constraint programming solvers may lag, based on my experience.
+Не кожна задача потребує цілі; іноді достатньо знайти допустимий розв’язок.
+CP-SAT відмінно знаходить допустимі розв’язки — це те, де MIP-розв’язувачі часто
+працюють гірше. Водночас CP-SAT також здатен ефективно оптимізувати, що є
+слабким місцем для старіших CP-розв’язувачів, якщо судити з мого досвіду.
 
-CP-SAT allows for the minimization or maximization of a linear expression. You
-can model more complex expressions by using auxiliary variables and additional
-constraints. To specify an objective function, you can use the `model.minimize`
-or `model.maximize` commands with a linear expression. This flexibility makes
-CP-SAT a robust tool for a variety of optimization tasks.
+CP-SAT дозволяє мінімізувати або максимізувати лінійний вираз. Складніші вирази
+можна змоделювати за допомогою допоміжних змінних і додаткових обмежень. Щоб
+задати цільову функцію, використовуйте `model.minimize` або `model.maximize` з
+лінійним виразом. Така гнучкість робить CP-SAT надійним інструментом для
+різноманітних оптимізаційних задач.
 
 ```python
-# Basic model with variables and constraints
+# Базова модель зі змінними та обмеженнями
 model = cp_model.CpModel()
 x = model.new_int_var(-100, 100, "x")
 y = model.new_int_var(-100, 100, "y")
 model.add(x + 10 * y <= 100)
 
-# Minimize 30x + 50y
+# Мінімізуємо 30x + 50y
 model.maximize(30 * x + 50 * y)
 ```
 
-Let us look on how to model more complicated expressions, using boolean
-variables and generators.
+Подивімося, як моделювати складніші вирази, використовуючи булеві змінні та
+генератори.
 
 ```python
 model = cp_model.CpModel()
@@ -865,102 +837,98 @@ x_vars = [model.new_bool_var(f"x{i}") for i in range(10)]
 model.minimize(sum(i * x_vars[i] if i % 2 == 0 else i * ~x_vars[i] for i in range(10)))
 ```
 
-This objective evaluates to
+Ця ціль дорівнює
 
 ```math
-\min \sum_{i=0}^{9} i\cdot x_i \text{ if } i \text{ is even else } i\cdot \neg x_i
+\min \sum_{i=0}^{9} i\cdot x_i \text{ якщо } i \text{ парне, інакше } i\cdot \neg x_i
 ```
 
-To implement a
-[lexicographic optimization](https://en.wikipedia.org/wiki/Lexicographic_optimization),
-you can do multiple rounds and always fix the previous objective as constraint.
+Щоб реалізувати
+[лексикографічну оптимізацію](https://en.wikipedia.org/wiki/Lexicographic_optimization),
+можна робити кілька раундів, кожного разу фіксуючи попередню ціль як обмеження.
 
 ```python
-# some basic model
+# базова модель
 model = cp_model.CpModel()
 x = model.new_int_var(-100, 100, "x")
 y = model.new_int_var(-100, 100, "y")
 z = model.new_int_var(-100, 100, "z")
 model.add(x + 10 * y - 2 * z <= 100)
 
-# Define the objectives
+# Визначаємо цілі
 first_objective = 30 * x + 50 * y
 second_objective = 10 * x + 20 * y + 30 * z
 
-# Optimize for the first objective
+# Оптимізуємо першу ціль
 model.maximize(first_objective)
 solver = cp_model.CpSolver()
 solver.solve(model)
 
-# Fix the first objective and optimize for the second
-model.add(first_objective == int(solver.objective_value))  # fix previous objective
-model.minimize(second_objective)  # optimize for second objective
+# Фіксуємо першу ціль і оптимізуємо другу
+model.add(first_objective == int(solver.objective_value))  # фіксуємо попередню ціль
+model.minimize(second_objective)  # оптимізуємо другу ціль
 solver.solve(model)
 ```
 
 > [!TIP]
 >
-> You can find a more efficient implementation of lexicographic optimization in
-> the _Coding Patterns_ chapter.
+> Більш ефективну реалізацію лексикографічної оптимізації можна знайти в
+> розділі _Coding Patterns_.
 
-To handle non-linear objectives in CP-SAT, you can employ auxiliary variables
-and constraints. For instance, to incorporate the absolute value of a variable
-into your objective, you first create a new variable representing this absolute
-value. Shortly, you will learn more about setting up these types of constraints.
-Below is a Python example demonstrating how to model and minimize the absolute
-value of a variable `x`:
+Щоб працювати з нелінійними цілями в CP-SAT, використовуйте допоміжні змінні та
+обмеження. Наприклад, щоб включити абсолютне значення змінної в ціль, спершу
+створіть нову змінну, яка представляє це абсолютне значення. Незабаром ми
+детальніше розглянемо, як задавати такі обмеження. Нижче — приклад того, як
+змоделювати та мінімізувати абсолютне значення змінної `x`:
 
 ```python
-# Assuming x is already defined in your model
+# Припустимо, x вже визначено в моделі
 abs_x = model.new_int_var(
     0, 100, "|x|"
-)  # Create a variable to represent the absolute value of x
-model.add_abs_equality(target=abs_x, expr=x)  # Define abs_x as the absolute value of x
-model.minimize(abs_x)  # Set the objective to minimize abs_x
+)  # Створюємо змінну, що представляє абсолютне значення x
+model.add_abs_equality(target=abs_x, expr=x)  # Визначаємо abs_x як |x|
+model.minimize(abs_x)  # Мінімізуємо abs_x
 ```
 
-The constraints available to define your feasible solution space will be
-discussed in the following section.
+Обмеження, доступні для визначення допустимої області розв’язків, обговорюються
+в наступному розділі.
 
 <a name="04-modelling-linear-constraints"></a>
 
-### Linear Constraints
+### Лінійні обмеження
 
-These are the classical constraints also used in linear optimization. Remember
-that you are still not allowed to use floating point numbers within it. Same as
-for linear optimization: You are not allowed to multiply a variable with
-anything else than a constant and also not to apply any further mathematical
-operations.
+Це класичні обмеження, які використовуються і в лінійній оптимізації. Пам’ятайте,
+що ви все ще не можете використовувати дійсні числа. Як і в лінійній оптимізації,
+не дозволено множити змінну на щось, окрім константи, і не можна застосовувати
+інші математичні операції.
 
 ```python
 model.add(10 * x + 15 * y <= 10)
 model.add(x + z == 2 * y)
 
-# This one actually is not linear but still works.
+# Це насправді не лінійне, але все одно працює.
 model.add(x + y != z)
 
-# Because we are working on integers, the true smaller or greater constraints
-# are trivial to implement as x < z is equivalent to x <= z-1
+# Оскільки ми працюємо з цілими числами, строгі нерівності легко реалізувати:
+# x < z еквівалентне x <= z-1
 model.add(x < y + z)
 model.add(y > 300 - 4 * z)
 ```
 
-Note that `!=` can be slower than the other (`<=`, `>=`, `==`) constraints,
-because it is not a linear constraint. If you have a set of mutually `!=`
-variables, it is better to use `all_different` (see below) than to use the
-explicit `!=` constraints.
+Зверніть увагу, що `!=` може бути повільнішим за інші (`<=`, `>=`, `==`)
+обмеження, адже це не лінійне обмеження. Якщо у вас є набір змінних, які
+взаємно не дорівнюють (`!=`), краще використати `all_different` (див. нижче),
+ніж явні `!=` обмеження.
 
 > [!WARNING]
 >
-> If you use intersecting linear constraints, you may get problems because the
-> intersection point needs to be integral. There is no such thing as a
-> feasibility tolerance as in Mixed Integer Programming-solvers, where small
-> deviations are allowed. The feasibility tolerance in MIP-solvers allows, e.g.,
-> 0.763445 == 0.763439 to still be considered equal to counter numerical issues
-> of floating point arithmetic. In CP-SAT, you have to make sure that values can
-> match exactly.
+> Якщо ви використовуєте перетинні лінійні обмеження, можуть виникати проблеми,
+> бо точка перетину повинна бути цілою. Тут немає поняття допуску допустимості,
+> як у MIP-розв’язувачах, де дозволяються невеликі відхилення. Допуск у MIP
+> дозволяє, наприклад, вважати 0,763445 == 0,763439 через числові похибки
+> плаваючої арифметики. У CP-SAT потрібно, щоб значення збігалися точно.
 
-Let us look at the following example with two linear equality constraints:
+Розгляньмо приклад із двома лінійними рівностями:
 
 ```math
 x - y = 0
@@ -974,8 +942,8 @@ x - y = 0
 x, y \geq 0
 ```
 
-You can verify that $x=4/3$ and $y=4/3$ is a feasible solution. However, coding
-this in CP-SAT results in an infeasible solution:
+Можна перевірити, що $x=4/3$ і $y=4/3$ — допустимий розв’язок. Однак кодування
+цього в CP-SAT призводить до недопустимої моделі:
 
 ```python
 model = cp_model.CpModel()
@@ -990,19 +958,18 @@ status = solver.solve(model)
 assert status == cp_model.INFEASIBLE
 ```
 
-Even using scaling techniques, such as multiplying integer variables by
-1,000,000 to increase the resolution, would not render the model feasible. While
-common linear programming solvers would handle this model without issue, CP-SAT
-struggles unless modifications are made to eliminate fractions, such as
-multiplying all terms by 3. However, this requires manual intervention, which
-undermines the idea of using a solver. These limitations are important to
-consider, although such scenarios are rare in practical applications.
+Навіть масштабування, наприклад множення змінних на 1 000 000 для підвищення
+роздільної здатності, не зробить модель допустимою. Хоча типові LP-розв’язувачі
+опрацювали б цю модель без проблем, CP-SAT має труднощі, якщо не усунути дроби,
+наприклад, помноживши всі члени на 3. Це вимагає ручного втручання, що суперечить
+ідеї використання розв’язувача. Такі обмеження важливо враховувати, хоча вони
+рідко трапляються в практичних застосуваннях.
 
 > [!TIP]
 >
-> If you have long sums of variables and coefficients, it can be more efficient
-> to use the sum-methods of LinearExpr than to use Python's sum-function. Note
-> that this function does currently not support generators.
+> Якщо у вас довгі суми змінних із коефіцієнтами, може бути ефективніше
+> використовувати методи sum у LinearExpr, ніж Python-функцію sum. Зверніть
+> увагу, що ця функція зараз не підтримує генератори.
 >
 > ```python
 > xs = [model.new_int_var(0, 10, f"x{i}") for i in range(5)]
@@ -1011,23 +978,22 @@ consider, although such scenarios are rare in practical applications.
 > model.minimize(cp_model.LinearExpr.weighted_sum(xs, weights))
 > ```
 
-If you have a lower and an upper bound for a linear expression, you can also use
-the `add_linear_constraint`-method, which allows you to specify both bounds in
-one go.
+Якщо у вас є нижня та верхня межі для лінійного виразу, можна використати метод
+`add_linear_constraint`, який дозволяє задати обидві межі одразу.
 
 ```python
 model.add_linear_constraint(linear_expr=10 * x + 15 * y, lb=-100, ub=10)
 ```
 
-The similar sounding `AddLinearExpressionInDomain` is discussed later.
+Схожий за назвою метод `AddLinearExpressionInDomain` розглянуто пізніше.
 
 <a name="04-modelling-logic-constraints"></a>
 
-### Logical Constraints (Propositional Logic)
+### Логічні обмеження (пропозиційна логіка)
 
-Propositional logic allows us to describe relationships between true or false
-statements using logical operators. Consider a simple scenario where we define
-three Boolean variables:
+Пропозиційна логіка дозволяє описувати взаємозв’язки між істинними або хибними
+твердженнями за допомогою логічних операторів. Розгляньмо простий сценарій, де
+ми визначаємо три булеві змінні:
 
 ```python
 b1 = model.new_bool_var("b1")
@@ -1035,145 +1001,134 @@ b2 = model.new_bool_var("b2")
 b3 = model.new_bool_var("b3")
 ```
 
-These variables, `b1`, `b2`, and `b3`, represent distinct propositions whose
-truth values are to be determined by the model.
+Ці змінні `b1`, `b2` і `b3` представляють окремі пропозиції, істинні значення
+яких мають бути визначені моделлю.
 
-You can obtain the negation of a Boolean variable by using `~` or the
-`.Not()`-method. The resulting variable can be used just like the original
-variable:
+Отримати заперечення булевої змінної можна через `~` або метод `.Not()`. Отриману
+змінну можна використовувати так само, як і оригінальну:
 
 ```python
-not_b1 = ~b1  # Negation of b1
-not_b2 = b2.Not()  # Alternative notation for negation
+not_b1 = ~b1  # Заперечення b1
+not_b2 = b2.Not()  # Альтернативний запис заперечення
 ```
 
-Note that you can use more than three variables in all of the following
-examples, except for `add_implication` which is only defined for two variables.
+Зверніть увагу: у всіх наведених прикладах можна використовувати більше ніж
+три змінні, окрім `add_implication`, яке визначене лише для двох змінних.
 
 > [!WARNING]
 >
-> Boolean variables are essentially special integer variables restricted to the
-> domain of 0 and 1. Therefore, you can incorporate them into linear constraints
-> as well. However, it is important to note that integer variables, unlike
-> Boolean variables, cannot be used in Boolean constraints. This is a
-> distinction from some programming languages, like Python, where integers can
-> sometimes substitute for Booleans.
+> Булеві змінні — це фактично спеціальні цілочисельні змінні з доменом 0 і 1.
+> Тому їх можна включати в лінійні обмеження. Водночас цілочисельні змінні, на
+> відміну від булевих, не можна використовувати в булевих обмеженнях. Це
+> відрізняється від деяких мов програмування, як-от Python, де цілі числа
+> іноді можуть замінювати булеві.
 
-#### Adding Logical OR Constraints
+#### Додавання логічних OR-обмежень
 
-The logical OR operation ensures that at least one of the specified conditions
-holds true. To model this, you can use:
+Операція логічного OR гарантує, що принаймні одна з умов істинна. Для цього
+можна використати:
 
 ```python
-model.add_bool_or(b1, b2, b3)  # b1 or b2 or b3 must be true
-model.add_at_least_one([b1, b2, b3])  # Alternative notation
-model.add(b1 + b2 + b3 >= 1)  # Alternative linear notation using '+' for OR
+model.add_bool_or(b1, b2, b3)  # b1 або b2 або b3 має бути істинним
+model.add_at_least_one([b1, b2, b3])  # Альтернативний запис
+model.add(b1 + b2 + b3 >= 1)  # Альтернатива як лінійне обмеження
 ```
 
-Both lines ensure that at least one of `b1`, `b2`, or `b3` is true.
+Усі рядки гарантують, що принаймні одна з `b1`, `b2`, `b3` істинна.
 
-#### Adding Logical AND Constraints
+#### Додавання логічних AND-обмежень
 
-The logical AND operation specifies that all conditions must be true
-simultaneously. To model conditions where `b1` is true and both `b2` and `b3`
-are false, you can use:
+Логічне AND вимагає, щоб усі умови були істинними одночасно. Щоб змоделювати
+умови, де `b1` істинна, а `b2` і `b3` — хибні, можна використати:
 
 ```python
-model.add_bool_and(b1, b2.Not(), b3.Not())  # b1 and not b2 and not b3 must all be true
-model.add_bool_and(b1, ~b2, ~b3)  # Alternative notation using '~' for negation
+model.add_bool_and(b1, b2.Not(), b3.Not())  # b1 і не b2 і не b3 мають бути істинними
+model.add_bool_and(b1, ~b2, ~b3)  # Альтернативний запис із '~'
 ```
 
-The `add_bool_and` method is most effective when used with the `only_enforce_if`
-method (discussed in
-[Conditional Constraints (Reification)](#04-modelling-conditional-constraints)).
-For cases not utilizing `only_enforce_if` a simple AND-clause such as
-$\left( b_1 \land \neg b_2 \land \neg b_3 \right)$ becomes redundant by simply
-substituting $b_1$ with `1` and $b_2, b_3$ with `0`. In straightforward
-scenarios, consider substituting these variables with their constant values to
-reduce unnecessary complexity, especially in larger models where size and
-manageability are concerns. In smaller or simpler models, CP-SAT efficiently
-handles these redundancies, allowing you to focus on maintaining clarity and
-readability in your model.
+Метод `add_bool_and` найефективніше використовувати разом з `only_enforce_if`
+(див. [Умовні обмеження (реїфікація)](#04-modelling-conditional-constraints)).
+У випадках без `only_enforce_if` проста AND-умова
+$\left( b_1 \land \neg b_2 \land \neg b_3 \right)$ стає зайвою, якщо
+підставити $b_1 = 1$ та $b_2, b_3 = 0$. У простих сценаріях варто замінювати
+ці змінні константами, щоб зменшити зайву складність, особливо у великих моделях.
+У невеликих моделях CP-SAT ефективно обробляє такі надлишковості, тож можна
+зосередитися на зрозумілості й читабельності моделі.
 
-#### Adding Logical XOR Constraints
+#### Додавання логічних XOR-обмежень
 
-The logical XOR (exclusive OR) operation ensures that an odd number of operands
-are true. It is crucial to understand this definition, as it has specific
-implications when applied to more than two variables:
+Операція XOR (виключне OR) гарантує, що істинна непарна кількість операндів.
+Важливо правильно розуміти це визначення, особливо для більш ніж двох змінних:
 
-- For two variables, such as `b1 XOR b2`, the operation returns true if exactly
-  one of these variables is true, which aligns with the "exactly one" constraint
-  for this specific case.
-- For three or more variables, such as in the expression `b1 XOR b2 XOR b3`, the
-  operation returns true if an odd number of these variables are true. This
-  includes scenarios where one or three variables are true, assuming the total
-  number of variables involved is three.
+- Для двох змінних, наприклад `b1 XOR b2`, операція істинна, якщо істинна рівно
+  одна з цих змінних, що збігається з обмеженням «рівно одна» для цього випадку.
+- Для трьох і більше змінних, наприклад `b1 XOR b2 XOR b3`, операція істинна,
+  якщо непарна кількість змінних істинна (тобто одна або три, якщо змінних три).
 
-This characteristic of XOR can be somewhat complex but is crucial for modeling
-scenarios where the number of true conditions needs to be odd:
+Ця властивість XOR може бути неочевидною, але вона важлива для моделювання
+сценаріїв, де кількість істинних умов має бути непарною:
 
 ```python
-model.add_bool_xor(b1, b2)  # Returns true if exactly one of b1 or b2 is true
+model.add_bool_xor(b1, b2)  # Істинно, якщо рівно одна з b1 або b2 істинна
 model.add_bool_xor(
     b1, b2, b3
-)  # Returns true if an odd number of b1, b2, b3 are true (i.e., one or three)
+)  # Істинно, якщо непарна кількість b1, b2, b3 істинна (тобто 1 або 3)
 ```
 
-#### Specifying Unique Conditions
+#### Задання унікальних умов
 
-To enforce that exactly one or at most one of the variables is true, use:
+Щоб задати, що істинна рівно одна або не більше ніж одна змінна, використовуйте:
 
 ```python
-model.add_exactly_one([b1, b2, b3])  # Exactly one of the variables must be true
-model.add_at_most_one([b1, b2, b3])  # No more than one of the variables should be true
+model.add_exactly_one([b1, b2, b3])  # Рівно одна змінна істинна
+model.add_at_most_one([b1, b2, b3])  # Не більше ніж одна змінна істинна
 ```
 
-These constraints are useful for scenarios where exclusive choices must be
-modeled.
+Ці обмеження корисні для сценаріїв, де потрібно змоделювати взаємовиключні
+вибори.
 
-You could alternatively also use `add`.
+Альтернативно можна використати `add`:
 
 ```python
-model.add(b1 + b2 + b3 == 1)  # Exactly one of the variables must be true
-model.add(b1 + b2 + b3 <= 1)  # No more than one of the variables should be true
+model.add(b1 + b2 + b3 == 1)  # Рівно одна змінна істинна
+model.add(b1 + b2 + b3 <= 1)  # Не більше ніж одна змінна істинна
 ```
 
-#### Modeling Implications
+#### Моделювання імплікацій
 
-Logical implication, denoted as `->`, indicates that if the first condition is
-true, the second must also be true. This can be modeled as:
+Логічна імплікація `->` означає, що якщо перша умова істинна, то друга теж має
+бути істинною. Це можна змоделювати так:
 
 ```python
-model.add_implication(b1, b2)  # If b1 is true, then b2 must also be true
+model.add_implication(b1, b2)  # Якщо b1 істинна, то b2 теж має бути істинною
 ```
 
-You could also use `add`.
+Також можна використати `add`:
 
 ```python
-model.add(b2 >= b1)  # If b1 is true, then b2 must also be true
+model.add(b2 >= b1)  # Якщо b1 істинна, то b2 теж має бути істинною
 ```
 
-#### Equivalent Reformulations of Logical Expressions
+#### Еквівалентні перетворення логічних виразів
 
-Logical expressions are often written in a nested form, but CP-SAT requires a
-flat structure. Fortunately, any propositional logic expression can be
-reformulated into a flat structure that only uses `and_bool_or` (also known as
-the conjunctive normal form CNF). All other constraints are merely syntactic
-sugar, provided to have a more natural modelling experience. While it would be
-straightforward for CP-SAT to support nested expressions directly, its
-development focuses on its engine rather than the interface. Therefore, at
-present, you must perform these reformulations manually (or use
-[CPMpy](https://cpmpy.readthedocs.io/en/latest/index.html)).
+Логічні вирази часто записують у вкладеній формі, але CP-SAT потребує
+плоскої структури. На щастя, будь-який вираз пропозиційної логіки можна
+переписати у плоску структуру, яка використовує лише `and_bool_or`
+(також відому як кон’юнктивна нормальна форма, CNF). Усі інші обмеження —
+це лише синтаксичний цукор для більш природного моделювання. Хоча CP-SAT
+було б легко підтримувати вкладені вирази, розробка фокусується на рушії, а
+не на інтерфейсі. Тому наразі такі перетворення треба виконувати вручну
+(або використовувати [CPMpy](https://cpmpy.readthedocs.io/en/latest/index.html)).
 
-The most useful reformulations include:
+Найкорисніші перетворення:
 
-1. Implication: `A -> B` is equivalent to `NOT A OR B`
-2. `NOT (A AND B)` is equivalent to `NOT A OR NOT B` (De Morgan’s Law 1)
-3. `NOT (A OR B)` is equivalent to `NOT A AND NOT B` (De Morgan’s Law 2)
+1. Імплікація: `A -> B` еквівалентна `NOT A OR B`
+2. `NOT (A AND B)` еквівалентне `NOT A OR NOT B` (закон де Моргана 1)
+3. `NOT (A OR B)` еквівалентне `NOT A AND NOT B` (закон де Моргана 2)
 
-These equivalences can be verified using a truth table. Since there are only
-four possible combinations of truth values for `A` and `B`, you need only check
-that the two columns produce identical results:
+Ці еквівалентності можна перевірити таблицею істинності. Оскільки є лише чотири
+можливі комбінації істинності для `A` і `B`, достатньо перевірити, що обидві
+колонки дають однакові результати:
 
 | A   | B   | A -> B | NOT A OR B |
 | --- | --- | ------ | ---------- |
@@ -1182,175 +1137,168 @@ that the two columns produce identical results:
 | 1   | 0   | 0      | 0          |
 | 1   | 1   | 1      | 1          |
 
-Note that `A` and `B` may themselves be logical expressions, not just single
-variables. A more extensive list of equivalences can be found on
+Зауважте, що `A` і `B` можуть бути логічними виразами, а не лише окремими
+змінними. Більш розширений список еквівалентностей можна знайти на
 [Wikipedia](https://en.wikipedia.org/wiki/Propositional_logic#List_of_classically_valid_argument_forms).
 
 > [!TIP]
 >
-> Logic is a common undergraduate lecture and there are some recorded courses
-> available online in case you would like to refresh your knowledge:
+> Логіка — типова бакалаврська дисципліна, і в мережі є записані курси на
+> випадок, якщо хочете освіжити знання:
 >
 > - [Logic 101](https://www.youtube.com/playlist?list=PLKI1h_nAkaQq5MDWlKXu0jeZmLDt-51on)
->   by William Spaniel provides a series of short videos covering the basics of
->   logic, also suitable for less mathematically inclined individuals.
+>   від William Spaniel — серія коротких відео з основ логіки, також підходить
+>   для людей без глибокої математичної підготовки.
 > - [Logic Stanford CS221](https://youtube.com/playlist?list=PLh7QmcIRQB-uiOS4GMlBbq0jkvtqhqtq0&si=dyXebJW-nvW14pFp)
->   has a more explicit computer science focus and is also relatively compact,
->   easily digestible within a day.
+>   має більш виражений фокус на інформатиці і теж доволі компактний — легко
+>   переглянути за день.
 
 > [!NOTE]
 >
-> I can also highly recommend the following
-> [chapter](<https://eng.libretexts.org/Bookshelves/Computer_Science/Programming_and_Computation_Fundamentals/Mathematics_for_Computer_Science_(Lehman_Leighton_and_Meyer)/01:_Proofs/03:_Logical_Formulas>)
-> of the open-source book _Mathematics for Computer Science_ by Lehman,
-> Leighton, and Meyer. It should not take long to read and lists all the
-> important equivalences.
+> Також дуже рекомендую наступний
+> [розділ](<https://eng.libretexts.org/Bookshelves/Computer_Science/Programming_and_Computation_Fundamentals/Mathematics_for_Computer_Science_(Lehman_Leighton_and_Meyer)/01:_Proofs/03:_Logical_Formulas>)
+> відкритої книги _Mathematics for Computer Science_ авторів Lehman,
+> Leighton і Meyer. Читається швидко і містить усі важливі еквівалентності.
 
-Let us consider some examples:
+Розгляньмо кілька прикладів:
 
-1. To model `b1 -> b2`, you can use `model.add_implication(b1, b2)`.
-   Alternatively, reformulate it as `NOT b1 OR b2` and use
+1. Щоб змоделювати `b1 -> b2`, використовуйте `model.add_implication(b1, b2)`.
+   Альтернативно перепишіть як `NOT b1 OR b2` і використайте
    `model.add_bool_or(~b1, b2)`.
-2. To model `NOT (b1 AND b2)`, reformulate it as `NOT b1 OR NOT b2` and use
-   `model.add_bool_or(~b1, ~b2)`.
-3. To model `NOT (b1 OR b2)`, reformulate it as `NOT b1 AND NOT b2` and use
-   `model.add_bool_and(~b1, ~b2)`. (Even more efficiently, you could directly
-   substitute `b1` and `b2` with `0`, since they can never be true.)
-4. To model `(b1 AND b2) -> b3`, reformulate it as `NOT (b1 AND b2) OR b3`,
-   which is equivalent to `(NOT b1 OR NOT b2) OR b3`. You can then use
+2. Щоб змоделювати `NOT (b1 AND b2)`, перепишіть як `NOT b1 OR NOT b2` і
+   використайте `model.add_bool_or(~b1, ~b2)`.
+3. Щоб змоделювати `NOT (b1 OR b2)`, перепишіть як `NOT b1 AND NOT b2` і
+   використайте `model.add_bool_and(~b1, ~b2)`. (Ще ефективніше — безпосередньо
+   підставити `b1` і `b2` як 0, адже вони не можуть бути істинними.)
+4. Щоб змоделювати `(b1 AND b2) -> b3`, перепишіть як `NOT (b1 AND b2) OR b3`,
+   що еквівалентно `(NOT b1 OR NOT b2) OR b3`. Тоді використайте
    `model.add_bool_or(~b1, ~b2, b3)`.
-5. To model `(b1 OR b2) -> b3`, reformulate it as `(b1 -> b3) AND (b2 -> b3)`,
-   which is equivalent to `(NOT b1 OR b3) AND (NOT b2 OR b3)`. You can then use:
+5. Щоб змоделювати `(b1 OR b2) -> b3`, перепишіть як `(b1 -> b3) AND (b2 -> b3)`,
+   що еквівалентно `(NOT b1 OR b3) AND (NOT b2 OR b3)`. Тоді використайте:
    ```python
    model.add_bool_or(~b1, b3)
    model.add_bool_or(~b2, b3)
    ```
-6. To model `b1 -> (b2 OR b3)`, reformulate it as `NOT b1 OR (b2 OR b3)`, which
-   is equivalent to `NOT b1 OR b2 OR b3`. You can then use
+6. Щоб змоделювати `b1 -> (b2 OR b3)`, перепишіть як `NOT b1 OR (b2 OR b3)`,
+   що еквівалентно `NOT b1 OR b2 OR b3`. Тоді використайте
    `model.add_bool_or(~b1, b2, b3)`.
-7. Expressions of the form `(b1 AND b2) OR (b3 AND b4)` can be reformulated
-   using distributive laws to
-   `(b1 OR b3) AND (b1 OR b4) AND (b2 OR b3) AND (b2 OR b4)`. However, for
-   longer expressions, this can lead to an exponential increase in the number of
-   clauses. In such cases, it is often more efficient to introduce auxiliary
-   variables in the form of the
-   [Tseytin transformation](https://en.wikipedia.org/wiki/Tseytin_transformation).
+7. Вирази виду `(b1 AND b2) OR (b3 AND b4)` можна переписати за дистрибутивними
+   законами у
+   `(b1 OR b3) AND (b1 OR b4) AND (b2 OR b3) AND (b2 OR b4)`. Однак для довших
+   виразів це може призводити до експоненційного зростання кількості клауз.
+   У таких випадках часто ефективніше вводити допоміжні змінні за допомогою
+   [перетворення Тсейтіна](https://en.wikipedia.org/wiki/Tseytin_transformation).
 
 > [!WARNING]
 >
-> Awareness of these equivalences can support the modelling of complex logical
-> expressions and, in some cases, improve performance by replacing expensive
-> constructs with simpler ones (short `add_bool_or` clauses are usually the most
-> efficient constraints, with length 2 being trivial for CP-SAT to propagate).
-> Nevertheless, CP-SAT performs many reformulations automatically. For example,
-> `add_implication` is directly converted to `add_bool_or` internally
-> [(see source code)](https://github.com/google/or-tools/blob/7ee639cf6981a9beeba908cf543a50f4ee7413ad/ortools/sat/cp_model.h#L807).
-> There are also more complex automatic reformulations, which you definitely do
-> not want to do by hand. See the chapter
-> [Preprocessing in SAT Solving](https://cca.informatik.uni-freiburg.de/papers/BiereJarvisaloKiesl-SAT-Handbook-2021-Preprocessing-Chapter-Manuscript.pdf)
-> if you are interested in the details. As always, prioritize correctness first
-> and consider performance only afterwards.
+> Розуміння цих еквівалентностей допомагає моделювати складні логічні вирази і
+> в деяких випадках покращувати продуктивність, замінюючи дорогі конструкції на
+> простіші (короткі `add_bool_or` клаузи зазвичай найефективніші; довжина 2 —
+> тривіальна для пропагації CP-SAT). Водночас CP-SAT виконує багато
+> перетворень автоматично. Наприклад, `add_implication` напряму перетворюється
+> у `add_bool_or` всередині
+> [(див. вихідний код)](https://github.com/google/or-tools/blob/7ee639cf6981a9beeba908cf543a50f4ee7413ad/ortools/sat/cp_model.h#L807).
+> Також існують складніші автоматичні перетворення, які точно не варто робити
+> вручну. Див. розділ
+> [Preprocessing in SAT Solving](https://cca.informatik.uni-freiburg.de/papers/BiereJarvisaloKiesl-SAT-Handbook-2021-Preprocessing-Chapter-Manuscript.pdf),
+> якщо цікавлять деталі. Як завжди, спершу пріоритет — коректність, а вже потім
+> продуктивність.
 
 <a name="04-modelling-conditional-constraints"></a>
 
-### Conditional Constraints (Reification)
+### Умовні обмеження (реїфікація)
 
-In practical applications, scenarios often arise where conditions dictate the
-enforcement of certain constraints. For instance, "if this condition is true,
-then a specific constraint should apply," or "if a constraint is violated, a
-penalty variable is set to true, triggering another constraint." Additionally,
-real-world constraints can sometimes be bypassed with financial or other types
-of concessions, such as renting a more expensive truck to exceed a load limit,
-or allowing a worker to take a day off after a double shift.
+У практичних застосуваннях часто виникають сценарії, коли умови визначають
+застосування певних обмежень. Наприклад, «якщо ця умова істинна, тоді має
+застосуватися конкретне обмеження» або «якщо обмеження порушене, встановити
+штрафну змінну, що активує інше обмеження». Крім того, реальні обмеження іноді
+можна обійти фінансовими або іншими поступками, наприклад орендувати дорожчу
+вантажівку, щоб перевищити ліміт, або дозволити працівнику відпочити після
+подвійної зміни.
 
-> In constraint programming, **reification** involves associating a Boolean
-> variable with a constraint to capture its truth value, thereby turning the
-> satisfaction of the constraint into a variable that can be used in further
-> constraints. Full reification links a Boolean variable such that it is `True`
-> if the constraint is satisfied and `False` otherwise, enabling the variable to
-> be directly used in other decisions or constraints. Conversely,
-> half-reification, or implied constraints, involves a one-way linkage where the
-> Boolean variable being `True` implies the constraint must be satisfied, but
-> its being `False` does not necessarily indicate anything about the
-> constraint's satisfaction. This approach is particularly useful for expressing
-> complex conditional logic and for modeling scenarios where only the
-> satisfaction, and not the violation, of a constraint needs to be explicitly
-> handled.
+> У програмуванні з обмеженнями **реїфікація** — це пов’язування булевої змінної
+> з обмеженням, щоб зафіксувати його істинність і перетворити задоволення
+> обмеження на змінну, яку можна використовувати в інших обмеженнях. Повна
+> реїфікація пов’язує булеву змінну так, що вона `True`, якщо обмеження
+> задоволене, і `False` — інакше, що дозволяє безпосередньо використовувати цю
+> змінну в інших рішеннях або обмеженнях. Натомість половинна реїфікація або
+> імпліковані обмеження встановлює односторонній зв’язок, коли `True` для
+> булевої змінної означає, що обмеження має виконуватися, але `False` не дає
+> інформації про задоволення обмеження. Це особливо корисно для вираження
+> складної умовної логіки та моделювання сценаріїв, де треба явно обробляти лише
+> задоволення, а не порушення обмеження.
 
-To effectively manage these conditional scenarios, CP-SAT offers the
-`only_enforce_if`-method for linear and some Boolean constraints, which
-activates a constraint only if a specified condition is met. This method is not
-only typically more efficient than traditional methods like the
-[Big-M method](https://en.wikipedia.org/wiki/Big_M_method) but also simplifies
-the model by eliminating the need to determine an appropriate Big-M value.
+Для ефективної роботи з такими умовними сценаріями CP-SAT має метод
+`only_enforce_if` для лінійних і деяких булевих обмежень, який активує
+обмеження лише за виконання певної умови. Цей метод зазвичай ефективніший за
+класичні підходи на кшталт
+[методу Big-M](https://en.wikipedia.org/wiki/Big_M_method) і спрощує модель,
+усуваючи потребу підбирати значення Big-M.
 
 ```python
-# A value representing the load that needs to be transported
+# Значення вантажу, який потрібно перевезти
 load_value = model.new_int_var(0, 100, "load_value")
 
-# ... some logic to determine the load value ...
+# ... деяка логіка, що визначає значення вантажу ...
 
-# A variable to decide which truck to rent
+# Змінні для вибору вантажівки
 truck_a = model.new_bool_var("truck_a")
 truck_b = model.new_bool_var("truck_b")
 truck_c = model.new_bool_var("truck_c")
 
-# Only rent one truck
+# Орендуємо лише одну вантажівку
 model.add_at_most_one([truck_a, truck_b, truck_c])
 
-# Depending on which truck is rented, the load value is limited
+# Залежно від вибору вантажівки, обмежуємо вантаж
 model.add(load_value <= 50).only_enforce_if(truck_a)
 model.add(load_value <= 80).only_enforce_if(truck_b)
 model.add(load_value <= 100).only_enforce_if(truck_c)
 
-# Some additional logic
+# Додаткова логіка
 driver_has_big_truck_license = model.new_bool_var("driver_has_big_truck_license")
 driver_has_special_license = model.new_bool_var("driver_has_special_license")
-# Only drivers with a big truck license or a special license can rent truck c
+# Лише водії з великою ліцензією або спеціальною можуть орендувати truck_c
 model.add_bool_or(
   driver_has_big_truck_license, driver_has_special_license
 ).only_enforce_if(truck_c)
 
-# Minimize the rent cost
+# Мінімізуємо вартість оренди
 model.minimize(30 * truck_a + 40 * truck_b + 80 * truck_c)
 ```
 
-You can also use negations in the `only_enforce_if` method.
+У `only_enforce_if` можна використовувати заперечення:
 
 ```python
 model.add(x + y == 10).only_enforce_if(~b1)
 ```
 
-You can also pass a list of Boolean variables to `only_enforce_if`, in which
-case the constraint is only enforced if all of the variables in the list are
-true.
+Також можна передати список булевих змінних, і тоді обмеження буде
+застосовано лише тоді, коли всі змінні зі списку істинні.
 
 ```python
-model.add(x + y == 10).only_enforce_if([b1, ~b2])  # only enforce if b1 AND NOT b2
+model.add(x + y == 10).only_enforce_if([b1, ~b2])  # застосувати лише якщо b1 І НЕ b2
 ```
 
 > [!WARNING]
 >
-> While `only_enforce_if` in CP-SAT is often more efficient than similar
-> concepts in classical MIP-solvers, it can still impact the performance of
-> CP-SAT significantly. Doing some additional reasoning, you can often find a
-> more efficient way to model your problem without having to use
-> `only_enforce_if`; see the previous section on logical constraints. As
-> `only_enforce_if` is often a more natural way to model your problem, it is
-> still a good idea to use it to get your first prototype running and think
-> about smarter ways later.
+> Хоча `only_enforce_if` у CP-SAT часто ефективніший за аналогічні концепції в
+> класичних MIP-розв’язувачах, він усе одно може суттєво впливати на
+> продуктивність CP-SAT. Виконавши додаткові міркування, часто можна знайти
+> ефективніший спосіб змоделювати задачу без використання `only_enforce_if`;
+> див. попередній розділ про логічні обмеження. Оскільки `only_enforce_if`
+> часто є більш природним способом моделювання, його варто застосувати для
+> першого прототипу, а про «розумніші» способи подумати згодом.
 
 <a name="04-modelling-absmaxmin"></a>
 
-### Absolute Values and Maximum/Minimum Functions with Integer Variables
+### Абсолютні значення та функції максимуму/мінімуму з цілочисельними змінними
 
-When working with integer variables in CP-SAT, operations such as computing
-absolute values, maximum, and minimum values cannot be directly expressed using
-basic Python operations like `abs`, `max`, or `min`. Instead, these operations
-must be handled through the use of auxiliary variables and specialized
-constraints that map these variables to the desired values. The auxiliary
-variables can then be used in other constraints, representing the desired
-subexpression.
+Працюючи з цілочисельними змінними в CP-SAT, операції на кшталт абсолютного
+значення, максимуму й мінімуму не можна напряму виразити за допомогою базових
+Python-операцій `abs`, `max` чи `min`. Натомість потрібно використовувати
+допоміжні змінні та спеціальні обмеження, що зв’язують ці змінні з потрібними
+значеннями. Потім допоміжні змінні можна використовувати в інших обмеженнях,
+представляючи бажаний підвираз.
 
 ```python
 model = cp_model.CpModel()
@@ -1358,63 +1306,58 @@ x = model.new_int_var(-100, 100, "x")
 y = model.new_int_var(-100, 100, "y")
 z = model.new_int_var(-100, 100, "z")
 
-# Create an auxiliary variable for the absolute value of x+z
+# Допоміжна змінна для абсолютного значення x+z
 abs_xz = model.new_int_var(0, 200, "|x+z|")
 model.add_abs_equality(target=abs_xz, expr=x + z)
 
-# Create variables to capture the maximum and minimum of x, (y-1), and z
+# Змінні для максимуму та мінімуму x, (y-1) і z
 max_xyz = model.new_int_var(0, 100, "max(x, y-1, z)")
-# Changed in ortools 9.15: was add_max_equality(target=max_xyz, exprs=[x, y - 1, z])
+# Зміна в ortools 9.15: було add_max_equality(target=max_xyz, exprs=[x, y - 1, z])
 model.add_max_equality(max_xyz, x, y - 1, z)
 
 min_xyz = model.new_int_var(-100, 100, "min(x, y-1, z)")
-# Changed in ortools 9.15: was add_min_equality(target=min_xyz, exprs=[x, y - 1, z])
+# Зміна в ortools 9.15: було add_min_equality(target=min_xyz, exprs=[x, y - 1, z])
 model.add_min_equality(min_xyz, x, y - 1, z)
 ```
 
-While some practitioners report that these methods are more efficient than those
-available in classical Mixed Integer Programming solvers, such findings are
-predominantly based on empirical evidence and specific use-case scenarios. It is
-also worth noting that, surprisingly often, these constraints can be substituted
-with more efficient linear constraints. Here is an example for achieving maximum
-equality in a more efficient way:
+Хоча деякі практики повідомляють, що ці методи ефективніші за аналоги в
+класичних MIP-розв’язувачах, такі висновки здебільшого ґрунтуються на
+емпіричних спостереженнях у конкретних сценаріях. Варто також пам’ятати, що
+доволі часто ці обмеження можна замінити більш ефективними лінійними
+обмеженнями. Ось приклад більш ефективного моделювання максимуму:
 
 ```python
 x = model.new_int_var(0, 100, "x")
 y = model.new_int_var(0, 100, "y")
 z = model.new_int_var(0, 100, "z")
 
-# Ensure that max_xyz is at least the maximum of x, y, and z
+# Забезпечуємо, що max_xyz не менше максимуму з x, y, z
 max_xyz = model.new_int_var(0, 100, "max_xyz")
 model.add(max_xyz >= x)
 model.add(max_xyz >= y)
 model.add(max_xyz >= z)
 
-# Minimizing max_xyz to ensure it accurately reflects the maximum value
+# Мінімізуємо max_xyz, щоб він точно дорівнював максимуму
 model.minimize(max_xyz)
 ```
 
-This approach takes advantage of the solver's minimization function to tighten
-the bound, accurately reflecting the maximum of `x`, `y`, and `z`. By utilizing
-linear constraints, this method can often achieve faster solving times compared
-to using the `add_max_equality` constraint. Similar techniques also exist for
-managing absolute and minimum values, as well as for complex scenarios where
-direct enforcement of equality through the objective function is not feasible.
+Такий підхід використовує мінімізацію для «затягування» межі, завдяки чому
+`max_xyz` точно відображає максимум із `x`, `y` і `z`. Використання лінійних
+обмежень часто дає швидше розв’язання порівняно з `add_max_equality`. Подібні
+техніки існують і для абсолютних значень, мінімумів та складних сценаріїв, де
+пряме забезпечення рівності через цільову функцію неможливе.
 
 <a name="04-modelling-multdivmod"></a>
 
-### Multiplication, Division, and Modulo
+### Множення, ділення і модуль
 
-In practical problems, you may need to perform more complex arithmetic
-operations than simple additions. Consider the scenario where the rental cost
-for a set of trucks is calculated as the product of the number of trucks, the
-number of days, and the daily rental rate. Here, the first two factors are
-variables, leading to a quadratic expression. Attempting to multiply two
-variables directly in CP-SAT will result in an error because the `add` method
-only accepts linear expressions, which are sums of variables and constants.
-However, CP-SAT supports multiplication, division, and modulo operations.
-Similar to using `abs`, `max`, and `min`, you must create an auxiliary variable
-to represent the result of the operation.
+У практичних задачах може знадобитися виконувати складніші арифметичні операції,
+ніж просто додавання. Наприклад, орендна вартість вантажівок може обчислюватися
+як добуток кількості вантажівок, кількості днів і добової ставки. Тут перші два
+множники — змінні, тож вираз квадратичний. Спроба напряму перемножити дві
+змінні в CP-SAT дасть помилку, адже метод `add` приймає лише лінійні вирази.
+Втім, CP-SAT підтримує множення, ділення та модульні операції. Як і з `abs`,
+`max` і `min`, потрібно створити допоміжну змінну, що представляє результат.
 
 ```python
 model = cp_model.CpModel()
@@ -1429,40 +1372,37 @@ model.add_modulo_equality(x, y, 3)  # x = y % 3
 model.add_division_equality(x, y, z)  # x = y // z
 ```
 
-When using these operations, you often transition from linear to non-linear
-optimization, which is generally more challenging to solve. In cases of
-division, it is essential to remember that operations are on integers;
-therefore, `5 // 2` results in `2`, not `2.5`.
+Під час використання цих операцій ви часто переходите від лінійної до нелінійної
+оптимізації, що загалом складніше. У випадку ділення важливо пам’ятати, що
+операції цілочисельні: `5 // 2` дорівнює `2`, а не `2.5`.
 
-Many problems initially involve non-linear expressions that can often be
-reformulated or approximated using linear expressions. This transformation can
-enhance the tractability and speed of solving the problem. Although modeling
-your problem as closely as possible to the real-world scenario is crucial, it is
-equally important to balance accuracy with tractability. A highly accurate model
-is futile if the solver cannot optimize it efficiently. It might be beneficial
-to employ multiple phases in your optimization process, starting with a simpler,
-less accurate model and gradually refining it.
+Багато задач спочатку містять нелінійні вирази, які часто можна переформулювати
+або апроксимувати лінійними. Це може зробити задачу легшою для розв’язання та
+прискорити її. Хоча важливо моделювати задачу якомога ближче до реальності, не
+менш важливо балансувати точність і розв’язуваність. Надто точна модель марна,
+якщо розв’язувач не здатен ефективно її оптимізувати. Може бути корисно
+застосовувати кілька фаз оптимізації — почати з простішої, менш точної моделі,
+а потім поступово її уточнювати.
 
-Some non-linear expressions can still be managed efficiently if they are convex.
-For instance, second-order cone constraints can be solved in polynomial time
-using interior point methods. Gurobi, for example, supports these constraints
-natively. CP-SAT includes an LP-propagator but relies on the Dual Simplex
-algorithm, which is not suitable for these constraints and must depend on
-simpler methods. Similarly, most open-source MIP solvers may struggle with these
-constraints.
+Деякі нелінійні вирази все ще можна ефективно обробляти, якщо вони опуклі.
+Наприклад, обмеження другого порядку (second-order cone) можна розв’язувати
+за поліноміальний час методами внутрішніх точок. Gurobi, наприклад, підтримує
+такі обмеження нативно. CP-SAT має LP-пропагатор, але він спирається на метод
+Dual Simplex, який для таких обмежень не підходить, і змушений використовувати
+простішi методи. Аналогічно, більшість open-source MIP-розв’язувачів теж мають
+труднощі з цими обмеженнями.
 
-It is challenging to determine if CP-SAT can handle non-linear expressions
-efficiently or which solver would be best suited for your problem. Non-linear
-expressions are invariably complex, and avoiding them when possible is
-advisable.
+Складно визначити, чи зможе CP-SAT ефективно впоратися з нелінійними виразами,
+або який розв’язувач найкраще підходить для вашої задачі. Нелінійні вирази
+завжди складні, тому їх варто уникати, якщо можливо.
 
-Here is one of my students' favorite examples of a non-linear expression that
-can be avoided. Once introduced to mathematical notation like
-$\sum_{e \in E} cost(e)\cdot x_e$, if a term depends on the combination of two
-binary variables, they might initially opt for a quadratic expression such as
-$\sum_{e,e'\in E} concost(e, e')\cdot x_e\cdot x_{e'}$. However, such cases can
-often be modeled linearly using an auxiliary variable, avoiding the complexities
-of non-linear modeling.
+Ось один із улюблених прикладів моїх студентів про нелінійний вираз, якого
+можна уникнути. Коли вони вперше знайомляться з нотацією
+$\sum_{e \in E} cost(e)\cdot x_e$, і якщо термін залежить від комбінації двох
+бінарних змінних, вони часто використовують квадратний вираз
+$\sum_{e,e'\in E} concost(e, e')\cdot x_e\cdot x_{e'}$. Однак такі випадки
+часто можна змоделювати лінійно через допоміжну змінну, уникнувши складнощів
+нелінійного моделювання.
 
 ```python
 model = cp_model.CpModel()
@@ -1473,33 +1413,31 @@ b2 = model.new_bool_var("b2")
 b1b2 = model.new_bool_var("b1b2")
 model.add_implication(~b1, ~b1b2)
 model.add_implication(~b2, ~b1b2)
-model.add_bool_or(~b1, ~b2, b1b2)  # optional, for a penalty term to be minimized.
+model.add_bool_or(~b1, ~b2, b1b2)  # опційно, для штрафного терміна в цілі.
 ```
 
-There are numerous further instances where non-linear expressions can be
-simplified by using auxiliary variables or by shifting the non-linear components
-into constants. However, exploring these techniques is most beneficial when you
-encounter specific challenges related to non-linear expressions in your models.
+Існує багато інших випадків, коли нелінійні вирази можна спростити за допомогою
+допоміжних змінних або перенесення нелінійних компонентів у константи. Однак
+вивчення цих технік найкорисніше, коли ви стикаєтеся з конкретними труднощами
+у ваших моделях.
 
-We will revisit further discussions on non-linear expressions and their
-conversion to piecewise linear approximations in a subsequent section. This will
-provide a foundational understanding necessary for addressing more complex
-modeling scenarios effectively.
+Далі ми повернемося до нелінійних виразів і їхнього перетворення на кусочно-
+лінійні апроксимації. Це дасть базове розуміння, необхідне для більш складних
+сценаріїв моделювання.
 
 <a name="04-modelling-alldifferent"></a>
 
 ### All Different
 
-In various assignment and scheduling problems, ensuring that all variables hold
-distinct values is crucial. For example, in frequency assignment, no two
-transmitters within the same area should operate on the same frequency, or in
-scheduling, no two tasks should occupy the same time slot. Typically, this
-requirement could be modeled with a quadratic number of inequality (`!=`)
-constraints. However, a more elegant solution involves using the
-`add_all_different` constraint, which directly enforces that all variables in a
-list take unique values. This constraint is particularly useful in solving
-puzzles like Sudoku or the
-[N-queens problem](https://developers.google.com/optimization/cp/queens).
+У багатьох задачах призначення та планування важливо, щоб усі змінні мали
+різні значення. Наприклад, у призначенні частот жодні два передавачі в одній
+зоні не повинні працювати на однаковій частоті, або в розкладі жодні дві задачі
+не повинні займати один і той самий слот. Зазвичай цю вимогу можна змоделювати
+квадратичною кількістю нерівностей (`!=`). Однак більш елегантне рішення —
+використати обмеження `add_all_different`, яке безпосередньо забезпечує, що всі
+змінні в списку мають унікальні значення. Це обмеження особливо корисне при
+розв’язанні судоку чи
+[задачі N-ферзів](https://developers.google.com/optimization/cp/queens).
 
 ```python
 model = cp_model.CpModel()
@@ -1507,61 +1445,58 @@ x = model.new_int_var(-100, 100, "x")
 y = model.new_int_var(-100, 100, "y")
 z = model.new_int_var(-100, 100, "z")
 
-# Adding an all-different constraint
+# Додаємо обмеження all-different
 model.add_all_different([x, y, z])
 
-# Advanced usage with transformations
+# Просунуте використання з перетвореннями
 vars = [model.new_int_var(0, 10, f"v_{i}") for i in range(10)]
 model.add_all_different([x + i for i, x in enumerate(vars)])
 ```
 
-Using `add_all_different` not only simplifies the modeling but also utilizes a
-dedicated domain-based propagator in CP-SAT, enhancing efficiency beyond what is
-achievable with multiple `!=` constraints. However, if your model mixes `!=`
-constraints with `add_all_different`, be cautious, as CP-SAT disables automatic
-inference of `add_all_different` from groups of `!=` constraints, which can lead
-to performance penalties.
+Використання `add_all_different` не лише спрощує моделювання, але й задіює
+спеціалізований доменний пропагатор у CP-SAT, що підвищує ефективність порівняно
+з багатьма `!=` обмеженнями. Однак якщо ви змішуєте `!=` з `add_all_different`,
+будьте обережні: CP-SAT вимикає автоматичне виведення `add_all_different` з
+груп `!=` обмежень, і це може погіршити продуктивність.
 
-For a practical demonstration, refer to the
-[graph coloring problem example](https://github.com/d-krupke/cpsat-primer/blob/main/examples/add_all_different.ipynb)
-in our repository. Here, using `!=` constraints solved the problem in seconds,
-whereas `add_all_different` took significantly longer, illustrating the
-importance of choosing the right method based on the problem scale and
-complexity.
+Для практичної демонстрації дивіться
+[приклад задачі розфарбування графа](https://github.com/d-krupke/cpsat-primer/blob/main/examples/add_all_different.ipynb)
+у репозиторії. Там `!=` обмеження розв’язали задачу за секунди, тоді як
+`add_all_different` зайняло значно більше часу, що ілюструє важливість вибору
+методу залежно від масштабу і складності задачі.
 
-Alternatively, modeling with Boolean variables and constraints like
-`add_at_most_one` or pairwise negations (`add_boolean_or(~b1, ~b2)`) can also be
-effective. This approach benefits from CP-SAT's efficient handling of Boolean
-logic and allows for easy integration of additional constraints or objectives,
-such as licensing costs associated with certain frequencies. Although CP-SAT
-does something similar internally, it creates these constructs lazily and only
-as needed, whereas explicit modeling in Python may not be as efficient.
+Альтернативно можна моделювати булевими змінними з обмеженнями типу
+`add_at_most_one` або попарними запереченнями (`add_boolean_or(~b1, ~b2)`).
+Такий підхід виграє від ефективної обробки булевої логіки в CP-SAT і дозволяє
+легко інтегрувати додаткові обмеження або цілі, наприклад ліцензійні витрати
+для певних частот. Хоча CP-SAT робить щось подібне всередині, він створює ці
+конструкції ліниво й лише за потреби, тоді як явне моделювання в Python може
+бути менш ефективним.
 
-The choice between these methods—or potentially another strategy—depends on
-specific model requirements and familiarity with CP-SAT's behavior. When in
-doubt, start with the most intuitive method and refine your approach based on
-performance observations.
+Вибір між цими методами — або іншим підходом — залежить від конкретних вимог
+моделі й розуміння поведінки CP-SAT. Якщо сумніваєтеся, почніть із найбільш
+інтуїтивного методу й коригуйте підхід на основі спостережень за
+продуктивністю.
 
 <a name="04-modelling-table"></a>
 
-### Domains and Combinations
+### Домени та комбінації
 
-When optimizing scenarios with predefined feasible values or combinations of
-variables—often outlined in a table—it is advantageous to directly restrict the
-domain of an expression or set of variables.
+Під час оптимізації сценаріїв із наперед визначеними допустимими значеннями або
+комбінаціями змінних — часто заданими у таблиці — корисно безпосередньо
+обмежувати домен виразу або набору змінних.
 
-Consider an example where you are optimizing a shift schedule for a team of
-employees, and you have a table of feasible combinations for each shift:
+Розгляньмо приклад оптимізації графіка змін для команди працівників, де є
+таблиця допустимих комбінацій для кожної зміни:
 
-| Employee 1 | Employee 2 | Employee 3 | Employee 4 |
+| Працівник 1 | Працівник 2 | Працівник 3 | Працівник 4 |
 | ---------- | ---------- | ---------- | ---------- |
 | 1          | 0          | 1          | 0          |
 | 0          | 1          | 1          | 0          |
 | 1          | 0          | 0          | 1          |
 | 0          | 1          | 0          | 1          |
 
-In CP-SAT, this can be modeled efficiently using the `add_allowed_assignments`
-method:
+У CP-SAT це можна ефективно змоделювати за допомогою `add_allowed_assignments`:
 
 ```python
 model = cp_model.CpModel()
@@ -1570,7 +1505,7 @@ x_employee_2 = model.new_bool_var("x_employee_2")
 x_employee_3 = model.new_bool_var("x_employee_3")
 x_employee_4 = model.new_bool_var("x_employee_4")
 
-# Define the allowed assignments
+# Визначаємо дозволені призначення
 allowed_assignments = [
     [1, 0, 1, 0],
     [0, 1, 1, 0],
@@ -1583,7 +1518,7 @@ model.add_allowed_assignments(
 )
 ```
 
-Alternatively, forbidden combinations can be specified using
+Альтернативно, заборонені комбінації можна вказати через
 `add_forbidden_assignments`:
 
 ```python
@@ -1598,12 +1533,11 @@ model.add_forbidden_assignments(
 )
 ```
 
-The utility of the `add_allowed_assignments` method becomes more apparent when
-integrated with other constraints within the model, rather than when it spans
-all variables. If the table covered all variables, one could theoretically
-evaluate each row to identify the best solution without the need for
-sophisticated optimization techniques. However, consider this scenario where
-constraints are integrated across multiple shifts:
+Користь `add_allowed_assignments` найбільш помітна тоді, коли його
+поєднують з іншими обмеженнями в моделі, а не коли він охоплює всі змінні. Якщо
+таблиця охоплювала б усі змінні, теоретично можна було б просто перебрати рядки
+та знайти найкраще рішення без складних оптимізаційних технік. Однак
+розгляньмо сценарій, де обмеження інтегруються між різними змінами:
 
 ```python
 NUM_SHIFTS = 7
@@ -1620,30 +1554,29 @@ for i in range(NUM_SHIFTS):
         allowed_assignments,
     )
 
-# ... some further constraints and objectives to connect the days ...
-# ... if the days would be independent, you would solve each day separately ...
+# ... деякі додаткові обмеження та цілі, що пов’язують дні ...
+# ... якби дні були незалежні, ви б розв’язували кожен день окремо ...
 ```
 
-The `add_allowed_assignments` method in CP-SAT enables the direct incorporation
-of specific feasible combinations into your optimization model, ensuring that
-only certain configurations of variables are considered within the solution
-space. This method effectively "hard-codes" these configurations, simplifying
-the model by predefining which combinations of variables are permissible, much
-like setting rules for employee shifts or resource allocations.
+Метод `add_allowed_assignments` у CP-SAT дозволяє безпосередньо включати
+конкретні допустимі комбінації в модель оптимізації, гарантує, що в просторі
+розв’язків розглядаються лише дозволені конфігурації. Метод фактично
+«зашиває» ці конфігурації, спрощуючи модель шляхом попереднього визначення
+допустимих комбінацій змінних, подібно до правил для змін персоналу чи
+розподілу ресурсів.
 
 > [!NOTE]
 >
-> Hardcoding specific combinations in your model is a preliminary step toward
-> advanced decomposition techniques like Dantzig-Wolfe decomposition. In this
-> method, a complex optimization problem is simplified by replacing a group of
-> correlated variables with composite variables. Such a composite variable
-> represents a solution for a subproblem. Optimizing these composite variables
-> in the master problem significantly reduces the model's complexity and
-> improves the efficiency of solving large-scale problems.
+> Жорстке кодування конкретних комбінацій у моделі — це попередній крок до
+> просунутих технік декомпозиції на кшталт декомпозиції Данцига–Вулфа. У цьому
+> методі складну оптимізаційну задачу спрощують, замінюючи групу корельованих
+> змінних складовими змінними. Така складова змінна представляє розв’язок
+> підзадачі. Оптимізація цих складових змінних у майстер-задачі істотно зменшує
+> складність моделі та підвищує ефективність розв’язання великомасштабних задач.
 
-A related method for managing linear expressions instead of direct assignments
-is `add_linear_expression_in_domain`. Suppose we know a certain linear
-expression, \(10x + 5y\), must equal 20, 50, or 100:
+Схожий метод для керування лінійними виразами (а не прямими призначеннями) —
+`add_linear_expression_in_domain`. Припустимо, що певний лінійний вираз,
+\(10x + 5y\), має дорівнювати 20, 50 або 100:
 
 ```python
 model = cp_model.CpModel()
@@ -1656,22 +1589,21 @@ model.add_linear_expression_in_domain(10 * x + 5 * y, domain)
 
 > [!WARNING]
 >
-> Ensure calculations are correct, especially when working with integers, to
-> avoid creating an infeasible or overly restrictive model. Consider using an
-> auxiliary variable with a restricted domain and softer constraints (`<=`,
-> `>=`) to achieve a more flexible and forgiving model setup.
+> Переконайтеся, що обчислення коректні, особливо при роботі з цілими числами,
+> щоб не створити недопустиму або надто жорстку модель. Розгляньте варіант
+> використання допоміжної змінної з обмеженим доменом і м’якшими обмеженнями
+> (`<=`, `>=`), щоб отримати більш гнучку постановку.
 
 <a name="04-modelling-element"></a> <a name="04-modelling-array"></a>
 
-### Element/Array Constraints
+### Обмеження елементів/масивів
 
-Before exploring specialized constraints, let us examine the last of the generic
-ones. The element constraint facilitates accessing the value of a variable (or
-since ortools 9.12, a linear expression) within an array using another variable
-as the index. Accessing a variable in an array with a constant index is
-straightforward; however, integrating a variable index into your model adds
-complexity. This constraint can also be used to ensure that a variable matches
-the value at a specific array position.
+Перш ніж перейти до спеціалізованих обмежень, розгляньмо останнє загальне.
+Обмеження елемента дозволяє звертатися до значення змінної (або з ortools 9.12 —
+до лінійного виразу) в масиві, використовуючи іншу змінну як індекс. Звернення
+до елемента масиву з константним індексом тривіальне; натомість індекс як
+змінна додає складності. Це обмеження також можна використати, щоб змусити
+змінну дорівнювати значенню в певній позиції масиву.
 
 ```python
 model = cp_model.CpModel()
@@ -1680,16 +1612,16 @@ y = model.new_int_var(-100, 100, "y")
 z = model.new_int_var(-100, 100, "z")
 var_array = [x, y, z]
 
-# Create a variable for the index and a variable for the value at that index.
+# Змінна для індексу та змінна для значення за цим індексом.
 index_var = model.new_int_var(0, len(var_array) - 1, "index")
 value_at_index_var = model.new_int_var(-100, 100, "value_at_index")
 
-# Apply the element constraint to link the index and value variables.
+# Застосовуємо обмеження елемента, щоб зв’язати індекс і значення.
 model.add_element(expressions=var_array, index=index_var, target=value_at_index_var)
-# CAVEAT: Before ortools 9.12, it was `variables=` instead of `expressions=`.
+# УВАГА: до ortools 9.12 було `variables=` замість `expressions=`.
 ```
 
-Examples of feasible variable assignments:
+Приклади допустимих призначень:
 
 | `x` | `y` | `z` | `index_var` | `value_at_index` |
 | --- | --- | --- | ----------- | ---------------- |
@@ -1698,10 +1630,10 @@ Examples of feasible variable assignments:
 | 3   | 4   | 5   | 2           | 5                |
 | 7   | 3   | 4   | 0           | 7                |
 
-The subsequent constraint resembles a stable matching in array form. For two
-equally sized arrays of variables $v$ and $w$, each of size $|v|$, it imposes a
-bijective relationship: $v[i]=j \Leftrightarrow w[j]=i$ for all
-$i,j \in 0,\ldots,|v|-1$. This constraint limits the variables' values to
+Наступне обмеження нагадує стабільне зіставлення у вигляді масивів. Для двох
+масивів змінних $v$ і $w$ однакової довжини $|v|$ воно накладає бієктивний
+зв’язок: $v[i]=j \Leftrightarrow w[j]=i$ для всіх
+$i,j \in 0,\ldots,|v|-1$. Це обмеження обмежує значення змінних до
 $0,\ldots, |v|-1$.
 
 ```python
@@ -1712,40 +1644,40 @@ w = [model.new_int_var(0, 5, f"w_{i}") for i in range(6)]
 model.add_inverse(v, w)
 ```
 
-Examples of feasible variable assignments:
+Приклади допустимих призначень:
 
-| array | 0   | 1   | 2   | 3   | 4   | 5   |
+| масив | 0   | 1   | 2   | 3   | 4   | 5   |
 | ----- | --- | --- | --- | --- | --- | --- |
 | v     | 0   | 1   | 2   | 3   | 4   | 5   |
 | w     | 0   | 1   | 2   | 3   | 4   | 5   |
 
-| array | 0   | 1   | 2   | 3   | 4   | 5   |
+| масив | 0   | 1   | 2   | 3   | 4   | 5   |
 | ----- | --- | --- | --- | --- | --- | --- |
 | v     | 1   | 2   | 3   | 4   | 5   | 0   |
 | w     | 5   | 0   | 1   | 2   | 3   | 4   |
 
-| array | 0   | 1   | 2   | 3   | 4   | 5   |
+| масив | 0   | 1   | 2   | 3   | 4   | 5   |
 | ----- | --- | --- | --- | --- | --- | --- |
 | v     | 1   | 0   | 3   | 5   | 2   | 4   |
 | w     | 1   | 0   | 4   | 2   | 5   | 3   |
 
 | ![Example Matching](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/inverse.png) |
 | :--------------------------------------------------------------------------------------------------: |
-|               Visualizing the stable matching induced by the `add_inverse` constraint.               |
+|               Візуалізація стабільного зіставлення, яке задає обмеження `add_inverse`.               |
 
 > [!WARNING]
 >
-> I generally advise against using the `add_element` and `add_inverse`
-> constraints. While CP-SAT may have effective propagation techniques for them,
-> these constraints can appear unnatural and complex. It's often more
-> straightforward to model stable matching with binary variables $x_{ij}$,
-> indicating whether $v_i$ is matched with $w_j$, and employing an
-> `add_exactly_one` constraint for each vertex to ensure unique matches. If your
-> model needs to capture specific attributes or costs associated with
-> connections, binary variables are necessary. Relying solely on indices would
-> require additional logic for accurate representation. Additionally, use
-> non-binary variables only if the numerical value inherently carries semantic
-> meaning that cannot simply be re-indexed.
+> Зазвичай я не рекомендую використовувати `add_element` і `add_inverse`
+> обмеження. Хоча CP-SAT може мати ефективні техніки пропагації для них, ці
+> обмеження можуть виглядати неприродними й складними. Часто простіше
+> змоделювати стабільне зіставлення через бінарні змінні $x_{ij}$, які
+> позначають, чи зіставлено $v_i$ з $w_j$, і застосувати `add_exactly_one` для
+> кожної вершини, щоб забезпечити унікальні відповідності. Якщо ваша модель має
+> враховувати певні атрибути або витрати, пов’язані зі з’єднаннями, бінарні
+> змінні необхідні. Покладатися лише на індекси означає додаткову логіку для
+> коректного представлення. Крім того, використовуйте небінарні змінні лише
+> тоді, коли числове значення справді має семантичний зміст, який не можна
+> просто переіндексувати.
 
 <!-- This file was generated by the `build.py` script. Do not edit it manually. -->
 <!-- ./chapters/04B_advanced_modelling.md -->
@@ -4783,199 +4715,193 @@ looking for better solvers.
 
 <a name="section-alternatives"></a> <a name="03-big-picture"></a>
 
-## Alternatives: CP-SAT's Place in the World of Optimization
+## Альтернативи: місце CP-SAT у світі оптимізації
 
 
-When you begin exploring optimization, you will encounter a plethora of tools,
-techniques, and communities. It can be overwhelming, as these groups, while
-sharing many similarities, also differ significantly. They might use the same
-terminology for different concepts or different terms for the same concepts,
-adding to the confusion. Not too many experts can effectively navigate these
-varied communities and techniques. Often, even specialists, including
-professors, concentrate on a singular technique or community, remaining unaware
-of potentially more efficient methods developed in other circles.
+Коли ви починаєте досліджувати оптимізацію, то зустрінете безліч інструментів,
+технік і спільнот. Це може збивати з пантелику, адже ці групи, маючи багато
+спільного, водночас суттєво відрізняються. Вони можуть використовувати ту саму
+термінологію для різних понять або різні терміни для однакових понять, що ще
+більше плутає. Небагато експертів уміють ефективно орієнтуватися в цих різних
+спільнотах і техніках. Часто навіть вузькі спеціалісти, включно з професорами,
+зосереджуються на одній техніці чи спільноті й не знають про потенційно
+ефективніші методи, розроблені в інших колах.
 
-If you are interested in understanding the connections between different
-optimization concepts, consider watching the talk
+Якщо вам цікаві зв’язки між різними концепціями оптимізації, перегляньте
+доповідь
 [Logic, Optimization, and Constraint Programming: A Fruitful Collaboration](https://simons.berkeley.edu/talks/john-hooker-carnegie-mellon-university-2023-04-19)
-by John Hooker. Please note that this is an academic presentation and assumes
-some familiarity with theoretical computer science.
+від John Hooker. Зауважте, що це академічна презентація і вона передбачає певну
+обізнаність із теоретичною інформатикою.
 
-Let us now explore the various tools and techniques available, and see how they
-compare to CP-SAT. Please note that this overview is high-level and not
-exhaustive. If you have any significant additions, feel free to open an issue,
-and I will consider including them.
+Тепер розгляньмо доступні інструменти й техніки та порівняймо їх із CP-SAT.
+Будь ласка, пам’ятайте, що це огляд високого рівня і він не є вичерпним. Якщо у
+вас є суттєві доповнення — відкрийте issue, і я розгляну можливість їхнього
+включення.
 
-- **Mixed Integer (Linear) Programming (MIP):** MIP is a highly effective method
-  for solving a variety of optimization problems, particularly those involving
-  networks like flow or tour problems. While MIP only supports linear
-  constraints, making it less expressive than CP-SAT, it is often the best
-  choice if your model is compatible with these constraints. CP-SAT incorporates
-  techniques from MIP, but with limitations, including the absence of continuous
-  variables and incremental modeling. Consequently, pure MIP-solvers, being more
-  specialized, tend to offer greater efficiency for certain applications.
-  Notable MIP-solvers include:
-  - [Gurobi](https://www.gurobi.com/): A commercial solver known for its
-    state-of-the-art capabilities in MIP-solving. It offers free academic
-    licenses, exceptional performance, user-friendliness, and comprehensive
-    support through documentation and expert-led webinars. Gurobi is
-    particularly impressive in handling complex, large-scale problems.
-  - [SCIP](https://www.scipopt.org/): An open-source solver that provides a
-    Python interface. Although not as efficient or user-friendly as Gurobi, SCIP
-    allows extensive customization and is ideal for research and development,
-    especially for experts needing to implement advanced decomposition
-    techniques. If you know how to use it, you can achieve better performance
-    than any other solver for certain problems (especially with Branch and
-    Price).
+- **Змішане цілочисельне (лінійне) програмування (MIP):** MIP — надзвичайно
+  ефективний метод для розв’язання різноманітних оптимізаційних задач,
+  особливо тих, що стосуються мереж, наприклад задач потоків чи турів. Хоча
+  MIP підтримує лише лінійні обмеження, що робить його менш виразним, ніж CP-SAT,
+  він часто є найкращим вибором, якщо ваша модель сумісна з такими обмеженнями.
+  CP-SAT включає техніки з MIP, але з обмеженнями, зокрема відсутністю
+  неперервних змінних і інкрементального моделювання. Тому «чисті» MIP-розв’язувачі,
+  як більш спеціалізовані, зазвичай ефективніші для певних застосувань.
+  Помітні MIP-розв’язувачі:
+  - [Gurobi](https://www.gurobi.com/): комерційний розв’язувач, відомий своїми
+    передовими можливостями в MIP. Пропонує безкоштовні академічні ліцензії,
+    відмінну продуктивність, зручність використання та сильну підтримку через
+    документацію й вебінари з експертами. Особливо вражає здатністю працювати зі
+    складними великомасштабними задачами.
+  - [SCIP](https://www.scipopt.org/): розв’язувач з відкритим кодом із Python-інтерфейсом.
+    Хоча він не такий ефективний і дружній, як Gurobi, SCIP дозволяє глибоку
+    кастомізацію і є ідеальним для досліджень та розробки, особливо для експертів,
+    яким потрібно реалізовувати складні техніки декомпозиції. Якщо ви вмієте ним
+    користуватися, для деяких задач (особливо з Branch and Price) можна досягти
+    кращої продуктивності, ніж будь-яким іншим розв’язувачем.
   - [FICO Xpress Optimization](https://www.fico.com/en/products/fico-xpress-optimization):
-    Another popular commercial solver. A lot of the SCIP developers seem to end
-    up either at Gurobi or Xpress.
-  - [COPT Cardinal Solver](https://www.copt.de/): A relatively new commercial
-    solver that seems to be very strong for some problem classes.
-  - [HiGHS](https://highs.dev/): A newer solver licensed under MIT, presenting
-    an interesting alternative to SCIP. It is possibly faster and features a
-    more user-friendly interface, but is less versatile. For performance
-    benchmarks, see [here](https://plato.asu.edu/ftp/milp.html).
-- **Constraint Programming (CP):** Constraint Programming is a more general
-  approach to optimization problems than MIP. As the name suggests, it focuses
-  on constraints and solvers usually come with a lot of advanced constraints
-  that can be used to describe your problem more naturally. A classical example
-  is the `AllDifferent`-constraint, which is very hard to model in MIP, but
-  would allow, e.g., to trivially model a Sudoku problem. Constraint Programming
-  has been very successful for example in solving scheduling problems, where you
-  have a lot of constraints that are hard to model with linear constraints. The
-  internal techniques of CP-solvers are often more logic-based and less linear
-  algebra-based than MIP-solvers. Popular CP-solvers are:
-  - [OR-Tools' CP-SAT](https://github.com/google/or-tools/): Discussed in this
-    primer, CP-SAT combines various optimization techniques, including those
-    from MIP solvers, but its primary technique is Lazy Clause Generation. This
-    approach translates problems into (Max-)SAT formulas for resolution.
-  - [Choco](https://choco-solver.org/): A traditional CP solver developed in
-    Java, licensed under the BSD 4-Clause. While it may not match CP-SAT in
-    efficiency or modernity, Choco offers significant flexibility, including the
-    option to integrate custom propagators.
-- **SAT-Solvers:** If your problem is actually just to find a feasible solution
-  for some boolean variables, you may want to use a SAT-solver. SAT-solvers are
-  surprisingly efficient and can often handle problems with millions of
-  variables. If you are clever, you can also do some optimization problems with
-  SAT-solvers, as CP-SAT actually does. Most SAT-solvers support incremental
-  modelling, and some support cardinality constraints. However, they are pretty
-  low-level and CP-SAT actually can achieve similar performance for many
-  problems. A popular library for SAT-solvers is:
-  - [PySAT](https://pysathq.github.io/): PySAT is a Python library under MIT
-    license that provides a nice interface to many SAT-solvers. It is very easy
-    to use and allows you to switch between different solvers without changing
-    your code. It is a good choice if you want to experiment with SAT-solvers.
-  - There are many solvers popping up every year and many of them are open
-    source. Check out the [SAT Competition](http://www.satcompetition.org/) to
-    see the current state of the art. Most of the solvers are written in C or
-    C++ and do not provide much documentation. However, as SAT-formulas are very
-    simple and the solvers usually do not have complex dependencies, they can
-    still be reasonably easy to use.
-- **Satisfiability modulo theories (SMT):** SMT-solvers represent an advanced
-  tier above traditional SAT-solvers. They aim to check the satisfiability of
-  mathematical formulas by extending propositional logic with additional
-  theories like linear arithmetic, bit-vectors, arrays, and quantifiers. For
-  instance, an SMT-solver can determine if a formula is satisfiable under
-  conditions where all variables are integers that meet specific linear
-  constraints. Similar to the Lazy Clause Generation utilized by CP-SAT,
-  SMT-solvers usually use a SAT-solver in the backend, extended by complex
-  encodings and additional propagators to handle an extensive portfolio of
-  expressions. These solvers are commonly used in automated theorem proving and
-  system verification. A popular SMT-solver is:
-  - [Z3](https://github.com/z3prover/z3): Developed by Microsoft and available
-    under the MIT license, Z3 offers a robust Python interface and comprehensive
-    documentation, making it accessible for a variety of applications.
-- **Nonlinear Programming (NLP):** Many MIP-solvers can actually handle some
-  nonlinear constraints, as people noticed that some techniques are actually
-  more general than just for linear constraints, e.g., interior points methods
-  can also solve second-order cone problems. However, you will notice serious
-  performance downgrades as these non-linearity is much more difficult to
-  handle. If your constraints and objectives get too complex, they may also no
-  longer be a viable option. Luckily, there currently is a lot of movement in
-  this area and you can expect that the big solvers (like Gurobi, COPT, Xpress,
-  etc.) will get better and better in handling these problems. If you have
-  smaller optimization problems of (nearly) any kind, you may want to look into:
-  - [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.html): SciPy is
-    a Python library that offers a wide range of optimization algorithms. Do not
-    expect it to get anywhere near the performance of a specialized solver, but
-    it gives you a bunch of different options to solve a multitude of problems.
-- **Modeling Languages:** Modeling languages provide a high-level, user-friendly
-  interface for formulating optimization problems, focusing on the challenges of
-  developing and maintaining models that accurately reflect real-world
-  scenarios. These languages are solver-agnostic, allowing easy switching
-  between different solvers - such as from the free SCIP solver to the
-  commercial Gurobi - without modifying the underlying model. They also
-  facilitate the use of diverse techniques, like transitioning between
-  constraint programming and mixed integer programming. However, the trade-off
-  is a potential loss of control and performance for the sake of generality and
-  simplicity. Some of the most popular modeling languages include:
-  - [MiniZinc](https://www.minizinc.org/): Very well-documented and free
-    modelling language that seems to have a high reputation especially in the
-    academic community. The
-    [amazing course on constraint programming by Pierre Flener](https://user.it.uu.se/~pierref/courses/COCP/slides/)
-    also uses MiniZinc. It supports many backends and there are the
-    [MiniZinc Challenges](https://www.minizinc.org/challenge/), where CP-SAT won
-    quite a lot of medals.
-  - [AMPL](https://ampl.com/): AMPL is possibly the most popular modelling
-    language. It has free and commercial solvers. There is not only extensive
-    documentation, but even a book on how to use it.
-  - [GAMS](https://www.gams.com/): This is a commercial system which supports
-    many solvers and also has gotten a Python-interface. I actually know the
-    guys from GAMS as they have a location in Braunschweig. They have a lot of
-    experience in optimization, but I have never used their software myself.
-  - [pyomo](http://www.pyomo.org/): Pyomo is a Python library that allows you to
-    model your optimization problem in Python and then let it solve by different
-    solvers. It is not as high-level as AMPL or GAMS, but it is free and open
-    source. It is also very flexible and allows you to use Python to model your
-    problem, which is a huge advantage if you are already familiar with Python.
-    It actually has support for CP-SAT and could be an option if you just want
-    to have a quick solution.
-  - [OR-Tools' MathOpt](https://developers.google.com/optimization/math_opt): A
-    very new competitor and sibling of CP-SAT. It only supports a few solvers,
-    but may be still interesting.
-- **Specialized Algorithms:** For many optimization problems, there are
-  specialized algorithms that can be much more efficient than general-purpose
-  solvers. Examples are:
-  - [Concorde](http://www.math.uwaterloo.ca/tsp/concorde.html): Concorde is a
-    solver for the Traveling Salesman Problem that despite its age is still
-    blazingly fast for many instances.
-  - [OR-Tools' Routing Solver](https://developers.google.com/optimization/routing):
-    OR-Tools also comes with a dedicated solver for routing problems.
-  - [OR-Tools' Network Flows](https://developers.google.com/optimization/flow):
-    OR-Tools also comes with a dedicated solver for network flow problems.
+    ще один популярний комерційний розв’язувач. Багато розробників SCIP зрештою
+    переходять працювати або в Gurobi, або в Xpress.
+  - [COPT Cardinal Solver](https://www.copt.de/): відносно новий комерційний
+    розв’язувач, який, здається, дуже сильний для деяких класів задач.
+  - [HiGHS](https://highs.dev/): новіший розв’язувач під ліцензією MIT, що є
+    цікавою альтернативою SCIP. Він, імовірно, швидший і має більш дружній
+    інтерфейс, але менш універсальний. Для бенчмарків продуктивності див.
+    [тут](https://plato.asu.edu/ftp/milp.html).
+- **Програмування з обмеженнями (CP):** CP — більш загальний підхід до задач
+  оптимізації, ніж MIP. Як випливає з назви, він зосереджується на обмеженнях,
+  і розв’язувачі зазвичай мають багато просунутих обмежень, які дозволяють
+  природніше описувати задачу. Класичний приклад — обмеження `AllDifferent`,
+  яке дуже складно змоделювати в MIP, але воно дозволяє, наприклад, тривіально
+  змоделювати судоку. CP був дуже успішним, наприклад, у розв’язанні задач
+  планування, де є багато обмежень, які складно описати лінійно. Внутрішні
+  техніки CP-розв’язувачів часто більше опираються на логіку й менше — на
+  лінійну алгебру, порівняно з MIP-розв’язувачами. Популярні CP-розв’язувачі:
+  - [CP-SAT від OR-Tools](https://github.com/google/or-tools/): розглядається в
+    цьому праймері; CP-SAT поєднує різні оптимізаційні техніки, зокрема з MIP,
+    але його ключова техніка — Lazy Clause Generation. Цей підхід переводить
+    задачі у (Max-)SAT формули для розв’язання.
+  - [Choco](https://choco-solver.org/): традиційний CP-розв’язувач, написаний на
+    Java і ліцензований за BSD 4-Clause. Хоча він може поступатися CP-SAT у
+    ефективності чи сучасності, Choco пропонує значну гнучкість, зокрема можливість
+    інтегрувати власні пропагатори.
+- **SAT-розв’язувачі:** якщо ваша задача полягає лише в пошуку допустимого
+  розв’язку для булевих змінних, варто подумати про SAT-розв’язувач. Вони
+  напрочуд ефективні й часто здатні працювати з задачами з мільйонами змінних.
+  Якщо підійти креативно, можна виконувати й деякі оптимізаційні задачі за
+  допомогою SAT-розв’язувачів, як це робить CP-SAT. Більшість SAT-розв’язувачів
+  підтримують інкрементальне моделювання, а деякі — обмеження кардинальності.
+  Однак це досить низькорівневі інструменти, і CP-SAT може досягати подібної
+  продуктивності для багатьох задач. Популярна бібліотека SAT-розв’язувачів:
+  - [PySAT](https://pysathq.github.io/): Python-бібліотека під ліцензією MIT,
+    що надає зручний інтерфейс до багатьох SAT-розв’язувачів. Її легко
+    використовувати, і вона дозволяє перемикатися між розв’язувачами без змін
+    коду. Гарний вибір для експериментів із SAT-розв’язувачами.
+  - Щороку з’являється багато нових розв’язувачів, і чимало з них мають відкритий
+    код. Перегляньте [SAT Competition](http://www.satcompetition.org/), щоб
+    побачити актуальний стан мистецтва. Більшість розв’язувачів написані на C
+    або C++ і мають небагато документації. Проте, оскільки SAT-формули дуже
+    прості, а розв’язувачі зазвичай не мають складних залежностей, ними все ще
+    можна користуватися доволі легко.
+- **Задовільність з урахуванням теорій (SMT):** SMT-розв’язувачі — це наступний
+  щабель після традиційних SAT-розв’язувачів. Вони перевіряють
+  задовільність математичних формул, розширюючи пропозиційну логіку додатковими
+  теоріями, як-от лінійна арифметика, бітові вектори, масиви й квантори.
+  Наприклад, SMT-розв’язувач може визначити, чи є формула задовільною за умов,
+  що всі змінні — цілі числа з певними лінійними обмеженнями. Подібно до Lazy
+  Clause Generation у CP-SAT, SMT-розв’язувачі зазвичай використовують SAT
+  у бекенді, доповнений складними кодуваннями й додатковими пропагаторами для
+  підтримки великого набору виразів. Ці розв’язувачі широко застосовують у
+  автоматизованому доведенні теорем і верифікації систем. Популярний SMT-розв’язувач:
+  - [Z3](https://github.com/z3prover/z3): розроблений Microsoft і доступний за
+    ліцензією MIT. Z3 має надійний Python-інтерфейс і ґрунтовну документацію,
+    що робить його доступним для широкого спектра застосувань.
+- **Нелінійне програмування (NLP):** багато MIP-розв’язувачів насправді можуть
+  обробляти деякі нелінійні обмеження, адже з часом з’ясувалося, що певні
+  техніки є більш загальними, ніж просто лінійні обмеження; наприклад, методи
+  внутрішніх точок можуть також розв’язувати задачі з конічними обмеженнями
+  другого порядку. Проте ви помітите значне падіння продуктивності, оскільки
+  нелінійність набагато складніше обробляти. Якщо ваші обмеження та цілі стають
+  надто складними, такі розв’язувачі можуть перестати бути життєздатним
+  варіантом. На щастя, у цій області зараз багато руху, і можна очікувати, що
+  великі розв’язувачі (Gurobi, COPT, Xpress тощо) ставатимуть дедалі кращими в
+  роботі з такими задачами. Якщо у вас невеликі оптимізаційні задачі майже будь-якого
+  типу, варто розглянути:
+  - [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.html): Python-бібліотека,
+    що пропонує широкий набір алгоритмів оптимізації. Не очікуйте, що вона
+    наблизиться до продуктивності спеціалізованих розв’язувачів, але вона дає
+    багато різних опцій для розв’язання широкого спектра задач.
+- **Мови моделювання:** мови моделювання надають високорівневий, зручний інтерфейс
+  для формулювання оптимізаційних задач, зосереджуючись на труднощах розробки й
+  підтримки моделей, що точно відображають реальні сценарії. Ці мови є
+  незалежними від конкретних розв’язувачів, дозволяючи легко перемикатися між
+  різними розв’язувачами — наприклад, від безкоштовного SCIP до комерційного
+  Gurobi — без зміни самої моделі. Вони також полегшують використання різних
+  технік, як-от перехід між програмуванням з обмеженнями і змішаним цілочисельним
+  програмуванням. Однак компроміс — потенційна втрата контролю й продуктивності
+  заради універсальності та простоти. Найпопулярніші мови моделювання:
+  - [MiniZinc](https://www.minizinc.org/): дуже добре задокументована і безкоштовна
+    мова моделювання, що має високу репутацію в академічній спільноті. Вона
+    використовується, зокрема, у
+    [чудовому курсі з програмування з обмеженнями від Pierre Flener](https://user.it.uu.se/~pierref/courses/COCP/slides/).
+    Підтримує багато бекендів, а також є
+    [MiniZinc Challenges](https://www.minizinc.org/challenge/), де CP-SAT здобув
+    чимало медалей.
+  - [AMPL](https://ampl.com/): можливо, найпопулярніша мова моделювання. Має як
+    безкоштовні, так і комерційні розв’язувачі. Є не лише ґрунтовна документація,
+    а й навіть книга про те, як нею користуватися.
+  - [GAMS](https://www.gams.com/): комерційна система, що підтримує багато
+    розв’язувачів і отримала Python-інтерфейс. Я особисто знаю людей із GAMS,
+    бо у них є офіс у Брауншвейгу. Вони мають великий досвід в оптимізації, але
+    сам я їхнє ПЗ не використовував.
+  - [pyomo](http://www.pyomo.org/): Python-бібліотека, що дозволяє моделювати
+    оптимізаційну задачу в Python, а потім розв’язувати її різними розв’язувачами.
+    Вона не така високорівнева, як AMPL чи GAMS, але є безкоштовною та з
+    відкритим кодом. Дуже гнучка і дозволяє моделювати в Python, що є великою
+    перевагою, якщо ви вже знайомі з Python. Вона має підтримку CP-SAT і може
+    бути варіантом, якщо вам потрібне швидке рішення.
+  - [MathOpt від OR-Tools](https://developers.google.com/optimization/math_opt):
+    дуже новий конкурент і «родич» CP-SAT. Підтримує лише кілька розв’язувачів,
+    але все одно може бути цікавим.
+- **Спеціалізовані алгоритми:** для багатьох оптимізаційних задач існують
+  спеціалізовані алгоритми, які можуть бути значно ефективнішими за
+  універсальні розв’язувачі. Приклади:
+  - [Concorde](http://www.math.uwaterloo.ca/tsp/concorde.html): розв’язувач для
+    задачі комівояжера, який, попри свій вік, все ще дуже швидкий для багатьох
+    екземплярів.
+  - [Routing Solver від OR-Tools](https://developers.google.com/optimization/routing):
+    OR-Tools також має окремий розв’язувач для маршрутних задач.
+  - [Network Flows від OR-Tools](https://developers.google.com/optimization/flow):
+    OR-Tools також має окремий розв’язувач для задач мережевих потоків.
   - ...
-- **Approximation Algorithms:** For many difficult optimization problems, you
-  can find scientific papers that describe approximation algorithms for them.
-  These algorithms come with some guarantees of not being too far off from the
-  optimal solution. Some are even proven to achieve the best possible
-  guarantees. However, you should not directly try to implement such a paper
-  even if it perfectly fits your problem. There are some approximation
-  algorithms that are actually practical, but many are not. The guarantees are
-  usually focussed on artificial worst-case scenarios, and even if the
-  algorithms can be implemented, they may be beaten by simple heuristics.
-  Approximation algorithms and their analysis can be quite useful for
-  understanding the structure of your problem, but their direct practical use is
-  limited.
-- **Meta-Heuristics:** Instead of using a generic solver like CP-SAT, you can
-  also try to build a custom algorithm for your problem based on some
-  meta-heuristic pattern, like simulated annealing, genetic algorithms, or tabu
-  search. Meta-heuristics require some coding, but once you know the pattern,
-  they are quite straightforward to implement. While there are some libraries to
-  generalize parts of the algorithms, you could also just write the whole
-  algorithm yourself. This gives the advantage of truly understanding what is
-  going on in the algorithm, but you miss a lot of advanced techniques contained
-  in solvers like CP-SAT. For many optimization problems, you will have
-  difficulties competing against techniques utilizing advanced solvers in terms
-  of solution quality. If you just want a quick solution, meta-heuristics can be
-  a good start.
+- **Алгоритми наближення:** для багатьох складних оптимізаційних задач можна
+  знайти наукові статті, що описують алгоритми наближення. Ці алгоритми мають
+  певні гарантії того, що результат не буде надто далеким від оптимального
+  розв’язку. Деякі навіть доведено досягають найкращих можливих гарантій. Однак
+  не варто намагатися безпосередньо реалізувати таку статтю, навіть якщо вона
+  ідеально підходить до вашої задачі. Деякі алгоритми наближення справді
+  практичні, але багато — ні. Гарантії зазвичай зосереджені на штучних
+  найгірших сценаріях, і навіть якщо алгоритм можна реалізувати, його часто
+  легко перевершують прості евристики. Алгоритми наближення і їхній аналіз
+  можуть бути корисними для розуміння структури задачі, але пряме практичне
+  використання обмежене.
+- **Мета-евристики:** замість використання універсального розв’язувача, як CP-SAT,
+  ви можете спробувати створити власний алгоритм для задачі на основі певного
+  шаблону мета-евристики, наприклад імітації відпалу, генетичних алгоритмів
+  чи табу-пошуку. Мета-евристики потребують певного програмування, але щойно
+  ви зрозумієте шаблон, їх досить просто реалізувати. Хоча існують бібліотеки,
+  що узагальнюють частини цих алгоритмів, ви також можете написати весь алгоритм
+  самостійно. Це дає перевагу справді розуміти, що відбувається в алгоритмі,
+  але ви втрачаєте багато просунутих технік, наявних у розв’язувачах на кшталт
+  CP-SAT. Для багатьох оптимізаційних задач вам буде складно конкурувати з
+  рішеннями, що використовують сучасні розв’язувачі, з погляду якості розв’язку.
+  Якщо вам потрібне швидке рішення, мета-евристики можуть бути хорошим стартом.
 
-As evident, there exists a diverse array of tools and techniques for solving
-optimization problems. CP-SAT stands out as a versatile approach, particularly
-well-suited for combinatorial optimization challenges. If you frequently
-encounter these types of problems, becoming proficient with CP-SAT is highly
-recommended. Its effectiveness across a broad spectrum of scenarios - excelling
-in many - is remarkable for a tool that is both free and open-source.
+Як видно, існує різноманітний набір інструментів і технік для розв’язання
+оптимізаційних задач. CP-SAT вирізняється як універсальний підхід, особливо
+добре пристосований до комбінаторної оптимізації. Якщо ви часто маєте справу з
+такими задачами, вивчення CP-SAT дуже рекомендується. Його ефективність у
+широкому спектрі сценаріїв — і особливо у багатьох з них — вражає для інструмента,
+який є безкоштовним і відкритим.
 
 ---
 
