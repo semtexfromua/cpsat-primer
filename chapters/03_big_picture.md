@@ -2,203 +2,197 @@
 
 <a name="section-alternatives"></a> <a name="03-big-picture"></a>
 
-## Alternatives: CP-SAT's Place in the World of Optimization
+## Альтернативи: місце CP-SAT у світі оптимізації
 
 <!-- START_SKIP_FOR_README -->
 
-![Cover Image World of Optimization](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/logo_8.webp)
+![Обкладинка «Світ оптимізації»](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/logo_8.webp)
 
 <!-- STOP_SKIP_FOR_README -->
 
-When you begin exploring optimization, you will encounter a plethora of tools,
-techniques, and communities. It can be overwhelming, as these groups, while
-sharing many similarities, also differ significantly. They might use the same
-terminology for different concepts or different terms for the same concepts,
-adding to the confusion. Not too many experts can effectively navigate these
-varied communities and techniques. Often, even specialists, including
-professors, concentrate on a singular technique or community, remaining unaware
-of potentially more efficient methods developed in other circles.
+Коли ви починаєте досліджувати оптимізацію, то зустрінете безліч інструментів,
+технік і спільнот. Це може збивати з пантелику, адже ці групи, маючи багато
+спільного, водночас суттєво відрізняються. Вони можуть використовувати ту саму
+термінологію для різних понять або різні терміни для однакових понять, що ще
+більше плутає. Небагато експертів уміють ефективно орієнтуватися в цих різних
+спільнотах і техніках. Часто навіть вузькі спеціалісти, включно з професорами,
+зосереджуються на одній техніці чи спільноті й не знають про потенційно
+ефективніші методи, розроблені в інших колах.
 
-If you are interested in understanding the connections between different
-optimization concepts, consider watching the talk
+Якщо вам цікаві зв’язки між різними концепціями оптимізації, перегляньте
+доповідь
 [Logic, Optimization, and Constraint Programming: A Fruitful Collaboration](https://simons.berkeley.edu/talks/john-hooker-carnegie-mellon-university-2023-04-19)
-by John Hooker. Please note that this is an academic presentation and assumes
-some familiarity with theoretical computer science.
+від John Hooker. Зауважте, що це академічна презентація і вона передбачає певну
+обізнаність із теоретичною інформатикою.
 
-Let us now explore the various tools and techniques available, and see how they
-compare to CP-SAT. Please note that this overview is high-level and not
-exhaustive. If you have any significant additions, feel free to open an issue,
-and I will consider including them.
+Тепер розгляньмо доступні інструменти й техніки та порівняймо їх із CP-SAT.
+Будь ласка, пам’ятайте, що це огляд високого рівня і він не є вичерпним. Якщо у
+вас є суттєві доповнення — відкрийте issue, і я розгляну можливість їхнього
+включення.
 
-- **Mixed Integer (Linear) Programming (MIP):** MIP is a highly effective method
-  for solving a variety of optimization problems, particularly those involving
-  networks like flow or tour problems. While MIP only supports linear
-  constraints, making it less expressive than CP-SAT, it is often the best
-  choice if your model is compatible with these constraints. CP-SAT incorporates
-  techniques from MIP, but with limitations, including the absence of continuous
-  variables and incremental modeling. Consequently, pure MIP-solvers, being more
-  specialized, tend to offer greater efficiency for certain applications.
-  Notable MIP-solvers include:
-  - [Gurobi](https://www.gurobi.com/): A commercial solver known for its
-    state-of-the-art capabilities in MIP-solving. It offers free academic
-    licenses, exceptional performance, user-friendliness, and comprehensive
-    support through documentation and expert-led webinars. Gurobi is
-    particularly impressive in handling complex, large-scale problems.
-  - [SCIP](https://www.scipopt.org/): An open-source solver that provides a
-    Python interface. Although not as efficient or user-friendly as Gurobi, SCIP
-    allows extensive customization and is ideal for research and development,
-    especially for experts needing to implement advanced decomposition
-    techniques. If you know how to use it, you can achieve better performance
-    than any other solver for certain problems (especially with Branch and
-    Price).
+- **Змішане цілочисельне (лінійне) програмування (MIP):** MIP — надзвичайно
+  ефективний метод для розв’язання різноманітних оптимізаційних задач,
+  особливо тих, що стосуються мереж, наприклад задач потоків чи турів. Хоча
+  MIP підтримує лише лінійні обмеження, що робить його менш виразним, ніж CP-SAT,
+  він часто є найкращим вибором, якщо ваша модель сумісна з такими обмеженнями.
+  CP-SAT включає техніки з MIP, але з обмеженнями, зокрема відсутністю
+  неперервних змінних і інкрементального моделювання. Тому «чисті» MIP-розв’язувачі,
+  як більш спеціалізовані, зазвичай ефективніші для певних застосувань.
+  Помітні MIP-розв’язувачі:
+  - [Gurobi](https://www.gurobi.com/): комерційний розв’язувач, відомий своїми
+    передовими можливостями в MIP. Пропонує безкоштовні академічні ліцензії,
+    відмінну продуктивність, зручність використання та сильну підтримку через
+    документацію й вебінари з експертами. Особливо вражає здатністю працювати зі
+    складними великомасштабними задачами.
+  - [SCIP](https://www.scipopt.org/): розв’язувач з відкритим кодом із Python-інтерфейсом.
+    Хоча він не такий ефективний і дружній, як Gurobi, SCIP дозволяє глибоку
+    кастомізацію і є ідеальним для досліджень та розробки, особливо для експертів,
+    яким потрібно реалізовувати складні техніки декомпозиції. Якщо ви вмієте ним
+    користуватися, для деяких задач (особливо з Branch and Price) можна досягти
+    кращої продуктивності, ніж будь-яким іншим розв’язувачем.
   - [FICO Xpress Optimization](https://www.fico.com/en/products/fico-xpress-optimization):
-    Another popular commercial solver. A lot of the SCIP developers seem to end
-    up either at Gurobi or Xpress.
-  - [COPT Cardinal Solver](https://www.copt.de/): A relatively new commercial
-    solver that seems to be very strong for some problem classes.
-  - [HiGHS](https://highs.dev/): A newer solver licensed under MIT, presenting
-    an interesting alternative to SCIP. It is possibly faster and features a
-    more user-friendly interface, but is less versatile. For performance
-    benchmarks, see [here](https://plato.asu.edu/ftp/milp.html).
-- **Constraint Programming (CP):** Constraint Programming is a more general
-  approach to optimization problems than MIP. As the name suggests, it focuses
-  on constraints and solvers usually come with a lot of advanced constraints
-  that can be used to describe your problem more naturally. A classical example
-  is the `AllDifferent`-constraint, which is very hard to model in MIP, but
-  would allow, e.g., to trivially model a Sudoku problem. Constraint Programming
-  has been very successful for example in solving scheduling problems, where you
-  have a lot of constraints that are hard to model with linear constraints. The
-  internal techniques of CP-solvers are often more logic-based and less linear
-  algebra-based than MIP-solvers. Popular CP-solvers are:
-  - [OR-Tools' CP-SAT](https://github.com/google/or-tools/): Discussed in this
-    primer, CP-SAT combines various optimization techniques, including those
-    from MIP solvers, but its primary technique is Lazy Clause Generation. This
-    approach translates problems into (Max-)SAT formulas for resolution.
-  - [Choco](https://choco-solver.org/): A traditional CP solver developed in
-    Java, licensed under the BSD 4-Clause. While it may not match CP-SAT in
-    efficiency or modernity, Choco offers significant flexibility, including the
-    option to integrate custom propagators.
-- **SAT-Solvers:** If your problem is actually just to find a feasible solution
-  for some boolean variables, you may want to use a SAT-solver. SAT-solvers are
-  surprisingly efficient and can often handle problems with millions of
-  variables. If you are clever, you can also do some optimization problems with
-  SAT-solvers, as CP-SAT actually does. Most SAT-solvers support incremental
-  modelling, and some support cardinality constraints. However, they are pretty
-  low-level and CP-SAT actually can achieve similar performance for many
-  problems. A popular library for SAT-solvers is:
-  - [PySAT](https://pysathq.github.io/): PySAT is a Python library under MIT
-    license that provides a nice interface to many SAT-solvers. It is very easy
-    to use and allows you to switch between different solvers without changing
-    your code. It is a good choice if you want to experiment with SAT-solvers.
-  - There are many solvers popping up every year and many of them are open
-    source. Check out the [SAT Competition](http://www.satcompetition.org/) to
-    see the current state of the art. Most of the solvers are written in C or
-    C++ and do not provide much documentation. However, as SAT-formulas are very
-    simple and the solvers usually do not have complex dependencies, they can
-    still be reasonably easy to use.
-- **Satisfiability modulo theories (SMT):** SMT-solvers represent an advanced
-  tier above traditional SAT-solvers. They aim to check the satisfiability of
-  mathematical formulas by extending propositional logic with additional
-  theories like linear arithmetic, bit-vectors, arrays, and quantifiers. For
-  instance, an SMT-solver can determine if a formula is satisfiable under
-  conditions where all variables are integers that meet specific linear
-  constraints. Similar to the Lazy Clause Generation utilized by CP-SAT,
-  SMT-solvers usually use a SAT-solver in the backend, extended by complex
-  encodings and additional propagators to handle an extensive portfolio of
-  expressions. These solvers are commonly used in automated theorem proving and
-  system verification. A popular SMT-solver is:
-  - [Z3](https://github.com/z3prover/z3): Developed by Microsoft and available
-    under the MIT license, Z3 offers a robust Python interface and comprehensive
-    documentation, making it accessible for a variety of applications.
-- **Nonlinear Programming (NLP):** Many MIP-solvers can actually handle some
-  nonlinear constraints, as people noticed that some techniques are actually
-  more general than just for linear constraints, e.g., interior points methods
-  can also solve second-order cone problems. However, you will notice serious
-  performance downgrades as these non-linearity is much more difficult to
-  handle. If your constraints and objectives get too complex, they may also no
-  longer be a viable option. Luckily, there currently is a lot of movement in
-  this area and you can expect that the big solvers (like Gurobi, COPT, Xpress,
-  etc.) will get better and better in handling these problems. If you have
-  smaller optimization problems of (nearly) any kind, you may want to look into:
-  - [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.html): SciPy is
-    a Python library that offers a wide range of optimization algorithms. Do not
-    expect it to get anywhere near the performance of a specialized solver, but
-    it gives you a bunch of different options to solve a multitude of problems.
-- **Modeling Languages:** Modeling languages provide a high-level, user-friendly
-  interface for formulating optimization problems, focusing on the challenges of
-  developing and maintaining models that accurately reflect real-world
-  scenarios. These languages are solver-agnostic, allowing easy switching
-  between different solvers - such as from the free SCIP solver to the
-  commercial Gurobi - without modifying the underlying model. They also
-  facilitate the use of diverse techniques, like transitioning between
-  constraint programming and mixed integer programming. However, the trade-off
-  is a potential loss of control and performance for the sake of generality and
-  simplicity. Some of the most popular modeling languages include:
-  - [MiniZinc](https://www.minizinc.org/): Very well-documented and free
-    modelling language that seems to have a high reputation especially in the
-    academic community. The
-    [amazing course on constraint programming by Pierre Flener](https://user.it.uu.se/~pierref/courses/COCP/slides/)
-    also uses MiniZinc. It supports many backends and there are the
-    [MiniZinc Challenges](https://www.minizinc.org/challenge/), where CP-SAT won
-    quite a lot of medals.
-  - [AMPL](https://ampl.com/): AMPL is possibly the most popular modelling
-    language. It has free and commercial solvers. There is not only extensive
-    documentation, but even a book on how to use it.
-  - [GAMS](https://www.gams.com/): This is a commercial system which supports
-    many solvers and also has gotten a Python-interface. I actually know the
-    guys from GAMS as they have a location in Braunschweig. They have a lot of
-    experience in optimization, but I have never used their software myself.
-  - [pyomo](http://www.pyomo.org/): Pyomo is a Python library that allows you to
-    model your optimization problem in Python and then let it solve by different
-    solvers. It is not as high-level as AMPL or GAMS, but it is free and open
-    source. It is also very flexible and allows you to use Python to model your
-    problem, which is a huge advantage if you are already familiar with Python.
-    It actually has support for CP-SAT and could be an option if you just want
-    to have a quick solution.
-  - [OR-Tools' MathOpt](https://developers.google.com/optimization/math_opt): A
-    very new competitor and sibling of CP-SAT. It only supports a few solvers,
-    but may be still interesting.
-- **Specialized Algorithms:** For many optimization problems, there are
-  specialized algorithms that can be much more efficient than general-purpose
-  solvers. Examples are:
-  - [Concorde](http://www.math.uwaterloo.ca/tsp/concorde.html): Concorde is a
-    solver for the Traveling Salesman Problem that despite its age is still
-    blazingly fast for many instances.
-  - [OR-Tools' Routing Solver](https://developers.google.com/optimization/routing):
-    OR-Tools also comes with a dedicated solver for routing problems.
-  - [OR-Tools' Network Flows](https://developers.google.com/optimization/flow):
-    OR-Tools also comes with a dedicated solver for network flow problems.
+    ще один популярний комерційний розв’язувач. Багато розробників SCIP зрештою
+    переходять працювати або в Gurobi, або в Xpress.
+  - [COPT Cardinal Solver](https://www.copt.de/): відносно новий комерційний
+    розв’язувач, який, здається, дуже сильний для деяких класів задач.
+  - [HiGHS](https://highs.dev/): новіший розв’язувач під ліцензією MIT, що є
+    цікавою альтернативою SCIP. Він, імовірно, швидший і має більш дружній
+    інтерфейс, але менш універсальний. Для бенчмарків продуктивності див.
+    [тут](https://plato.asu.edu/ftp/milp.html).
+- **Програмування з обмеженнями (CP):** CP — більш загальний підхід до задач
+  оптимізації, ніж MIP. Як випливає з назви, він зосереджується на обмеженнях,
+  і розв’язувачі зазвичай мають багато просунутих обмежень, які дозволяють
+  природніше описувати задачу. Класичний приклад — обмеження `AllDifferent`,
+  яке дуже складно змоделювати в MIP, але воно дозволяє, наприклад, тривіально
+  змоделювати судоку. CP був дуже успішним, наприклад, у розв’язанні задач
+  планування, де є багато обмежень, які складно описати лінійно. Внутрішні
+  техніки CP-розв’язувачів часто більше опираються на логіку й менше — на
+  лінійну алгебру, порівняно з MIP-розв’язувачами. Популярні CP-розв’язувачі:
+  - [CP-SAT від OR-Tools](https://github.com/google/or-tools/): розглядається в
+    цьому праймері; CP-SAT поєднує різні оптимізаційні техніки, зокрема з MIP,
+    але його ключова техніка — Lazy Clause Generation. Цей підхід переводить
+    задачі у (Max-)SAT формули для розв’язання.
+  - [Choco](https://choco-solver.org/): традиційний CP-розв’язувач, написаний на
+    Java і ліцензований за BSD 4-Clause. Хоча він може поступатися CP-SAT у
+    ефективності чи сучасності, Choco пропонує значну гнучкість, зокрема можливість
+    інтегрувати власні пропагатори.
+- **SAT-розв’язувачі:** якщо ваша задача полягає лише в пошуку допустимого
+  розв’язку для булевих змінних, варто подумати про SAT-розв’язувач. Вони
+  напрочуд ефективні й часто здатні працювати з задачами з мільйонами змінних.
+  Якщо підійти креативно, можна виконувати й деякі оптимізаційні задачі за
+  допомогою SAT-розв’язувачів, як це робить CP-SAT. Більшість SAT-розв’язувачів
+  підтримують інкрементальне моделювання, а деякі — обмеження кардинальності.
+  Однак це досить низькорівневі інструменти, і CP-SAT може досягати подібної
+  продуктивності для багатьох задач. Популярна бібліотека SAT-розв’язувачів:
+  - [PySAT](https://pysathq.github.io/): Python-бібліотека під ліцензією MIT,
+    що надає зручний інтерфейс до багатьох SAT-розв’язувачів. Її легко
+    використовувати, і вона дозволяє перемикатися між розв’язувачами без змін
+    коду. Гарний вибір для експериментів із SAT-розв’язувачами.
+  - Щороку з’являється багато нових розв’язувачів, і чимало з них мають відкритий
+    код. Перегляньте [SAT Competition](http://www.satcompetition.org/), щоб
+    побачити актуальний стан мистецтва. Більшість розв’язувачів написані на C
+    або C++ і мають небагато документації. Проте, оскільки SAT-формули дуже
+    прості, а розв’язувачі зазвичай не мають складних залежностей, ними все ще
+    можна користуватися доволі легко.
+- **Задовільність з урахуванням теорій (SMT):** SMT-розв’язувачі — це наступний
+  щабель після традиційних SAT-розв’язувачів. Вони перевіряють
+  задовільність математичних формул, розширюючи пропозиційну логіку додатковими
+  теоріями, як-от лінійна арифметика, бітові вектори, масиви й квантори.
+  Наприклад, SMT-розв’язувач може визначити, чи є формула задовільною за умов,
+  що всі змінні — цілі числа з певними лінійними обмеженнями. Подібно до Lazy
+  Clause Generation у CP-SAT, SMT-розв’язувачі зазвичай використовують SAT
+  у бекенді, доповнений складними кодуваннями й додатковими пропагаторами для
+  підтримки великого набору виразів. Ці розв’язувачі широко застосовують у
+  автоматизованому доведенні теорем і верифікації систем. Популярний SMT-розв’язувач:
+  - [Z3](https://github.com/z3prover/z3): розроблений Microsoft і доступний за
+    ліцензією MIT. Z3 має надійний Python-інтерфейс і ґрунтовну документацію,
+    що робить його доступним для широкого спектра застосувань.
+- **Нелінійне програмування (NLP):** багато MIP-розв’язувачів насправді можуть
+  обробляти деякі нелінійні обмеження, адже з часом з’ясувалося, що певні
+  техніки є більш загальними, ніж просто лінійні обмеження; наприклад, методи
+  внутрішніх точок можуть також розв’язувати задачі з конічними обмеженнями
+  другого порядку. Проте ви помітите значне падіння продуктивності, оскільки
+  нелінійність набагато складніше обробляти. Якщо ваші обмеження та цілі стають
+  надто складними, такі розв’язувачі можуть перестати бути життєздатним
+  варіантом. На щастя, у цій області зараз багато руху, і можна очікувати, що
+  великі розв’язувачі (Gurobi, COPT, Xpress тощо) ставатимуть дедалі кращими в
+  роботі з такими задачами. Якщо у вас невеликі оптимізаційні задачі майже будь-якого
+  типу, варто розглянути:
+  - [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.html): Python-бібліотека,
+    що пропонує широкий набір алгоритмів оптимізації. Не очікуйте, що вона
+    наблизиться до продуктивності спеціалізованих розв’язувачів, але вона дає
+    багато різних опцій для розв’язання широкого спектра задач.
+- **Мови моделювання:** мови моделювання надають високорівневий, зручний інтерфейс
+  для формулювання оптимізаційних задач, зосереджуючись на труднощах розробки й
+  підтримки моделей, що точно відображають реальні сценарії. Ці мови є
+  незалежними від конкретних розв’язувачів, дозволяючи легко перемикатися між
+  різними розв’язувачами — наприклад, від безкоштовного SCIP до комерційного
+  Gurobi — без зміни самої моделі. Вони також полегшують використання різних
+  технік, як-от перехід між програмуванням з обмеженнями і змішаним цілочисельним
+  програмуванням. Однак компроміс — потенційна втрата контролю й продуктивності
+  заради універсальності та простоти. Найпопулярніші мови моделювання:
+  - [MiniZinc](https://www.minizinc.org/): дуже добре задокументована і безкоштовна
+    мова моделювання, що має високу репутацію в академічній спільноті. Вона
+    використовується, зокрема, у
+    [чудовому курсі з програмування з обмеженнями від Pierre Flener](https://user.it.uu.se/~pierref/courses/COCP/slides/).
+    Підтримує багато бекендів, а також є
+    [MiniZinc Challenges](https://www.minizinc.org/challenge/), де CP-SAT здобув
+    чимало медалей.
+  - [AMPL](https://ampl.com/): можливо, найпопулярніша мова моделювання. Має як
+    безкоштовні, так і комерційні розв’язувачі. Є не лише ґрунтовна документація,
+    а й навіть книга про те, як нею користуватися.
+  - [GAMS](https://www.gams.com/): комерційна система, що підтримує багато
+    розв’язувачів і отримала Python-інтерфейс. Я особисто знаю людей із GAMS,
+    бо у них є офіс у Брауншвейгу. Вони мають великий досвід в оптимізації, але
+    сам я їхнє ПЗ не використовував.
+  - [pyomo](http://www.pyomo.org/): Python-бібліотека, що дозволяє моделювати
+    оптимізаційну задачу в Python, а потім розв’язувати її різними розв’язувачами.
+    Вона не така високорівнева, як AMPL чи GAMS, але є безкоштовною та з
+    відкритим кодом. Дуже гнучка і дозволяє моделювати в Python, що є великою
+    перевагою, якщо ви вже знайомі з Python. Вона має підтримку CP-SAT і може
+    бути варіантом, якщо вам потрібне швидке рішення.
+  - [MathOpt від OR-Tools](https://developers.google.com/optimization/math_opt):
+    дуже новий конкурент і «родич» CP-SAT. Підтримує лише кілька розв’язувачів,
+    але все одно може бути цікавим.
+- **Спеціалізовані алгоритми:** для багатьох оптимізаційних задач існують
+  спеціалізовані алгоритми, які можуть бути значно ефективнішими за
+  універсальні розв’язувачі. Приклади:
+  - [Concorde](http://www.math.uwaterloo.ca/tsp/concorde.html): розв’язувач для
+    задачі комівояжера, який, попри свій вік, все ще дуже швидкий для багатьох
+    екземплярів.
+  - [Routing Solver від OR-Tools](https://developers.google.com/optimization/routing):
+    OR-Tools також має окремий розв’язувач для маршрутних задач.
+  - [Network Flows від OR-Tools](https://developers.google.com/optimization/flow):
+    OR-Tools також має окремий розв’язувач для задач мережевих потоків.
   - ...
-- **Approximation Algorithms:** For many difficult optimization problems, you
-  can find scientific papers that describe approximation algorithms for them.
-  These algorithms come with some guarantees of not being too far off from the
-  optimal solution. Some are even proven to achieve the best possible
-  guarantees. However, you should not directly try to implement such a paper
-  even if it perfectly fits your problem. There are some approximation
-  algorithms that are actually practical, but many are not. The guarantees are
-  usually focussed on artificial worst-case scenarios, and even if the
-  algorithms can be implemented, they may be beaten by simple heuristics.
-  Approximation algorithms and their analysis can be quite useful for
-  understanding the structure of your problem, but their direct practical use is
-  limited.
-- **Meta-Heuristics:** Instead of using a generic solver like CP-SAT, you can
-  also try to build a custom algorithm for your problem based on some
-  meta-heuristic pattern, like simulated annealing, genetic algorithms, or tabu
-  search. Meta-heuristics require some coding, but once you know the pattern,
-  they are quite straightforward to implement. While there are some libraries to
-  generalize parts of the algorithms, you could also just write the whole
-  algorithm yourself. This gives the advantage of truly understanding what is
-  going on in the algorithm, but you miss a lot of advanced techniques contained
-  in solvers like CP-SAT. For many optimization problems, you will have
-  difficulties competing against techniques utilizing advanced solvers in terms
-  of solution quality. If you just want a quick solution, meta-heuristics can be
-  a good start.
+- **Алгоритми наближення:** для багатьох складних оптимізаційних задач можна
+  знайти наукові статті, що описують алгоритми наближення. Ці алгоритми мають
+  певні гарантії того, що результат не буде надто далеким від оптимального
+  розв’язку. Деякі навіть доведено досягають найкращих можливих гарантій. Однак
+  не варто намагатися безпосередньо реалізувати таку статтю, навіть якщо вона
+  ідеально підходить до вашої задачі. Деякі алгоритми наближення справді
+  практичні, але багато — ні. Гарантії зазвичай зосереджені на штучних
+  найгірших сценаріях, і навіть якщо алгоритм можна реалізувати, його часто
+  легко перевершують прості евристики. Алгоритми наближення і їхній аналіз
+  можуть бути корисними для розуміння структури задачі, але пряме практичне
+  використання обмежене.
+- **Мета-евристики:** замість використання універсального розв’язувача, як CP-SAT,
+  ви можете спробувати створити власний алгоритм для задачі на основі певного
+  шаблону мета-евристики, наприклад імітації відпалу, генетичних алгоритмів
+  чи табу-пошуку. Мета-евристики потребують певного програмування, але щойно
+  ви зрозумієте шаблон, їх досить просто реалізувати. Хоча існують бібліотеки,
+  що узагальнюють частини цих алгоритмів, ви також можете написати весь алгоритм
+  самостійно. Це дає перевагу справді розуміти, що відбувається в алгоритмі,
+  але ви втрачаєте багато просунутих технік, наявних у розв’язувачах на кшталт
+  CP-SAT. Для багатьох оптимізаційних задач вам буде складно конкурувати з
+  рішеннями, що використовують сучасні розв’язувачі, з погляду якості розв’язку.
+  Якщо вам потрібне швидке рішення, мета-евристики можуть бути хорошим стартом.
 
-As evident, there exists a diverse array of tools and techniques for solving
-optimization problems. CP-SAT stands out as a versatile approach, particularly
-well-suited for combinatorial optimization challenges. If you frequently
-encounter these types of problems, becoming proficient with CP-SAT is highly
-recommended. Its effectiveness across a broad spectrum of scenarios - excelling
-in many - is remarkable for a tool that is both free and open-source.
+Як видно, існує різноманітний набір інструментів і технік для розв’язання
+оптимізаційних задач. CP-SAT вирізняється як універсальний підхід, особливо
+добре пристосований до комбінаторної оптимізації. Якщо ви часто маєте справу з
+такими задачами, вивчення CP-SAT дуже рекомендується. Його ефективність у
+широкому спектрі сценаріїв — і особливо у багатьох з них — вражає для інструмента,
+який є безкоштовним і відкритим.
 
 ---

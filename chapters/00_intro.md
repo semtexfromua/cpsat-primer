@@ -1,70 +1,68 @@
 <!-- EDIT THIS PART VIA 00_intro.md -->
 
-# The CP-SAT Primer: Using and Understanding Google OR-Tools' CP-SAT Solver
+# Праймер CP-SAT: використання та розуміння розв’язувача CP-SAT з Google OR-Tools
 
 <!-- START_SKIP_FOR_README -->
 
-![Cover Image](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/logo_1.webp)
+![Обкладинка](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/logo_1.webp)
 
 <!-- STOP_SKIP_FOR_README -->
 
-_By [Dominik Krupke](https://krupke.cc), TU Braunschweig, with contributions
-from Leon Lan, Michael Perk, and
-[others](https://github.com/d-krupke/cpsat-primer/graphs/contributors)._
+_Автор: [Dominik Krupke](https://krupke.cc), TU Braunschweig, за участі Leon Lan, Michael Perk та
+[інших](https://github.com/d-krupke/cpsat-primer/graphs/contributors)._ 
 
 <!-- Introduction Paragraph --->
 
-Many [combinatorially difficult](https://en.wikipedia.org/wiki/NP-hardness)
-optimization problems can, despite their proven theoretical hardness, be solved
-reasonably well in practice. The most successful approach is to use
-[Mixed Integer Linear Programming](https://en.wikipedia.org/wiki/Integer_programming)
-(MIP) to model the problem and then use a solver to find a solution. The most
-successful solvers for MIPs are, e.g., [Gurobi](https://www.gurobi.com/),
+Багато [комбінаторно складних](https://en.wikipedia.org/wiki/NP-hardness)
+задач оптимізації, попри доведену теоретичну складність, на практиці можна
+розв’язувати достатньо добре. Найуспішніший підхід — застосувати
+[змішане цілочисельне лінійне програмування](https://en.wikipedia.org/wiki/Integer_programming)
+(MIP) для моделювання задачі, а потім скористатися розв’язувачем для пошуку
+розв’язку. Найуспішніші MIP-розв’язувачі, наприклад
+[Gurobi](https://www.gurobi.com/),
 [CPLEX](https://www.ibm.com/analytics/cplex-optimizer),
-[COPT Cardinal Solver](https://www.copt.de/), and
+[COPT Cardinal Solver](https://www.copt.de/) та
 [FICO Xpress Optimization](https://www.fico.com/en/products/fico-xpress-optimization),
-which are all commercial and expensive (though, mostly free for academics).
-There are also some open source solvers (e.g., [SCIP](https://www.scipopt.org/)
-and [HiGHS](https://highs.dev/)), but they are often not as powerful as the
-commercial ones (yet). However, even when investing in such a solver, the
-underlying techniques
-([Branch and Bound](https://en.wikipedia.org/wiki/Branch_and_bound) &
-[Cut](https://en.wikipedia.org/wiki/Branch_and_cut) on
-[Linear Relaxations](https://en.wikipedia.org/wiki/Linear_programming_relaxation))
-struggle with some optimization problems, especially if the problem contains a
-lot of logical constraints that a solution has to satisfy. In this case, the
-[Constraint Programming](https://en.wikipedia.org/wiki/Constraint_programming)
-(CP) approach may be more successful. For Constraint Programming, there are many
-open source solvers, but they usually do not scale as well as MIP-solvers and
-are worse in optimizing objective functions. While MIP-solvers are frequently
-able to optimize problems with hundreds of thousands of variables and
-constraints, the classical CP-solvers often struggle with problems with more
-than a few thousand variables and constraints. However, the relatively new
-[CP-SAT](https://developers.google.com/optimization/cp/cp_solver) of Google's
-[OR-Tools](https://github.com/google/or-tools/) suite shows to overcome many of
-the weaknesses and provides a viable alternative to MIP-solvers, being
-competitive for many problems and sometimes even superior.
+є комерційними і дорогими (хоча здебільшого безплатними для академічної спільноти).
+Існують також деякі розв’язувачі з відкритим кодом (наприклад, [SCIP](https://www.scipopt.org/)
+і [HiGHS](https://highs.dev/)), але вони часто ще не такі потужні, як комерційні.
+Втім, навіть інвестуючи у такий розв’язувач, базові техніки
+([гілок і меж](https://en.wikipedia.org/wiki/Branch_and_bound) та
+[відтинань](https://en.wikipedia.org/wiki/Branch_and_cut) на
+[лінійних релаксаціях](https://en.wikipedia.org/wiki/Linear_programming_relaxation))
+не завжди справляються з певними задачами оптимізації, особливо якщо задача містить
+багато логічних обмежень, яким має відповідати розв’язок. У такому випадку
+підхід [програмування з обмеженнями](https://en.wikipedia.org/wiki/Constraint_programming)
+(CP) може бути успішнішим. Для CP існує чимало розв’язувачів з відкритим кодом,
+але вони зазвичай не масштабуються так добре, як MIP-розв’язувачі, і гірше
+оптимізують цільові функції. Хоча MIP-розв’язувачі часто здатні оптимізувати задачі
+з сотнями тисяч змінних і обмежень, класичні CP-розв’язувачі часто мають труднощі
+з задачами, де змінних і обмежень більше кількох тисяч. Однак відносно новий
+[CP-SAT](https://developers.google.com/optimization/cp/cp_solver) у складі
+[OR-Tools](https://github.com/google/or-tools/) від Google демонструє, що може
+подолати багато з цих слабких місць і є життєздатною альтернативою MIP-розв’язувачам,
+конкуруючи з ними для багатьох задач і інколи навіть перевершуючи їх.
 
-As a quick demonstration of CP-SAT's capabilities - particularly for those less
-familiar with optimization frameworks - let us solve an instance of the NP-hard
-Knapsack Problem. This classic optimization problem requires selecting a subset
-of items, each with a specific weight and value, to maximize the total value
-without exceeding a weight limit. Although a recursive algorithm is easy to
-implement, 100 items yield approximately $2^{100} \approx 10^{30}$ possible
-solutions. Even with a supercomputer performing $10^{18}$ operations per second,
-it would take more than 31,000 years to evaluate all possibilities.
+Як швидку демонстрацію можливостей CP-SAT — особливо для тих, хто менш
+знайомий з оптимізаційними фреймворками — розв’яжімо екземпляр NP-складної
+задачі про рюкзак (Knapsack). Ця класична оптимізаційна задача вимагає вибрати
+підмножину предметів, кожен із певною вагою та цінністю, щоб максимізувати
+загальну цінність, не перевищивши обмеження на вагу. Хоча рекурсивний алгоритм
+легко реалізувати, 100 предметів дають приблизно $2^{100} \approx 10^{30}$
+можливих розв’язків. Навіть надпотужний комп’ютер, що виконує $10^{18}$ операцій
+за секунду, потребував би понад 31 000 років, щоб перевірити всі можливості.
 
-Here is how you can solve it using CP-SAT:
+Ось як це можна розв’язати за допомогою CP-SAT:
 
 ```python
 from ortools.sat.python import cp_model  # pip install -U ortools
 
-# Specifying the input
+# Задаємо вхідні дані
 weights = [395, 658, 113, 185, 336, 494, 294, 295, 256, 530, 311, 321, 602, 855, 209, 647, 520, 387, 743, 26, 54, 420, 667, 971, 171, 354, 962, 454, 589, 131, 342, 449, 648, 14, 201, 150, 602, 831, 941, 747, 444, 982, 732, 350, 683, 279, 667, 400, 441, 786, 309, 887, 189, 119, 209, 532, 461, 420, 14, 788, 691, 510, 961, 528, 538, 476, 49, 404, 761, 435, 729, 245, 204, 401, 347, 674, 75, 40, 882, 520, 692, 104, 512, 97, 713, 779, 224, 357, 193, 431, 442, 816, 920, 28, 143, 388, 23, 374, 905, 942]
 values = [71, 15, 100, 37, 77, 28, 71, 30, 40, 22, 28, 39, 43, 61, 57, 100, 28, 47, 32, 66, 79, 70, 86, 86, 22, 57, 29, 38, 83, 73, 91, 54, 61, 63, 45, 30, 51, 5, 83, 18, 72, 89, 27, 66, 43, 64, 22, 23, 22, 72, 10, 29, 59, 45, 65, 38, 22, 68, 23, 13, 45, 34, 63, 34, 38, 30, 82, 33, 64, 100, 26, 50, 66, 40, 85, 71, 54, 25, 100, 74, 96, 62, 58, 21, 35, 36, 91, 7, 19, 32, 77, 70, 23, 43, 78, 98, 30, 12, 76, 38]
 capacity = 2000
 
-# Now we solve the problem
+# Тепер розв’язуємо задачу
 model = cp_model.CpModel()
 xs = [model.new_bool_var(f"x_{i}") for i in range(len(weights))]
 
@@ -76,8 +74,8 @@ model.maximize(accumulated_value)
 solver = cp_model.CpSolver()
 solver.solve(model)
 
-print("Optimal selection:", [i for i, x in enumerate(xs) if solver.value(x)])
-print("Total packed value:", solver.objective_value)
+print("Оптимальний вибір:", [i for i, x in enumerate(xs) if solver.value(x)])
+print("Загальна цінність:", solver.objective_value)
 ```
 
 ```
@@ -85,177 +83,173 @@ Optimal selection: [2, 14, 19, 20, 29, 33, 52, 53, 54, 58, 66, 72, 76, 77, 81, 8
 Total packed value: 1161.0
 ```
 
-How long did CP-SAT take? On my machine, it found the provably best solution
-from $2^{100}$ possibilities in just 0.01 seconds. Feel free to try it on yours.
-CP-SAT does not evaluate all solutions; it uses advanced techniques to make
-deductions and prune the search space. While more efficient approaches than a
-naive recursive algorithm exist, matching CP-SAT’s performance would require
-significant time and effort. And this is just the beginning - CP-SAT can tackle
-much more complex problems, as we will see in this primer.
+Скільки часу це зайняло? На моїй машині CP-SAT знайшов доведено найкращий
+розв’язок серед $2^{100}$ можливостей лише за 0,01 секунди. Спробуйте й на
+своїй. CP-SAT не перебирає всі розв’язки — він використовує просунуті техніки,
+щоб робити висновки й обрізати простір пошуку. Хоча існують ефективніші підходи,
+ніж наївний рекурсивний алгоритм, досягти продуктивності CP-SAT без значних
+зусиль було б складно. І це лише початок — як побачимо в цьому праймері, CP-SAT
+може розв’язувати значно складніші задачі.
 
 > :video:
 >
-> Not convinced yet of why tools like CP-SAT are amazing? Maybe Marco Lübbecke
-> can convince you in his 12-minute TEDx talk
+> Ще не переконані, чому інструменти на кшталт CP-SAT — це круто? Можливо,
+> Марко Люббеке переконає вас у 12-хвилинній доповіді TEDx
 > [Anything you can do I can do better](https://www.youtube.com/watch?v=Dc38La-Xvog)
-> about mathematical optimization.
+> про математичну оптимізацію.
 
-### Content
+### Зміст
 
-Whether you are from the MIP community seeking alternatives or CP-SAT is your
-first optimization solver, this book will guide you through the fundamentals of
-CP-SAT in the first part, demonstrating all its features. The second part will
-equip you with the skills needed to build and deploy optimization algorithms
-using CP-SAT.
+Незалежно від того, чи ви прийшли зі спільноти MIP у пошуках альтернатив, чи
+CP-SAT є вашим першим оптимізаційним розв’язувачем, ця книга проведе вас через
+основи CP-SAT у першій частині, демонструючи всі його можливості. Друга частина
+дасть вам навички, потрібні для побудови й розгортання оптимізаційних алгоритмів
+з використанням CP-SAT.
 
-The first part introduces the fundamentals of CP-SAT, starting with a chapter on
-installation. This chapter guides you through setting up CP-SAT and outlines the
-necessary hardware requirements. The next chapter provides a simple example of
-using CP-SAT, explaining the mathematical notation and its approximation in
-Python with overloaded operators. You will then progress to basic modeling,
-learning how to create variables, objectives, and fundamental constraints in
-CP-SAT.
+Перша частина вводить у фундаментальні принципи CP-SAT, починаючи з розділу
+про встановлення. У цьому розділі пояснюється, як налаштувати CP-SAT і які
+апаратні вимоги потрібні. Далі наведено простий приклад використання CP-SAT,
+із поясненням математичної нотації та її наближення в Python за допомогою
+перевантажених операторів. Потім ви перейдете до базового моделювання — як
+створювати змінні, цілі та фундаментальні обмеження в CP-SAT.
 
-Following this, a chapter on advanced modeling will teach you how to handle
-complex constraints, such as circuit constraints and intervals, with practical
-examples. Another chapter discusses specifying CP-SAT's behavior, including
-setting time limits and using parallelization. You will also find a chapter on
-interpreting CP-SAT logs, which helps you understand how well CP-SAT is managing
-your problem. Additionally, there is an overview of the underlying techniques
-used in CP-SAT. The first part concludes with a chapter comparing CP-SAT with
-other optimization techniques and tools, providing a broader context.
+Далі розділ про просунуте моделювання навчить працювати зі складними обмеженнями,
+наприклад обмеженнями на контури (circuit) і інтервали, із практичними прикладами.
+Інший розділ пояснює, як задавати поведінку CP-SAT, зокрема встановлювати ліміти
+часу та використовувати паралелізацію. Також є розділ про інтерпретацію логів
+CP-SAT, який допомагає зрозуміти, наскільки добре CP-SAT керується з вашою задачею.
+Крім того, подано огляд базових технік, використаних у CP-SAT. Перша частина
+завершується розділом, що порівнює CP-SAT з іншими техніками та інструментами
+оптимізації, розміщуючи його в ширшому контексті.
 
-The second part delves into more advanced topics, focusing on general skills
-like coding patterns and benchmarking rather than specific CP-SAT features. A
-chapter on coding patterns offers basic design patterns for creating
-maintainable algorithms with CP-SAT. Another chapter explains how to provide
-your optimization algorithm as a service by building an optimization API. There
-is also a chapter on developing powerful heuristics using CP-SAT for
-particularly difficult or large problems. The second part concludes with a
-chapter on benchmarking, offering guidance on how to scientifically benchmark
-your model and interpret the results.
+Друга частина заглиблюється в просунуті теми, зосереджуючись на загальних
+навичках, таких як патерни кодування та бенчмаркінг, а не на конкретних функціях
+CP-SAT. Розділ про патерни кодування пропонує базові шаблони проєктування для
+створення підтримуваних алгоритмів із CP-SAT. Інший розділ пояснює, як надати
+ваш оптимізаційний алгоритм як сервіс, побудувавши оптимізаційне API. Також є
+розділ про розробку потужних евристик із використанням CP-SAT для особливо
+складних або великих задач. Друга частина завершується розділом про бенчмаркінг
+— як науково порівнювати моделі та інтерпретувати результати.
 
-### Target Audience
+### Цільова аудиторія
 
-I wrote this book for my computer science students at TU Braunschweig, and it is
-used as supplementary material in my algorithm engineering courses. Initially,
-we focused on Mixed Integer Programming (MIP), with CP-SAT discussed as an
-alternative. However, we recently began using CP-SAT as the first optimization
-solver due to its high-level interface, which is much easier for beginners to
-grasp. Despite this shift, because MIP is more commonly used, the book includes
-numerous comparisons to MIP. Thus, it is designed to be beginner-friendly while
-also addressing the needs of MIP users seeking alternatives.
+Я написав цю книгу для студентів комп’ютерних наук TU Braunschweig, і вона
+використовується як додатковий матеріал у моїх курсах з інженерії алгоритмів.
+Спочатку ми зосереджувалися на змішаному цілочисельному програмуванні (MIP), а
+CP-SAT розглядали як альтернативу. Однак нещодавно ми почали використовувати
+CP-SAT як перший оптимізаційний розв’язувач завдяки його високорівневому
+інтерфейсу, який значно легше засвоювати початківцям. Попри цю зміну, оскільки
+MIP використовується частіше, книга містить багато порівнянь із MIP. Тож вона
+дружня до початківців, але водночас враховує потреби користувачів MIP, які
+шукають альтернативи.
 
-Unlike other books aimed at mathematical optimization or operations research
-students, this one, aimed at computer science students, emphasizes coding over
-mathematics or business cases, providing a hands-on approach to learning
-optimization. The second part of the book can also be interesting for more
-advanced users, providing content that I found missing in other books on
-optimization.
+На відміну від інших книг, орієнтованих на студентів математичної оптимізації
+чи дослідження операцій, ця книга, адресована студентам комп’ютерних наук,
+наголошує на коді більше, ніж на математиці чи бізнес-кейсах, пропонуючи
+практичний підхід до навчання оптимізації. Друга частина книги також може бути
+цікавою більш просунутим користувачам, оскільки містить те, чого мені бракувало
+в інших книгах про оптимізацію.
 
-### Table of Content
+### Зміст книги
 
-**Part 1: The Basics**
+**Частина 1: Основи**
 
-1. [Installation](#01-installation): Quick installation guide.
-2. [Example](#02-example): A short example, showing the usage of CP-SAT.
-3. [Basic Modeling](#04-modelling): An overview of variables, objectives, and
-   constraints.
-4. [Advanced Modeling](#04B-advanced-modelling): More complex constraints, such
-   as circuit constraints and intervals.
-5. [Parameters](#05-parameters): How to specify CP-SATs behavior, if needed.
-   Timelimits, hints, assumptions, parallelization, ...
-6. [Understanding the Log](#understanding-the-log): How to interpret the log
-7. [How does it work?](#07-under-the-hood): After we know what we can do with
-   CP-SAT, we look into how CP-SAT will do all these things.
-8. [Alternatives](#03-big-picture): An overview of the different optimization
-   techniques and tools available. Putting CP-SAT into context.
-9. [MathOpt as a Modeling Layer](#chapters-mathopt): A new modeling layer in
-   OR-Tools that allows using CP-SAT as a backend solver, but also MIP solvers
-   such as Gurobi or HiGHS.
+1. [Встановлення](#01-installation): швидкий гайд зі встановлення.
+2. [Приклад](#02-example): короткий приклад використання CP-SAT.
+3. [Базове моделювання](#04-modelling): огляд змінних, цілей і обмежень.
+4. [Просунуте моделювання](#04B-advanced-modelling): складніші обмеження, такі як
+   обмеження на контури й інтервали.
+5. [Параметри](#05-parameters): як задавати поведінку CP-SAT за потреби.
+   Ліміти часу, підказки, припущення, паралелізація тощо.
+6. [Розуміння логів](#understanding-the-log): як інтерпретувати лог.
+7. [Як це працює?](#07-under-the-hood): після того як ми зрозуміємо, що можемо
+   робити з CP-SAT, подивимося, як CP-SAT це реалізує.
+8. [Альтернативи](#03-big-picture): огляд різних технік і інструментів
+   оптимізації. Розміщення CP-SAT у контексті.
+9. [MathOpt як шар моделювання](#chapters-mathopt): новий шар моделювання в
+   OR-Tools, який дозволяє використовувати CP-SAT як бекенд-розв’язувач, а також
+   MIP-розв’язувачі, такі як Gurobi або HiGHS.
 
-**Part 2: Advanced Topics**
+**Частина 2: Просунуті теми**
 
-7. [Coding Patterns](#06-coding-patterns): Basic design patterns for creating
-   maintainable algorithms.
-8. [(Draft) Test-Driven Development](#test-driven-optimization): How to develop
-   your optimization algorithm using test-driven development.
-9. [Building an Optimization API](#building_an_optimization_api) How to build a
-   scalable API for long running optimization jobs.
-10. [CP-SAT vs. ML vs. QC](#chapters-machine-learning): A comparison of CP-SAT
-    with Machine Learning and Quantum Computing.
-11. [Large Neighborhood Search](#09-lns): The use of CP-SAT to create more
-    powerful heuristics.
-12. [Benchmarking your Model](#08-benchmarking): How to benchmark your model and
-    how to interpret the results.
+7. [Патерни кодування](#06-coding-patterns): базові шаблони проєктування для
+   створення підтримуваних алгоритмів.
+8. [(Чернетка) Розробка через тести](#test-driven-optimization): як розробляти
+   оптимізаційний алгоритм із застосуванням test-driven development.
+9. [Побудова оптимізаційного API](#building_an_optimization_api) як створити
+   масштабоване API для довготривалих оптимізаційних задач.
+10. [CP-SAT vs. ML vs. QC](#chapters-machine-learning): порівняння CP-SAT з
+    машинним навчанням та квантовими обчисленнями.
+11. [Пошук у великій околиці](#09-lns): використання CP-SAT для створення
+    потужніших евристик.
+12. [Бенчмаркінг вашої моделі](#08-benchmarking): як порівнювати вашу модель та
+    інтерпретувати результати.
 
-### Background
+### Передумови
 
 <!-- Background --->
 
-This book assumes you are fluent in Python, and have already been introduced to
-combinatorial optimization problems. In case you are just getting into
-combinatorial optimization and are learning on your own, I recommend starting
-with the free Coursera course,
+Ця книга передбачає, що ви вільно володієте Python і вже знайомі з комбінаторними
+задачами оптимізації. Якщо ж ви лише починаєте вивчати комбінаторну оптимізацію
+самостійно, рекомендую почати з безкоштовного курсу Coursera
 [Discrete Optimization](https://www.coursera.org/learn/discrete-optimization),
-taught by Pascal Van Hentenryck and Carleton Coffrin. This course provides a
-comprehensive introduction in a concise format.
+який читають Pascal Van Hentenryck та Carleton Coffrin. Цей курс дає
+всебічний вступ у стислому форматі.
 
-For an engaging exploration of a classic problem within this domain,
-[In Pursuit of the Traveling Salesman by Bill Cook](https://press.princeton.edu/books/paperback/9780691163529/in-pursuit-of-the-traveling-salesman)
-is highly recommended. This book, along with this
-[YouTube talk](https://www.youtube.com/watch?v=5VjphFYQKj8) by the author that
-lasts about an hour, offers a practical case study of the well-known Traveling
-Salesman Problem. It not only introduces fundamental techniques but also delves
-into the community and historical context of the field.
+Для захопливого занурення в класичну задачу цієї галузі дуже рекомендую
+[In Pursuit of the Traveling Salesman від Bill Cook](https://press.princeton.edu/books/paperback/9780691163529/in-pursuit-of-the-traveling-salesman).
+Ця книга разом із
+[YouTube-доповіддю](https://www.youtube.com/watch?v=5VjphFYQKj8) автора,
+що триває близько години, пропонує практичний кейс із добре відомою задачею
+комівояжера. Вона не лише знайомить з базовими техніками, а й заглиблюється в
+спільноту та історичний контекст цієї сфери.
 
-Additionally, the article
+Крім того, стаття
 [Mathematical Programming](https://www.gurobi.com/resources/math-programming-modeling-basics/)
-by CP-SAT's competitor Gurobi offers an insightful introduction to mathematical
-programming and modeling. In this context, the term "Programming" does not refer
-to coding; rather, it originates from an earlier usage of the word "program",
-which denoted a plan of action or a schedule. If this distinction is new to you,
-it is a strong indication that you would benefit from reading this article.
+від конкурента CP-SAT — Gurobi — дає змістовний вступ до математичного
+програмування та моделювання. У цьому контексті слово «Programming» не означає
+написання коду; воно походить від раннього значення слова «program», що
+означало план дій або розклад. Якщо ця відмінність для вас нова, це сильний
+сигнал, що вам варто прочитати цю статтю.
 
-> **About the Lead Author:** [Dr. Dominik Krupke](https://krupke.cc) is a
-> postdoctoral researcher with the
-> [Algorithms Division](https://www.ibr.cs.tu-bs.de/alg) at TU Braunschweig. He
-> specializes in practical solutions to NP-hard problems. Initially focused on
-> theoretical computer science, he now applies his expertise to solve what was
-> once deemed impossible, frequently with the help of CP-SAT. This primer on
-> CP-SAT, first developed as course material for his students, has been extended
-> in his spare time to cater to a wider audience.
+> **Про головного автора:** [д-р Dominik Krupke](https://krupke.cc) —
+> постдокторський дослідник у
+> [Algorithms Division](https://www.ibr.cs.tu-bs.de/alg) TU Braunschweig. Він
+> спеціалізується на практичних рішеннях NP-складних задач. Починав у
+> теоретичній інформатиці, а нині застосовує свою експертизу для розв’язання
+> того, що раніше вважали неможливим, часто за допомогою CP-SAT. Цей праймер
+> по CP-SAT спершу був створений як навчальний матеріал для його студентів, а
+> згодом у вільний час розширений для ширшої аудиторії.
 >
-> **Contributors:** This primer has been enriched by the contributions of
-> [several individuals](https://github.com/d-krupke/cpsat-primer/graphs/contributors).
-> Notably, Leon Lan played a key role in restructuring the content and offering
-> critical feedback, while Michael Perk significantly enhanced the section on
-> the reservoir constraint. I also extend my gratitude to all other contributors
-> who identified and corrected errors, improved the text, and offered valuable
-> insights.
+> **Учасники:** цей праймер збагатили внески
+> [кількох людей](https://github.com/d-krupke/cpsat-primer/graphs/contributors).
+> Зокрема, Leon Lan відіграв ключову роль у реструктуризації матеріалу та
+> наданні критичного зворотного зв’язку, а Michael Perk суттєво покращив
+> розділ про обмеження reservoir. Також дякую всім іншим учасникам, які
+> знаходили й виправляли помилки, покращували текст і ділилися цінними ідеями.
 
-> **Found a mistake?** Please open an issue or a pull request. You can also just
-> write me a quick mail to `krupked@gmail.com`.
+> **Знайшли помилку?** Будь ласка, відкрийте issue або pull request. Можна
+> також просто написати мені листа на `krupked@gmail.com`.
 
-> **Want to contribute?** If you are interested in contributing, please open an
-> issue or email me with a brief description of your proposal. We can then
-> discuss the details. I welcome all assistance and am open to expanding the
-> content. Contributors to any section or similar input will be recognized as
-> coauthors.
+> **Хочете долучитися?** Якщо ви зацікавлені у внеску, будь ласка, відкрийте
+> issue або напишіть мені email із коротким описом вашої пропозиції. Тоді ми
+> зможемо обговорити деталі. Я вітаю будь-яку допомогу і відкритий до
+> розширення контенту. Учасники будь-якого розділу чи подібних внесків будуть
+> визнані співавторами.
 
-> **Want to use/share this content?** This tutorial can be freely used under
-> [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/). Smaller parts can
-> even be copied without any acknowledgement for non-commercial, educational
-> purposes.
+> **Хочете використати/поширювати цей контент?** Цей туторіал можна вільно
+> використовувати за ліцензією
+> [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/). Невеликі частини
+> можна копіювати навіть без зазначення авторства для некомерційних
+> освітніх цілей.
 
 <!-- START_SKIP_FOR_README -->
 
-> **Why are there so many platypuses in the text?** I enjoy incorporating
-> elements in my texts that add a light-hearted touch. The choice of the
-> platypus is intentional: much like CP-SAT integrates diverse elements from
-> various domains, the platypus combines traits from different animals. The
-> platypus also symbolizes Australia, home to the development of a key technique
-> in CP-SAT - Lazy Clause Generation (LCG).
+> **Чому в тексті так багато качкодзьобів?** Мені подобається додавати до своїх
+> текстів легкі й теплі елементи. Вибір качкодзьоба не випадковий: так само,
+> як CP-SAT інтегрує різноманітні елементи з різних доменів, качкодзьоб поєднує
+> риси різних тварин. Качкодзьоб також символізує Австралію — місце розробки
+> ключової техніки в CP-SAT, Lazy Clause Generation (LCG).
 
 <!-- STOP_SKIP_FOR_README -->
 

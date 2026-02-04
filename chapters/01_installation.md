@@ -1,67 +1,66 @@
 <!-- EDIT THIS PART VIA 01_installation.md -->
 
-# Part 1: The Basics
+# Частина 1: Основи
 
 <a name="01-installation"></a>
 
-## Installation
+## Встановлення
 
-We are using Python 3 in this primer and assume that you have a working Python 3
-installation as well as the basic knowledge to use it. There are also interfaces
-for other languages, but Python 3 is, in my opinion, the most convenient one, as
-the mathematical expressions in Python are very close to the mathematical
-notation (allowing you to spot mathematical errors much faster). Only for huge
-models, you may need to use a compiled language such as C++ due to performance
-issues. For smaller models, you will not notice any performance difference.
+У цьому праймері ми використовуємо Python 3 і припускаємо, що у вас є робоча
+інсталяція Python 3 та базові навички роботи з ним. Існують інтерфейси й для
+інших мов, але Python 3, на мою думку, найзручніший, адже математичні вирази в
+Python дуже близькі до математичної нотації (це дозволяє швидше помічати
+математичні помилки). Лише для дуже великих моделей може знадобитися
+скомпільована мова на кшталт C++ через питання продуктивності. Для менших
+моделей ви не помітите різниці у швидкодії.
 
-The installation of CP-SAT, which is part of the OR-Tools package, is very easy
-and can be done via Python's package manager
+Встановити CP-SAT, який є частиною пакета OR-Tools, дуже просто — це можна
+зробити через менеджер пакетів Python
 [pip](https://pip.pypa.io/en/stable/).
 
 ```shell
 pip3 install -U ortools
 ```
 
-This command will also update an existing installation of OR-Tools. As this tool
-is in active development, it is recommended to update it frequently. We actually
-encountered wrong behavior, i.e., bugs, in earlier versions that then have been
-fixed by updates (this was on some more advanced features, do not worry about
-correctness with basic usage).
+Ця команда також оновить наявну інсталяцію OR-Tools. Оскільки інструмент активно
+розвивається, рекомендується часто оновлюватися. Ми навіть стикалися з
+некоректною поведінкою (тобто багами) у ранніх версіях, які згодом виправили в
+оновленнях (це стосувалося більш просунутих можливостей — не хвилюйтеся щодо
+коректності базового використання).
 
-I personally like to use [Jupyter Notebooks](https://jupyter.org/) for
-experimenting with CP-SAT.
+Особисто я люблю використовувати [Jupyter Notebooks](https://jupyter.org/) для
+експериментів із CP-SAT.
 
-### What hardware do you need?
+### Яке обладнання потрібне?
 
-It is important to note that for CP-SAT usage, you do not need the capabilities
-of a supercomputer. A standard laptop is often sufficient for solving many
-problems. The primary requirements are CPU power and memory bandwidth, with a
-GPU being unnecessary.
+Важливо розуміти, що для використання CP-SAT вам не потрібні можливості
+суперкомп’ютера. Стандартного ноутбука часто достатньо для розв’язання багатьох
+задач. Основні вимоги — потужність CPU та пропускна здатність пам’яті; GPU не
+потрібен.
 
-In terms of CPU power, the key is balancing the number of cores with the
-performance of each individual core. CP-SAT leverages all available cores by
-default, implementing different strategies on each.
-[Depending on the number of cores, CP-SAT will behave differently](https://github.com/google/or-tools/blob/main/ortools/sat/docs/troubleshooting.md#improving-performance-with-multiple-workers).
-However, the effectiveness of these strategies can vary, and it is usually not
-apparent which one will be most effective. A higher single-core performance
-means that your primary strategy will operate more swiftly. I recommend a
-minimum of 4 cores and 16GB of RAM.
+Щодо процесорної потужності, ключовим є баланс між кількістю ядер і швидкодією
+кожного окремого ядра. CP-SAT за замовчуванням використовує всі доступні ядра,
+застосовуючи різні стратегії на кожному з них.
+[Залежно від кількості ядер CP-SAT поводиться по-різному](https://github.com/google/or-tools/blob/main/ortools/sat/docs/troubleshooting.md#improving-performance-with-multiple-workers).
+Однак ефективність цих стратегій може відрізнятися, і заздалегідь зазвичай
+незрозуміло, яка буде найкращою. Вища продуктивність одного ядра означає, що
+ваша основна стратегія працюватиме швидше. Я рекомендую мінімум 4 ядра та 16 ГБ
+оперативної пам’яті.
 
-While CP-SAT is quite efficient in terms of memory usage, the amount of
-available memory can still be a limiting factor in the size of problems you can
-tackle. When it came to setting up our lab for extensive benchmarking at TU
-Braunschweig, we faced a choice between desktop machines and more expensive
-workstations or servers. We chose desktop machines equipped with AMD Ryzen 9
-7900 CPUs (Intel would be equally suitable) and 96GB of DDR5 RAM, managed using
-Slurm. This decision was driven by the fact that the performance gains from
-higher-priced workstations or servers were relatively marginal compared to their
-significantly higher costs. When on the road, I am often still able to do stuff
-with my old Intel Macbook Pro from 2018 with an i7 and only 16GB of RAM, but
-large models will overwhelm it. My workstation at home with AMD Ryzen 7 5700X
-and 32GB of RAM on the other hand rarely has any problems with the models I am
-working on.
+Хоча CP-SAT доволі ощадний щодо пам’яті, обсяг доступної оперативної пам’яті все
+одно може бути обмежувальним фактором для розміру задач. Коли ми налаштовували
+лабораторію для масштабного бенчмаркінгу в TU Braunschweig, постало питання
+вибору між настільними ПК і дорожчими робочими станціями чи серверами. Ми
+обрали настільні машини з процесорами AMD Ryzen 9 7900 (Intel теж підійшов би)
+та 96 ГБ DDR5, керовані через Slurm. Це рішення було зумовлене тим, що приріст
+продуктивності від дорожчих робочих станцій або серверів був відносно невеликим
+порівняно зі значно вищою ціною. У дорозі я часто й досі можу працювати на
+своєму старому Intel Macbook Pro 2018 року з i7 і лише 16 ГБ RAM, але великі
+моделі його перевантажують. Натомість моя домашня робоча станція з AMD Ryzen 7
+5700X і 32 ГБ RAM рідко має проблеми з моделями, над якими я працюю.
 
-For further guidance, consider the
-[hardware recommendations for the Gurobi solver](https://support.gurobi.com/hc/en-us/articles/8172407217041-What-hardware-should-I-select-when-running-Gurobi-),
-which are likely to be similar. Since we frequently use Gurobi in addition to
-CP-SAT, our hardware choices were also influenced by their recommendations.
+Для додаткових рекомендацій зверніть увагу на
+[апаратні рекомендації для розв’язувача Gurobi](https://support.gurobi.com/hc/en-us/articles/8172407217041-What-hardware-should-I-select-when-running-Gurobi-),
+які, ймовірно, будуть схожими. Оскільки ми часто використовуємо Gurobi поряд із
+CP-SAT, наші апаратні рішення також були частково зумовлені їхніми
+рекомендаціями.

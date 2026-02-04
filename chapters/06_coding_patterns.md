@@ -1,118 +1,106 @@
 <!-- EDIT THIS PART VIA 06_coding_patterns.md -->
 
-# Part 2: Advanced Topics
+# Частина 2: Просунуті теми
 
 <a name="06-coding-patterns"></a>
 
-## Coding Patterns for Optimization Problems
+## Патерни кодування для задач оптимізації
 
 <!-- START_SKIP_FOR_README -->
 
-![Cover Image Patterns](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/logo_4.webp)
+![Обкладинка «Патерни»](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/logo_4.webp)
 
 <!-- STOP_SKIP_FOR_README -->
 
-In this chapter, we will explore various coding patterns that help you structure
-your implementations for optimization problems using CP-SAT. These patterns
-become especially useful when working on complex problems that need to be solved
-continuously and potentially under changing requirements. While we specifically
-focus on CP-SAT's Python API, many patterns can be adapted to other solvers and
-languages.
+У цьому розділі ми розглянемо різні патерни кодування, які допомагають
+структурувати реалізації оптимізаційних задач із використанням CP-SAT. Ці
+патерни особливо корисні, коли ви працюєте зі складними задачами, які потрібно
+розв’язувати постійно й потенційно за змінних вимог. Хоча ми зосереджуємося на
+Python API CP-SAT, багато патернів можна адаптувати до інших розв’язувачів і
+мов.
 
-In many cases, specifying the model and solving it is sufficient without the
-need for careful structuring. However, there are situations where your models
-are complex and require frequent iteration, either for performance reasons or
-due to changing requirements. In such cases, it is crucial to have a good
-structure in place to ensure that you can easily modify and extend your code
-without breaking it, as well as to facilitate testing and comprehension. Imagine
-you have a complex model and need to adapt a constraint due to new requirements.
-If your code is not modular and your test suite is only able to test the entire
-model, this small change will force you to rewrite all your tests. After a few
-iterations, you might end up skipping the tests altogether, which is a dangerous
-path to follow.
+У багатьох випадках достатньо просто описати модель і розв’язати її без
+особливої структури. Але є ситуації, коли моделі складні й потребують частих
+ітерацій — або через продуктивність, або через зміну вимог. Тоді критично мати
+добру структуру, щоб легко змінювати й розширювати код, не ламаючи його, а також
+щоб полегшити тестування й розуміння. Уявіть, що у вас складна модель і потрібно
+адаптувати обмеження через нові вимоги. Якщо код не модульний, а тестова система
+перевіряє лише всю модель, навіть невелика зміна змусить переписувати всі тести.
+Після кількох ітерацій ви можете взагалі відмовитися від тестів — а це
+небезпечний шлях.
 
-Another common issue in complex optimization models is the risk of forgetting to
-add some trivial constraints to interlink auxiliary variables, which can render
-parts of the model dysfunctional. If the dysfunctional part concerns
-feasibility, you might still notice it if you have separately checked the
-feasibility of the solution. However, if it involves the objective, such as
-penalizing certain combinations, you may not easily notice that your solution is
-suboptimal, as the penalties are not applied. Furthermore, implementing complex
-constraints can be challenging, and a modular structure allows you to test these
-constraints separately to ensure they work as intended. Test-driven development
-(TDD) is an effective approach for implementing complex constraints quickly and
-reliably.
+Ще одна типова проблема в складних моделях — ризик забути додати тривіальні
+обмеження, що з’єднують допоміжні змінні, через що частина моделі перестає
+працювати. Якщо це стосується здійсненності, ви, можливо, помітите проблему
+під час перевірки здійсненності розв’язку. Але якщо це впливає на цільову
+функцію (наприклад, штрафи), ви можете не помітити, що розв’язок субоптимальний,
+бо штрафи не застосовано. Крім того, реалізація складних обмежень часто важка,
+і модульна структура дозволяє тестувати такі обмеження окремо. Розробка через
+тести (TDD) — ефективний підхід для швидкої й надійної реалізації складних
+обмежень.
 
-The field of optimization is highly heterogeneous, and the percentage of
-optimizers with a professional software engineering background seems
-surprisingly low. Much of the optimization work is done by mathematicians,
-physicists, and engineers who have deep expertise in their fields but limited
-experience in software engineering. They are usually highly skilled and can
-create excellent models, but their code is often not very maintainable and does
-not follow software engineering best practices. Many problems are similar enough
-that minimal explanation or structure is deemed sufficient—much like creating
-plots by copying, pasting, and adjusting a familiar template. While this
-approach may not be very readable, it is familiar enough for most people in the
-field to understand. Additionally, it is typical for mathematicians to first
-document the model and then implement it. From a software engineering
-perspective, this workflow resembles the waterfall model, which lacks agility.
+Оптимізація як сфера дуже неоднорідна, і відсоток оптимізаторів із професійним
+бекграундом у програмній інженерії, здається, напрочуд низький. Багато
+оптимізаційної роботи роблять математики, фізики та інженери, які мають глибоку
+експертизу у своїх галузях, але обмежений досвід у софт-інженерії. Вони
+зазвичай дуже кваліфіковані й можуть створювати чудові моделі, але їхній код
+часто непідтримуваний і не відповідає практикам ПЗ. Багато задач подібні між
+собою, тож мінімальних пояснень чи структури часто вважають достатніми —
+подібно до побудови графіків через копіювання шаблонів. Такий підхід може бути
+не надто читабельним, але для багатьох у галузі це звично. Також для
+математиків типово спочатку документувати модель, а потім реалізовувати її.
+З погляду інженерії це нагадує водоспадну модель, яка не є гнучкою.
 
-There appears to be a lack of literature on agile software development in
-optimization, which this chapter seeks to address by presenting some patterns I
-have found useful in my work. I asked a few senior colleagues in the field, and
-unfortunately, they could not provide any useful resources either or did not
-even see the need for such resources. For many use cases, the simple approach is
-indeed sufficient. However, I have found that these patterns make my agile,
-test-driven workflow much easier, faster, and more enjoyable. Note that this
-chapter is largely based on my personal experience due to the limited
-availability of references. I would be happy to hear about your experiences and
-the patterns you have found useful in your work.
+Схоже, що літератури про agile-розробку в оптимізації бракує, і цей розділ
+покликаний заповнити прогалину, описуючи патерни, які я вважаю корисними у
+своїй роботі. Я запитував старших колег, але вони не змогли запропонувати
+ресурси або навіть не бачили потреби в них. Для багатьох кейсів простого
+підходу справді достатньо. Але я виявив, що ці патерни роблять мій agile,
+тест-орієнтований робочий процес значно легшим, швидшим і приємнішим. З огляду
+на брак джерел, цей розділ значною мірою базується на моєму особистому досвіді.
+Буду радий почути ваші історії та патерни, які ви вважаєте корисними.
 
-In the following sections, we will start with the basic function-based pattern
-and then introduce further concepts and patterns that I have found valuable. We
-will work on simple examples where the benefits of these patterns may not be
-immediately apparent, but I hope you will see their potential in more complex
-problems. The alternative would have been to provide complex examples, which
-might have distracted from the patterns themselves.
+Далі ми почнемо з базового патерну на основі функцій, а потім перейдемо до
+інших концепцій і патернів, які я вважаю цінними. Ми працюватимемо на простих
+прикладах, де переваги патернів можуть бути неочевидними, але сподіваюся, ви
+побачите їхній потенціал у складніших задачах. Альтернатива — навести складні
+приклади, що могло б відволікти від самих патернів.
 
 > [!TIP]
 >
-> The following patterns focus on details specific to computational
-> optimization. However, many optimization engineers come from mathematics or
-> physics backgrounds and may not have professional Python or software
-> engineering experience. If you are among them, I recommend familiarizing
-> yourself in especially with
-> [basic data structures and their _comprehensions_](https://docs.python.org/3/tutorial/datastructures.html)
-> and elegant loops using
-> [itertools](https://docs.python.org/3/library/itertools.html). These tools
-> allow you to express your mathematical ideas in Python more elegantly in
-> general, and they are especially useful for optimization problems.
+> Наведені патерни зосереджуються на деталях, специфічних для обчислювальної
+> оптимізації. Проте багато інженерів-оптимізаторів походять із математики чи
+> фізики і можуть не мати професійного досвіду в Python чи софт-інженерії. Якщо
+> це про вас, рекомендую ознайомитися особливо з
+> [базовими структурами даних і їх _comprehensions_](https://docs.python.org/3/tutorial/datastructures.html)
+> та елегантними циклами з
+> [itertools](https://docs.python.org/3/library/itertools.html). Ці інструменти
+> дозволяють елегантніше виражати математичні ідеї у Python і особливо корисні
+> для задач оптимізації.
 >
-> Additionally, there are excellent tools to automatically format, check, and
-> improve your code, such as [ruff](https://docs.astral.sh/ruff/tutorial/).
-> Regularly running `ruff check --fix` and `ruff format` can enhance your code
-> quality with minimal effort. Optimally, you will integrate it via a
+> Також є чудові інструменти для автоматичного форматування, перевірки та
+> покращення коду, наприклад [ruff](https://docs.astral.sh/ruff/tutorial/).
+> Регулярний запуск `ruff check --fix` та `ruff format` підвищує якість коду з
+> мінімальними зусиллями. Оптимально інтегрувати це через
 > [pre-commit hook](https://pre-commit.com/).
 >
-> For getting started with implementing optimization models in general, I highly
-> recommend the blog post
+> Для старту з побудови оптимізаційних моделей загалом дуже рекомендую статтю
 > [The Art Of Not Making It An Art](https://www.gurobi.com/resources/optimization-modeling-the-art-of-not-making-it-an-art/).
-> It excellently summarizes the fundamental principles of successfully managing
-> an optimization project, independent of the concrete language or solver.
+> Вона чудово підсумовує принципи успішного ведення оптимізаційного проєкту
+> незалежно від конкретної мови чи розв’язувача.
 
-### Simple Function
+### Проста функція
 
-For straightforward optimization problems, encapsulating the model creation and
-solving within a single function is a practical approach. This method is best
-suited for simpler cases due to its straightforward nature but lacks flexibility
-for more complex scenarios. Parameters such as the time limit and optimality
-tolerance can be customized via keyword arguments with default values.
+Для простих задач оптимізації практично обгорнути побудову та розв’язання
+моделі в одну функцію. Цей метод підходить для простих випадків, але має меншу
+гнучкість для складних сценаріїв. Параметри на кшталт ліміту часу або допуску
+оптимальності можна задавати через keyword-аргументи з значеннями за
+замовчуванням.
 
-The following Python function demonstrates solving a simple knapsack problem
-using CP-SAT. To recap, in the knapsack problem, we select items - each with a
-specific weight and value - to maximize total value without exceeding a
-predefined weight limit. Given its simplicity, involving only one constraint,
-the knapsack problem serves as an ideal model for introductory examples.
+Нижче приклад функції на Python для задачі рюкзака. Нагадаємо, що в задачі
+рюкзака ми вибираємо предмети (з вагою і цінністю), щоб максимізувати сумарну
+цінність при обмеженні на вагу. Через простоту (лише одне обмеження) ця задача
+ідеальна для вступних прикладів.
 
 ```python
 from ortools.sat.python import cp_model
@@ -127,31 +115,29 @@ def solve_knapsack(
     time_limit: int = 900,
     opt_tol: float = 0.01,
 ) -> List[int]:
-    # initialize the model
+    # ініціалізуємо модель
     model = cp_model.CpModel()
-    n = len(weights)  # Number of items
-    # Decision variables for items
+    n = len(weights)  # кількість предметів
+    # Змінні рішень
     x = [model.new_bool_var(f"x_{i}") for i in range(n)]
-    # Capacity constraint
+    # Обмеження місткості
     model.add(sum(weights[i] * x[i] for i in range(n)) <= capacity)
-    # Objective function to maximize value
+    # Цільова функція
     model.maximize(sum(values[i] * x[i] for i in range(n)))
-    # Solve the model
+    # Розв’язання
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = time_limit  # Solver time limit
-    solver.parameters.relative_gap_limit = opt_tol  # Solver optimality tolerance
+    solver.parameters.max_time_in_seconds = time_limit
+    solver.parameters.relative_gap_limit = opt_tol
     status = solver.solve(model)
-    # Extract solution
+    # Витягуємо розв’язок
     return (
-        # Return indices of selected items
         [i for i in range(n) if solver.value(x[i])]
         if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]
         else []
     )
 ```
 
-You can also add some more flexibility by allowing any solver parameters to be
-passed to the solver.
+Можна додати гнучкість, дозволивши передавати будь-які параметри solver-а.
 
 ```python
 def solve_knapsack(
@@ -163,103 +149,91 @@ def solve_knapsack(
     opt_tol: float = 0.01,
     **kwargs,
 ) -> List[int]:
-    # initialize the model
+    # ініціалізуємо модель
     model = cp_model.CpModel()
     # ...
-    # Solve the model
+    # Розв’язання
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = time_limit  # Solver time limit
-    solver.parameters.relative_gap_limit = opt_tol  # Solver optimality tolerance
+    solver.parameters.max_time_in_seconds = time_limit
+    solver.parameters.relative_gap_limit = opt_tol
     for key, value in kwargs.items():
         setattr(solver.parameters, key, value)
     # ...
 ```
 
-Add some unit tests in some separate file (e.g., `test_knapsack.py`) to ensure
-that the model works as expected.
+Додайте модульні тести у окремому файлі (наприклад, `test_knapsack.py`), щоб
+переконатися, що модель працює очікувано.
 
 > [!TIP]
 >
-> Write the tests before you write the code. This approach is known as
-> test-driven development (TDD) and can help you to structure your code better
-> and to ensure that your code works as expected. It also helps you to think
-> about the API of your function before you start implementing it.
+> Пишіть тести до написання коду. Це підхід TDD, який допомагає структурувати
+> код і забезпечити його правильність. Він також змушує продумати API функції
+> до реалізації.
 
 ```python
-# Make sure you have a proper project structure and can import your function
+# Переконайтеся, що у вас правильна структура проєкту і ви можете імпортувати функцію
 from myknapsacksolver import solve_knapsack
 
 def test_knapsack_empty():
-    # Always good to have a test for the trivial case. The more trivial the
-    # case, the more likely it is that you forget it.
+    # Тест для тривіального випадку завжди корисний
     assert solve_knapsack([], [], 0) == []
 
 def test_knapsack_nothing_fits():
-    # If nothing fits, we should get an empty solution
+    # Якщо нічого не вміщується, розв’язок має бути порожнім
     assert solve_knapsack([10, 20, 30], [1, 2, 3], 5) == []
 
 def test_knapsack_one_item():
-    # If only one item fits, we should get this item
+    # Якщо вміщується лише один предмет
     assert solve_knapsack([10, 20, 30], [1, 2, 3], 10) == [0]
 
 def test_knapsack_all_items():
-    # If all items fit, we should get all items
+    # Якщо вміщуються всі предмети
     assert solve_knapsack([10, 20, 30], [1, 2, 3], 100) == [0, 1, 2]
 ```
 
-Using pytest, you can run all tests in the project with `pytest .`. Check
-[Real Python](https://realpython.com/pytest-python-testing/) for a good tutorial
-on pytest.
+Запустити всі тести в проєкті можна через `pytest .`. Гарний туторіал —
+[Real Python](https://realpython.com/pytest-python-testing/).
 
-### Logging the Model Building
+### Логування побудови моделі
 
-When working with larger optimization problems, logging the model-building
-process can be essential to find and fix issues. Often, the problem lies not
-within the solver but in the model building itself.
+У великих задачах логування процесу побудови моделі може бути критичним для
+пошуку й виправлення проблем. Часто проблема не в solver-і, а саме в моделі.
 
-In the following example, we add some basic logging to the solver function to
-give us some insights into the model-building process. This logging can be
-easily activated or deactivated by the logging framework, allowing us to use it
-not only during development but also in production, where you usually deactivate
-a lot of logging to save resources.
+У прикладі нижче додаємо базове логування у функцію solver-а, щоб отримати
+інсайти про побудову моделі. Логування легко вмикається/вимикається через
+logging framework, що дозволяє використовувати його і в продакшені.
 
-If you do not know about the logging framework of Python, this is an excellent
-moment to learn about it. I consider it an essential skill for production code
-and this and similar frameworks are used for most production code in any
-language. The official Python documentation contains a
-[good tutorial](https://docs.python.org/3/howto/logging.html). There are people
-that prefer other logging frameworks, but it comes with Python and is good
-enough for most use cases, definitely better than using the badly configurable
-`print` statement.
+Якщо ви не знайомі з logging у Python — це чудова нагода. Я вважаю це
+необхідною навичкою для продакшн-коду, і подібні фреймворки використовуються
+майже всюди. Офіційна документація має
+[гарний туторіал](https://docs.python.org/3/howto/logging.html). Дехто любить
+інші фреймворки, але вбудований logging цілком достатній і кращий за `print`.
 
 ```python
 import logging
 from ortools.sat.python import cp_model
 from typing import List
 
-# Configure the logging framework if it is not already configured.
-# We are setting it to debug level, as we are still developing the code.
+# Налаштовуємо logging, якщо ще не налаштовано
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.DEBUG)
 
-_logger = logging.getLogger(__name__)  # get a logger for the current module
+_logger = logging.getLogger(__name__)
 
 
 def solve_knapsack(
     weights: List[int],
     values: List[int],
     capacity: int,
-    *,  # Make the following arguments keyword-only
+    *,
     time_limit: int = 900,
     opt_tol: float = 0.01,
 ) -> List[int]:
     _logger.debug("Building the knapsack model")
-    # initialize the model
     model = cp_model.CpModel()
-    n = len(weights)  # Number of items
+    n = len(weights)
     _logger.debug("Number of items: %d", n)
     if n > 0:
         if _logger.isEnabledFor(logging.DEBUG):
-            # Only calculate min, mean, and max if we actually log it
             _logger.debug(
                 "Min/Mean/Max weight: %d/%.2f/%d",
                 min(weights),
@@ -269,23 +243,17 @@ def solve_knapsack(
             _logger.debug(
                 "Min/Mean/Max value: %d/%.2f/%d", min(values), sum(values) / n, max(values)
             )
-    # Decision variables for items
     x = [model.new_bool_var(f"x_{i}") for i in range(n)]
-    # Capacity constraint
     model.add(sum(weights[i] * x[i] for i in range(n)) <= capacity)
-    # Objective function to maximize value
     model.maximize(sum(values[i] * x[i] for i in range(n)))
-    # Log the model
     _logger.debug("Model created with %d items", n)
-    # Solve the model
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = time_limit  # Solver time limit
-    solver.parameters.relative_gap_limit = opt_tol  # Solver optimality tolerance
+    solver.parameters.max_time_in_seconds = time_limit
+    solver.parameters.relative_gap_limit = opt_tol
     _logger.debug(
         "Starting the solution process with time limit %d seconds", time_limit
     )
     status = solver.solve(model)
-    # Extract solution
     selected_items = (
         [i for i in range(n) if solver.value(x[i])]
         if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]
@@ -295,37 +263,32 @@ def solve_knapsack(
     return selected_items
 ```
 
-We will not use logging in the following examples to save space, but you should
-consider adding it to your code.
+У наступних прикладах ми не використовуватимемо логування, щоб зекономити місце,
+але варто подумати про його додавання до коду.
 
 > [!TIP]
 >
-> A great hack you can do with the logging framework is that you can easily hook
-> into your code and do analysis beyond the simple logging. You can simply write
-> a handler that, e.g., waits for the tag `"Selected items: %s"` and then can
-> directly access the selected items, as the actual object is passed to the
-> handler (and not just the string). This can be very useful to gather
-> statistics or to visualize the search process, without having to change the
-> (production) code.
+> Класний хак із logging — можна легко під’єднатися до коду і робити аналіз
+> не лише через тексти логів. Ви можете написати handler, який, наприклад,
+> ловить тег "Selected items: %s" і отримує сам об’єкт (а не лише рядок). Це
+> дуже корисно для збору статистики чи візуалізації процесу пошуку без зміни
+> (продакшн) коду.
 
-### Custom Data Classes for Instances, Configurations, and Solutions
+### Власні data-класи для інстансів, конфігурацій і розв’язків
 
-Incorporating serializable data classes based on strict schema to manage
-instances, configurations, and solutions significantly enhances code readability
-and maintainability. These classes also facilitate documentation, testing, and
-ensure data consistency across larger projects where data exchange among
-different components is necessary.
+Використання серіалізованих data-класів зі строгими схемами для інстансів,
+конфігурацій і розв’язків значно підвищує читабельність і підтримуваність
+коду. Це також полегшує документацію, тестування і забезпечує узгодженість
+даних у великих проєктах.
 
-One popular library for this purpose is
-[Pydantic](https://docs.pydantic.dev/latest/). It is easy to use and provides
-substantial functionality out of the box. The following code introduces data
-classes for the instance, configuration, and solution of the knapsack problem.
-While Python's duck typing is great for rapidly developing internal data flow,
-it can be problematic for interfaces. Users will often misuse the interface in
-unexpected ways, and you will be blamed for it. Pydantic helps mitigate these
-issues by providing a clear interface and validating input data. Additionally,
-you can create an API for your code effortlessly using FastAPI, which is built
-on top of Pydantic.
+Одна з популярних бібліотек для цього —
+[Pydantic](https://docs.pydantic.dev/latest/). Вона проста і дає багато
+функціональності «з коробки». Нижче — класи для інстансу, конфігурації і
+розв’язку задачі рюкзака. Хоча duck typing у Python зручний для швидкої
+внутрішньої розробки, він може створювати проблеми для API. Користувачі часто
+неправильно використовують інтерфейс і звинувачують вас. Pydantic допомагає
+зменшити ці проблеми, даючи чіткий інтерфейс і валідацію. До того ж можна
+легко створити API через FastAPI, який побудований на Pydantic.
 
 ```python
 # pip install pydantic
@@ -340,7 +303,7 @@ from pydantic import (
 
 
 class KnapsackInstance(BaseModel):
-    # Defines the knapsack instance to be solved.
+    # Інстанс задачі
     weights: list[PositiveInt] = Field(..., description="The weight of each item.")
     values: list[PositiveInt] = Field(..., description="The value of each item.")
     capacity: PositiveInt = Field(..., description="The capacity of the knapsack.")
@@ -353,7 +316,7 @@ class KnapsackInstance(BaseModel):
 
 
 class KnapsackSolverConfig(BaseModel):
-    # Defines the configuration for the knapsack solver.
+    # Конфігурація solver-а
     time_limit: PositiveFloat = Field(
         default=900.0, description="Time limit in seconds."
     )
@@ -366,7 +329,7 @@ class KnapsackSolverConfig(BaseModel):
 
 
 class KnapsackSolution(BaseModel):
-    # Defines the solution of the knapsack problem.
+    # Розв’язок задачі
     selected_items: list[int] = Field(..., description="Indices of selected items.")
     objective: float = Field(..., description="Objective value of the solution.")
     upper_bound: float = Field(
@@ -376,14 +339,12 @@ class KnapsackSolution(BaseModel):
 
 > [!WARNING]
 >
-> Your data schema should be fully prepared for the optimization process,
-> requiring no further preprocessing. Data preparation and optimization are both
-> complex tasks, and combining them can significantly increase complexity,
-> making your code difficult to maintain. Ideally, your optimization code should
-> simply iterate over the data and add the corresponding constraints and
-> objectives to the model.
+> Схема даних має бути повністю підготовлена для оптимізації без додаткової
+> передобробки. Підготовка даних і оптимізація — обидві складні задачі, і їхнє
+> змішування значно ускладнює код. Ідеально, щоб оптимізаційний код просто
+> проходив по даних і додавав відповідні обмеження та цілі до моделі.
 
-The original code needs to be adapted to use these data classes.
+Початковий код потрібно адаптувати під ці data-класи.
 
 ```python
 from ortools.sat.python import cp_model
@@ -398,11 +359,9 @@ def solve_knapsack(
     model.add(sum(instance.weights[i] * x[i] for i in range(n)) <= instance.capacity)
     model.maximize(sum(instance.values[i] * x[i] for i in range(n)))
     solver = cp_model.CpSolver()
-    # Set solver parameters from the configuration
     solver.parameters.max_time_in_seconds = config.time_limit
     solver.parameters.relative_gap_limit = config.opt_tol
     solver.parameters.log_search_progress = config.log_search_progress
-    # Solve the model and return the solution
     status = solver.solve(model)
     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
         return KnapsackSolution(
@@ -413,11 +372,9 @@ def solve_knapsack(
     return KnapsackSolution(selected_items=[], objective=0, upper_bound=0)
 ```
 
-You can use the serialization and deserialization capabilities of Pydantic to
-quickly generate test cases based on real data. While you cannot be certain that
-your code is correct with such tests, they will at least notify you if the logic
-changes unexpectedly. If you refactor your code, you will immediately see if its
-behavior changes accidentally.
+Можна використовувати можливості серіалізації Pydantic для швидкого створення
+тест-кейсів на основі реальних даних. Хоча такі тести не гарантують коректність,
+вони принаймні сигналізують про неочікувані зміни логіки після рефакторингу.
 
 ```python
 from datetime import datetime
@@ -427,7 +384,7 @@ from pathlib import Path
 
 def add_test_case(instance: KnapsackInstance, config: KnapsackSolverConfig):
     """
-    Quickly generate a test case based on the instance and configuration.
+    Швидко генеруємо тест-кейс на основі інстансу і конфігурації.
     """
     test_folder = Path(__file__).parent / "test_data"
     unique_id = (
@@ -464,64 +421,56 @@ def test_saved_test_cases():
         assert (
             solution.objective <= new_solution.upper_bound
         ), "Old solution is better than the new upper bound: One has to be wrong."
-        # Do not test for the selected items, as the solver might return a different solution of the same quality
+        # Не тестуємо selected_items, бо solver може знайти інший розв’язок тієї ж якості
 ```
 
-You can now easily generate test cases and validate them with the following
-code. Ideally, you should use real instances for this, potentially by
-automatically saving 1% of the instances used in production.
+Тепер можна легко генерувати тест-кейси і перевіряти їх таким кодом. Ідеально,
+якщо ви використовуєте реальні інстанси, наприклад автоматично зберігаючи 1%
+інстансів з продакшену.
 
 ```python
-# Define a knapsack instance
+# Інстанс задачі рюкзака
 instance = KnapsackInstance(
     weights=[23, 31, 29, 44, 53, 38, 63, 85, 89, 82],
     values=[92, 57, 49, 68, 60, 43, 67, 84, 87, 72],
     capacity=165,
 )
-# Define a solver configuration
+# Конфігурація solver-а
 config = KnapsackSolverConfig(
     time_limit=10.0, opt_tol=0.01, log_search_progress=False
 )
-# Solve the knapsack problem
+# Розв’язання
 solution = solve_knapsack(instance, config)
-# Add the test case to the test data folder
+# Додаємо тест-кейс у папку
 add_test_case(instance, config)
 ```
 
-You can also maintain backward compatibility easily by adding default values to
-any new fields you add to the data classes.
+Також легко підтримувати зворотну сумісність, якщо додавати значення за
+замовчуванням для нових полів.
 
 > [!TIP]
 >
-> One challenge I often face is designing data classes to be as generic as
-> possible so that they can be used with multiple solvers and remain compatible
-> throughout various stages of the optimization process. For instance, a graph
-> might be represented as an edge list, an adjacency matrix, or an adjacency
-> list, each with its own pros and cons, complicating the decision of which
-> format is optimal for all stages. However, converting between different data
-> class formats is typically straightforward, often requiring only a few lines
-> of code and having a negligible impact compared to the optimization process
-> itself. Therefore, I recommend focusing on functionality with your current
-> solver without overcomplicating this aspect. There is little harm in having to
-> call a few conversion functions because you created separate specialized data
-> classes.
+> Часто доводиться проектувати data-класи максимально загальними, щоб вони
+> підходили для кількох solver-ів і залишалися сумісними на різних етапах
+> оптимізації. Наприклад, граф можна подати як список ребер, матрицю
+> суміжності або список суміжності — і вибір формату залежить від задачі. Але
+> конвертація між форматами зазвичай проста, потребує лише кількох рядків і має
+> незначний вплив порівняно з оптимізацією. Тому я рекомендую фокусуватися на
+> функціональності для вашого поточного solver-а і не ускладнювати цю частину.
 
-### Solver Class
+### Клас розв’язувача
 
-In many real-world optimization scenarios, problems may require iterative
-refinement of the model and solution. For instance, new constraints might only
-become apparent after presenting an initial solution to a user or another
-algorithm (like a physics simulation, which is to complex to optimize directly
-on). In such cases, flexibility is crucial, making it beneficial to encapsulate
-both the model and the solver within a single class. This setup facilitates the
-dynamic addition of constraints and subsequent re-solving without needing to
-rebuild the entire model, potentially even utilizing warm-starting techniques to
-improve performance.
+У багатьох реальних сценаріях оптимізації потрібно ітеративно уточнювати модель
+і розв’язок. Наприклад, нові обмеження можуть з’явитися після показу первинного
+розв’язку користувачу або іншому алгоритму (наприклад, фізичній симуляції, яку
+занадто складно оптимізувати напряму). У таких випадках важлива гнучкість, тому
+корисно інкапсулювати модель і solver в одному класі. Це дозволяє динамічно
+додавати обмеження і повторно розв’язувати задачу без повної перебудови моделі,
+а також потенційно використовувати warm-start.
 
-We introduce the `KnapsackSolver` class, which encapsulates the entire setup and
-solving process of the knapsack problem. We also use the opportunity to directly
-split the model-building into smaller methods, which can be useful for more
-complex models.
+Нижче — `KnapsackSolver`, який інкапсулює побудову та розв’язання задачі. Ми
+також розбиваємо побудову моделі на менші методи, що корисно для складних
+моделей.
 
 ```python
 class KnapsackSolver:
@@ -568,17 +517,17 @@ class KnapsackSolver:
 
     def prohibit_combination(self, item_a: int, item_b: int):
         """
-        Prohibit the combination of two items in the solution.
-        This can be useful if, after presenting the solution to the user, they decide that these two items should not be packed together. After calling this method, you can simply call `solve` again to get a new solution obeying this constraint.
+        Забороняє комбінацію двох предметів у розв’язку.
+        Це корисно, якщо після показу розв’язку з’ясувалося, що ці предмети
+        не можна пакувати разом. Після цього просто викликаємо `solve` знову.
         """
         self.model.add(self.x[item_a] + self.x[item_b] <= 1)
 ```
 
-At first glance, this may look like a cumbersome interface, as we first have to
-create a solver object for a specific instance and then call the `solve` method.
-However, this structure accommodates many use cases, and I use variations of it
-for most of my projects. Additionally, I sometimes add a simple function that
-wraps the solver class to make it easier to use for simple cases.
+На перший погляд це може здаватися громіздким — треба створити solver-об’єкт, а
+потім викликати `solve`. Але така структура підходить для багатьох кейсів, і я
+використовую її варіанти у більшості проєктів. Для простих випадків можна додати
+обгортку-функцію.
 
 ```python
 instance = KnapsackInstance(weights=[1, 2, 3], values=[4, 5, 6], capacity=3)
@@ -587,59 +536,48 @@ solver = KnapsackSolver(instance, config)
 solution = solver.solve()
 
 print(solution)
-# Check the solution in a more realistic simulation.
-# Assume that the simulation now notices that for some more complex reason,
-# we could not express in the optimization model, the first two items should
-# not be packed together. We can now prohibit this combination and solve again.
+# Припустимо, симуляція показала, що перші два предмети не можна пакувати разом.
 solver.prohibit_combination(0, 1)
 
-# Solve the problem again with the new constraint, but this time
-# only allow 5 seconds for the solver.
+# Розв’язуємо знову, але лише 5 секунд.
 solution = solver.solve(time_limit=5)
 print(solution)
 ```
 
-Although reusing the solver class primarily spares us from rebuilding the model,
-each call to `solve` still initiates a new search from scratch. However,
-iteratively refining the model within the same solver instance is more intuitive
-to code than treating each iteration as an entirely new problem. Moreover, as we
-will demonstrate next, this pattern allows us to improve performance by
-leveraging features like warm-starting — offering advantages over stateless
-optimization functions.
+Хоча повторне використання класу здебільшого економить на повторній побудові
+моделі, кожен `solve` все одно стартує новий пошук. Проте інкрементальне
+уточнення моделі в межах одного екземпляра solver-а більш інтуїтивне для коду,
+ніж повністю нова постановка на кожній ітерації. Ба більше, як ми побачимо
+далі, це дозволяє покращити продуктивність через warm-start.
 
-### Improving Performance with Warm-Starts
+### Покращення продуктивності через warm-start
 
-As the solver class retains a state and can remember the previous iterations, we
-can easily add optimizations that would be cumbersome to implement in a
-stateless function. One such optimization is warm-starting, where the solver
-uses the previous solution as a starting point or "hint" for the next iteration.
-This technique can significantly speed up the solving process, as the solver can
-often use the previous solution as a good starting point for repair, even if the
-previous solution becomes infeasible due to a newly added constraint. This will
-of course only have an advantage if the added constraint does not change the
-problem fundamentally but only requires a part of the solution to be changed.
+Оскільки solver-клас зберігає стан і пам’ятає попередні ітерації, можна легко
+додавати оптимізації, які було б складно реалізувати у статичній функції. Одна
+з них — warm-start, коли solver використовує попередній розв’язок як підказку
+для наступного запуску. Це може суттєво пришвидшити розв’язання, бо solver може
+використати попередній розв’язок як хороший старт для «ремонту», навіть якщо
+він став недопустимим через нові обмеження. Це працює лише тоді, коли нові
+обмеження не змінюють задачу кардинально.
 
-Because repairing an infeasible hint can be computationally expensive, CP-SAT
-handles this process carefully. You can instruct CP-SAT to attempt repairing the
-hint by setting `solver.parameters.repair_hint = True`. Additionally, you can
-adjust the limit on how much effort CP-SAT should spend repairing the hint using
-`solver.parameters.hint_conflict_limit`. For example, setting
-`solver.parameters.hint_conflict_limit = 10` controls how many conflicts CP-SAT
-will resolve before giving up.
+Оскільки ремонт недопустимої підказки може бути дорогим, CP-SAT обережно до
+цього ставиться. Ви можете наказати CP-SAT ремонтувати підказку через
+`solver.parameters.repair_hint = True`, а також керувати лімітом конфліктів через
+`solver.parameters.hint_conflict_limit`.
 
-Here is an example of how to implement this in code:
+Приклад:
 
 ```python
 class KnapsackSolver:
     # ...
 
     def _set_solution_as_hint(self):
-        """Use the current solution as a hint for the next solve."""
+        """Використати поточний розв’язок як підказку для наступного solve."""
         for i, v in enumerate(self.model.proto.variables):
             v_ = self.model.get_int_var_from_proto_index(i)
             assert v.name == v_.name, "Variable names should match"
             self.model.add_hint(v_, self.solver.value(v_))
-        # Tell CP-SAT to repair the hint if it is infeasible
+        # Сказати CP-SAT ремонтувати підказку
         self.solver.parameters.repair_hint = True
         self.solver.parameters.hint_conflict_limit = 20
 
@@ -649,7 +587,7 @@ class KnapsackSolver:
         self.solver.parameters.log_search_progress = self.config.log_search_progress
         status = self.solver.solve(self.model)
         if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
-            # There is a solution, set it as a hint for the next solve
+            # Є розв’язок — використовуємо його як підказку
             self._set_solution_as_hint()
             return KnapsackSolution(
                 selected_items=[
@@ -665,67 +603,55 @@ class KnapsackSolver:
     # ...
 ```
 
-To further improve this approach, you could add a heuristic to repair the hint.
-A feasible hint is much more valuable than one that needs significant repair.
-For instance, if the hint is infeasible due to a prohibited combination of
-items, you could simply drop the least valuable item to make the hint valid.
+Щоб ще покращити підхід, можна додати евристику для ремонту підказки. Допустима
+підказка набагато корисніша, ніж та, яку треба сильно ремонтувати. Наприклад,
+якщо підказка недопустима через заборонену комбінацію предметів, можна просто
+викинути найменш цінний предмет.
 
 > [!WARNING]
 >
-> A common mistake when trying to improve the performance of iterative
-> optimization is adding the previous bound as a constraint. Although this
-> approach might let CP-SAT resume directly from the previous bound, it often
-> limits CP-SAT's ability to find better solutions. This happens because it adds
-> a strong constraint unrelated to the problem's feasibility, which can
-> interfere with various internal algorithms (such as reducing the effectiveness
-> of linear relaxation).
+> Часта помилка при ітеративній оптимізації — додавати попередню межу як
+> обмеження. Це може дозволити CP-SAT «продовжити» з попередньої межі, але часто
+> обмежує його здатність знаходити кращі розв’язки, бо додає сильне обмеження,
+> не пов’язане зі здійсненністю. Це може заважати внутрішнім алгоритмам,
+> наприклад зменшувати ефективність лінійної релаксації.
 >
-> If bounds significantly affect performance, consider using a callback to check
-> if the current objective is sufficiently close to the previous bound and stop
-> the search if it is. This approach avoids interfering with CP-SAT's
-> optimization capabilities, though callbacks do introduce some overhead.
+> Якщо межі сильно впливають на продуктивність, краще використовувати callback,
+> який перевіряє, чи поточна ціль достатньо близька до попередньої межі, і
+> зупиняє пошук. Це менш агресивно, хоча callbacks додають накладні витрати.
 
 |                                                                                                                                                                                                                                                                                                                                                                         ![Impact of Lower Bound Constraint on Relaxation](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/impact_lb_constraint_tsp.png)                                                                                                                                                                                                                                                                                                                                                                          |
 | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| This image illustrates the detrimental impact of introducing a lower bound constraint into the model on the example of the TSP. The linear relaxation visibly deteriorates: while the original relaxation coincided with the optimal solution on 44 of 50 edges, the relaxation incorporating the lower bound constraint (set to the optimal value) coincides on only 38 edges and exhibits significantly more fractional values. Branching on certain edges may also cease to provide meaningful guidance; unless one branches on a poorly chosen edge, the objective value often remains unchanged as it is dominated by the lower bound constraint. In addition to the reduced informational value of the relaxation, such constraints are also notorious for introducing numerical instabilities (however, CP-SAT is likely unaffected by this issue due to its reliance on integer arithmetic). |
+| Це зображення показує негативний вплив додавання обмеження нижньої межі в моделі TSP. Лінійна релаксація явно погіршується: якщо початкова релаксація збігалася з оптимальним розв’язком на 44 з 50 ребер, то релаксація з обмеженням нижньої межі (рівною оптимуму) збігається лише на 38 ребрах і має більше дробових значень. Розгалуження на певних ребрах може перестати бути корисним; якщо не розгалужуватися по «правильному» ребру, значення цілі часто не змінюється через домінування нижньої межі. Крім втрати інформативності релаксації, такі обмеження відомі як джерело числових нестабільностей (хоча CP-SAT, ймовірно, не страждає від цього через цілочисельну арифметику). |
 
-### Exchangeable Objective / Multi-Objective Optimization
+### Змінна ціль / багатокритеріальна оптимізація
 
-In real-world scenarios, objectives are often not clearly defined. Typically,
-there are multiple objectives with different priorities, making it challenging
-to combine them. Consider the Knapsack problem, representing a logistics issue
-where we aim to transport the maximum value of goods in a single trip. Given the
-values and weights of the goods, our primary objective is to maximize the packed
-goods' value. However, after computing and presenting the solution, we might be
-asked to find an alternative solution that does not fill the truck as much, even
-if it means accepting up to a 5% decrease in value.
+У реальних задачах цілі часто нечіткі. Зазвичай є кілька цілей із різним
+пріоритетом, і їх складно об’єднати. Розгляньмо задачу рюкзака як логістичну
+ситуацію: ми хочемо перевезти максимальну цінність за одну поїздку. Основна
+ціль — максимізувати цінність. Але після того, як показали розв’язок, нас
+можуть попросити знайти альтернативу, що заповнює машину меншою мірою, навіть
+якщо це означає падіння цінності до 5%.
 
 |                              [![xkcd grapfruit](https://imgs.xkcd.com/comics/fuck_grapefruit.png)](https://xkcd.com/388/)                              |
 | :----------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Which fruit is the best one? Many problems are multi-objective and there is no clear single objective. By [xkcd](https://xkcd.com/388/) (CC BY-NC 2.5) |
+| Який фрукт найкращий? Багато задач багатокритеріальні й не мають однозначної мети. Автор [xkcd](https://xkcd.com/388/) (CC BY-NC 2.5) |
 
-To handle this, we can optimize in two phases. First, we maximize the value
-under the weight constraint. Next, we add a constraint that the value must be at
-least 95% of the initial solution's value and change the objective to minimize
-the weight. This iterative process can continue through multiple phases,
-exploring the Pareto front of the two objectives. More complex problems can be
-tackled using similar approaches.
+Щоб впоратися, можна оптимізувати у два етапи. Спочатку максимізуємо цінність
+за обмеженням ваги. Потім додаємо обмеження, що цінність має бути не менше 95%
+від початкового розв’язку, і змінюємо ціль на мінімізацію ваги. Цей процес можна
+повторювати, досліджуючи фронт Парето. Більш складні задачі можна розв’язувати
+схожими підходами.
 
-A challenge with this method is avoiding the creation of multiple models and
-restarting from scratch in each phase. Since we have a solution close to the new
-one and changing the objective does not influence feasibility, it is an
-excellent opportunity to use the current solution as a hint for the next solve.
+Проблема такого методу — уникнути створення кількох моделей і старту з нуля
+кожного разу. Оскільки у нас уже є розв’язок близький до нового, а зміна цілі
+не впливає на здійсненність, це чудова можливість використовувати поточний
+розв’язок як підказку.
 
-The following code demonstrates how to extend a solver class to support
-exchangeable objectives. It includes fixing the current objective value to
-prevent degeneration and using the current solution as a hint.
-
-We created a member `_objective` to store the current objective function and
-added methods to set the objective to maximize value or minimize weight. We also
-introduced methods to set the solution as a hint for the next solve which will
-automatically be called if the `solve` found a feasible solution. To not
-degenerate on previous objectives, we added a method to fix the current
-objective value based on some ratio.
+Нижче — приклад розширення solver-класу для змінної цілі. Ми зберігаємо поточну
+ціль у `_objective` і додаємо методи для максимізації цінності або мінімізації
+ваги. Також додаємо метод для фіксації поточної цілі, щоб уникнути деградації,
+і автоматично ставимо підказку при успішному розв’язанні.
 
 ```python
 class MultiObjectiveKnapsackSolver:
@@ -740,28 +666,28 @@ class MultiObjectiveKnapsackSolver:
         self.solver = cp_model.CpSolver()
 
     def set_maximize_value_objective(self):
-        """Set the objective to maximize the value of the packed goods."""
+        """Максимізувати цінність."""
         self._objective = sum(
             value * x_i for value, x_i in zip(self.instance.values, self.x)
         )
         self.model.maximize(self._objective)
 
     def set_minimize_weight_objective(self):
-        """Set the objective to minimize the weight of the packed goods."""
+        """Мінімізувати вагу."""
         self._objective = sum(
             weight * x_i for weight, x_i in zip(self.instance.weights, self.x)
         )
         self.model.minimize(self._objective)
 
     def _set_solution_as_hint(self):
-        """Use the current solution as a hint for the next solve."""
+        """Використати поточний розв’язок як підказку для наступного solve."""
         for i, v in enumerate(self.model.proto.variables):
             v_ = self.model.get_int_var_from_proto_index(i)
             assert v.name == v_.name, "Variable names should match"
             self.model.add_hint(v_, self.solver.value(v_))
 
     def fix_current_objective(self, ratio: float = 1.0):
-        """Fix the current objective value to prevent degeneration."""
+        """Зафіксувати поточну ціль, щоб уникнути деградації."""
         if ratio == 1.0:
             self.model.add(self._objective == self.solver.objective_value)
         elif ratio > 1.0:
@@ -772,19 +698,19 @@ class MultiObjectiveKnapsackSolver:
             )
 
     def _add_constraints(self):
-        """Add the weight constraint to the model."""
+        """Додаємо обмеження ваги."""
         used_weight = sum(
             weight * x_i for weight, x_i in zip(self.instance.weights, self.x)
         )
         self.model.add(used_weight <= self.instance.capacity)
 
     def _build_model(self):
-        """Build the initial model with constraints and objective."""
+        """Будуємо модель з обмеженнями та ціллю."""
         self._add_constraints()
         self.set_maximize_value_objective()
 
     def solve(self, time_limit: float | None = None) -> KnapsackSolution:
-        """Solve the knapsack problem and return the solution."""
+        """Розв’язуємо задачу рюкзака та повертаємо розв’язок."""
         self.solver.parameters.max_time_in_seconds = time_limit if time_limit else self.config.time_limit
         self.solver.parameters.relative_gap_limit = self.config.opt_tol
         self.solver.parameters.log_search_progress = self.config.log_search_progress
@@ -798,67 +724,60 @@ class MultiObjectiveKnapsackSolver:
                 objective=self.solver.objective_value,
                 upper_bound=self.solver.best_objective_bound,
             )
+            )
         return KnapsackSolution(
             selected_items=[], objective=0, upper_bound=float("inf")
         )
 ```
 
-We can use the `MultiObjectiveKnapsackSolver` class as follows:
+Можна використовувати `MultiObjectiveKnapsackSolver` так:
 
 ```python
 config = KnapsackSolverConfig(time_limit=15, opt_tol=0.01, log_search_progress=True)
 solver = MultiObjectiveKnapsackSolver(instance, config)
 solution_1 = solver.solve()
 
-# maintain at least 95% of the current objective value
+# зберігаємо щонайменше 95% поточного значення цілі
 solver.fix_current_objective(0.95)
-# change the objective to minimize the weight
+# змінюємо ціль на мінімізацію ваги
 solver.set_minimize_weight_objective()
 solution_2 = solver.solve(time_limit=10)
 ```
 
-There are more advanced and precise methods for computing the
-[Pareto front](https://en.wikipedia.org/wiki/Pareto_front), but
-[multi-objective optimization](https://en.wikipedia.org/wiki/Multi-objective_optimization)
-is a complex field of research in its own right. If your problem is already
-challenging with a single objective, adding more objectives will only increase
-the difficulty.
+Існують більш просунуті й точні методи обчислення
+[фронту Парето](https://en.wikipedia.org/wiki/Pareto_front), але
+[багатокритеріальна оптимізація](https://en.wikipedia.org/wiki/Multi-objective_optimization)
+— окрема складна сфера досліджень. Якщо ваша задача вже складна з однією
+ціллю, додаткові цілі лише підвищать складність.
 
-Using the shown approach of lexicographic optimization (with relaxation) or
-combining multiple objectives into a single one, for example by adding them with
-different weights, is often a reasonable compromise. You could also use
-heuristics to explore the solution space around an initial solution obtained
-with CP-SAT.
+Підхід лексикографічної оптимізації (з послабленням) або об’єднання кількох
+цілей в одну, наприклад через ваги, часто є розумним компромісом. Також можна
+використовувати евристики, щоб досліджувати простір розв’язків навколо
+початкового розв’язку з CP-SAT.
 
-However, multi-objective optimization remains a challenging topic, and even
-experts rely on significant trial and error to achieve satisfactory results, as
-compromises are often unavoidable.
+Втім, багатокритеріальна оптимізація залишається складною темою, і навіть
+експерти покладаються на суттєвий trial-and-error, бо компроміси часто
+неминучі.
 
-### Variable Containers
+### Контейнери змінних
 
-In complex models, variables play a crucial role and can span the entire model.
-While managing variables as a list or dictionary may suffice for simple models,
-this approach becomes cumbersome and error-prone as the model's complexity
-increases. A single mistake in indexing can introduce subtle errors, potentially
-leading to incorrect results that are difficult to trace.
+У складних моделях змінні відіграють ключову роль і можуть охоплювати всю
+модель. Для простих моделей достатньо списку або словника, але у складних це
+стає громіздким і схильним до помилок. Один неправильний індекс може
+спричинити тонкі помилки, які складно відстежити.
 
-As variables form the foundation of the model, refactoring them becomes more
-challenging as the model grows. Therefore, it is crucial to establish a robust
-management system early on. Encapsulating variables in a dedicated class ensures
-that they are always accessed correctly. This approach also allows for the easy
-addition of new variables or modifications in their management without altering
-the entire model.
+Оскільки змінні — основа моделі, їх рефакторинг стає складнішим із ростом
+моделі. Тому важливо рано налагодити надійну систему керування. Інкапсуляція
+змінних у класі забезпечує правильний доступ до них. Це також дозволяє легко
+додавати нові змінні або змінювати логіку без переписування всієї моделі.
 
-Furthermore, incorporating clear query methods helps maintain the readability
-and manageability of constraints. Readable constraints, free from complex
-variable access patterns, ensure that the constraints accurately reflect the
-intended model.
+Крім того, зрозумілі методи-запити допомагають підтримувати читабельність
+обмежень. Читабельні обмеження без складних схем доступу гарантують, що вони
+відповідають задуму.
 
-In the following code, we introduce the `_ItemSelectionVars` class to the
-`KnapsackSolver`, which acts as a container for the decision variables
-associated with the knapsack items. This class not only creates these variables
-but also offers several utility methods to interact with them, improving the
-clarity and maintainability of the code.
+Нижче ми вводимо `_ItemSelectionVars` як контейнер для змінних вибору. Цей
+клас створює змінні і має допоміжні методи для взаємодії з ними, що підвищує
+читабельність і підтримуваність.
 
 ```python
 from typing import Generator, Tuple, List
@@ -892,8 +811,7 @@ class _ItemSelectionVars:
         value_ub: float = float("inf"),
     ) -> Generator[Tuple[int, cp_model.IntVar], None, None]:
         """
-        An example for a more complex query method, which would allow use to
-        iterate over all items that fulfill certain conditions.
+        Приклад складнішого методу-запиту для фільтрації предметів.
         """
         for i, (weight, x_i) in enumerate(zip(self.instance.weights, self.x)):
             if (
@@ -904,9 +822,8 @@ class _ItemSelectionVars:
 
 ```
 
-This class can be used in the `KnapsackSolver` that handles the higher level
-logic, i.e., the high level specification of what the model should do, while
-details can be hidden in the container class.
+Цей клас можна використовувати в `KnapsackSolver`, який відповідає за високий
+рівень логіки (що має робити модель), а деталі сховати в контейнері.
 
 ```python
 class KnapsackSolver:
@@ -948,17 +865,14 @@ class KnapsackSolver:
         self._item_vars.packs_item(item_b))
 ```
 
-For example,
-`self.model.add(self._item_vars.used_weight() <= self.instance.capacity)` now
-directly expresses what the constraint does, making the code more readable and
-less error-prone. You can actually hide additional optimizations in the
-container class, without influencing the higher-level code in the actual solver.
-For example, the container class could decide to automatically replace all item
-variables that cannot fit into the knapsack due to their weight with a constant.
+Наприклад, `self.model.add(self._item_vars.used_weight() <= self.instance.capacity)`
+тепер прямо виражає зміст обмеження, що підвищує читабельність і зменшує
+ймовірність помилок. У контейнері можна також приховати оптимізації, не змінюючи
+високорівневий код solver-а. Наприклад, контейнер може автоматично замінювати
+змінні предметів, які не можуть вміститися в рюкзак, на константи.
 
-You can also reuse the variable type, e.g., if you suddenly have two knapsacks
-to fill. The following code demonstrates how to quickly extend the solver to
-handle two knapsacks, without sacrificing readability or maintainability.
+Можна повторно використовувати тип контейнера, якщо з’явиться два рюкзаки. Код
+нижче показує, як розширити solver на два рюкзаки без втрати читабельності.
 
 ```python
 class KnapsackSolver:
@@ -973,7 +887,7 @@ class KnapsackSolver:
         self.model.add(self._knapsack_a.used_weight() <= self.instance.capacity_1)
         self.model.add(self._knapsack_b.used_weight() <= self.instance.capacity_2)
         self.model.add(self._knapsack_a.used_weight() + self._knapsack_b.used_weight() <= self.instance.capacity_total)
-        # Add a constraint that items cannot be packed in both knapsacks
+        # Забороняємо пакувати предмет у два рюкзаки
         for i in range(len(instance.weights)):
             self.model.add_at_most_one(self._knapsack_a.packs_item(i), self._knapsack_b.packs_item(i))
 
@@ -983,32 +897,25 @@ class KnapsackSolver:
 
 > [!WARNING]
 >
-> Do not create such a container class for simple models where the container
-> would only wrap a list or a dictionary without adding any additional
-> functionality. In such cases, directly using the list or dictionary is
-> preferable, as it is more concise and easier to understand. The same is true
-> for individual variables that do not need a container at all.
+> Не створюйте контейнерний клас для простих моделей, якщо він лише обгортає
+> список або словник без додаткової логіки. У таких випадках простий список або
+> словник читається легше й коротше. Те саме стосується окремих змінних, яким
+> не потрібен контейнер.
 
-### Lazy Variable Construction
+### Ліниве створення змінних
 
-In models with numerous auxiliary variables, often only a subset is actually
-used by the constraints. Attempting to create only the variables that are needed
-can require complex code to ensure that exactly the right variables are
-generated. If the model is extended later, this process becomes even more
-complicated, as you may not know upfront which variables will be needed. This is
-where lazy variable construction comes into play. By creating variables only
-when they are accessed, we ensure that only necessary variables are generated,
-reducing memory usage and computational overhead. While this approach might be
-more expensive if most variables end up being used anyway, it can save
-significant resources when only a small subset is actually needed.
+У моделях з великою кількістю допоміжних змінних часто реально використовується
+лише невелика підмножина. Спроба створювати лише потрібні змінні заздалегідь
+може ускладнити код і при подальших розширеннях ще більше ускладнюється. Тут
+допомагає ліниве створення змінних: вони створюються лише при доступі до них.
+Це гарантує, що створюються лише потрібні змінні, економлячи пам’ять та час.
+Якщо зрештою використовується більшість змінних, це може бути дорожчим, але коли
+потрібні лише кілька — економія суттєва.
 
-To illustrate this concept, we introduce the `_CombiVariables` class. This class
-manages auxiliary variables that indicate when a pair of items is packed
-together, allowing us to assign additional bonuses for packing certain items
-together. Theoretically, the number of possible item combinations is quadratic
-in the number of items, but in practice, only a few may be relevant. By creating
-these variables lazily—only when they are accessed—we reduce memory usage and
-computational overhead.
+Для ілюстрації введемо `_CombiVariables`. Він управляє допоміжними змінними для
+пар предметів, щоб задавати бонус за пакування разом. Теоретично кількість пар
+квадратична, але на практиці релевантні лише деякі. Ліниве створення економить
+ресурси.
 
 ```python
 class _CombiVariables:
@@ -1034,12 +941,10 @@ class _CombiVariables:
         return self.bonus_vars[(i, j)]
 ```
 
-In the `KnapsackSolver`, we can now treat these variables as if they were all
-pre-created, without worrying about the underlying optimization. Note that we
-have moved the creation of the objective function into the `solve` method, as
-adding bonuses for item combinations will modify the objective function. Also,
-by encapsulating item variables into a separate class (`_ItemSelectionVars`), we
-can easily pass them around and use them in other components.
+У `KnapsackSolver` можна поводитися так, ніби всі змінні існують, не турбуючись
+про оптимізацію. Зверніть увагу: ціль ми будуємо у `solve`, бо бонуси змінюють
+ціль. Також, інкапсулювавши змінні у `_ItemSelectionVars`, ми можемо легко
+передавати їх іншим компонентам.
 
 ```python
 class KnapsackSolver:
@@ -1049,7 +954,7 @@ class KnapsackSolver:
         self.model = cp_model.CpModel()
         self._item_vars = _ItemSelectionVars(instance, self.model)
         self._bonus_vars = _CombiVariables(instance, self.model, self._item_vars)
-        self._objective_terms = [self._item_vars.packed_value()]  # Initial objective terms
+        self._objective_terms = [self._item_vars.packed_value()]
         self.solver = cp_model.CpSolver()
 
     def solve(self) -> KnapsackSolution:
@@ -1075,33 +980,25 @@ class KnapsackSolver:
 
 > [!TIP]
 >
-> If we are sure to only call `add_bonus` for a pair of items once, we could
-> also save us the trouble of storing the bonus variables and just create and
-> add them to the objective function directly in the `add_bonus` method. There
-> is no need to store the variable handle if we do not need it later, as CP-SAT
-> will take care of the variable's lifecycle.
+> Якщо ми точно знаємо, що `add_bonus` викликається для пари лише один раз,
+> можна не зберігати bonus_vars, а створювати змінну і додавати в ціль одразу.
+> Немає потреби зберігати handle, якщо він не потрібен пізніше.
 
-### Submodels
+### Підмоделі
 
-We can further enhance our modeling approach by encapsulating entire sections of
-the model—not just individual variables—into separate submodels. This technique
-is particularly useful for complex models where different components are loosely
-connected. By partitioning the model into smaller, more manageable submodels, we
-improve modularity and maintainability. Submodels communicate with the main
-model through shared variables, effectively hiding internal details like
-auxiliary variables. If requirements change, we can often reconfigure or replace
-specific submodels without affecting the rest of the model. In larger contexts,
-it is also common for logic to repeat in different optimization problems of the
-system, so building a collection of submodels allows us to quickly assemble new
-models using reusable components.
+Ми можемо покращити підхід, інкапсулюючи цілі секції моделі в окремі підмоделі.
+Це корисно для складних моделей, де компоненти слабо пов’язані. Розбиття на
+підмоделі підвищує модульність і підтримуваність. Підмоделі комунікують із
+головною моделлю через спільні змінні, приховуючи деталі, як-от допоміжні
+змінні. Якщо вимоги зміняться, можна переписати одну підмодель без впливу на
+інші. Також часто логіка повторюється у різних оптимізаційних задачах, тому
+бібліотека підмоделей дозволяє швидко збирати нові моделі з компонентів.
 
-For instance, piecewise linear functions can be modeled as submodels, as
-demonstrated with the `PiecewiseLinearConstraint` class in
+Наприклад, кусково-лінійні функції можна оформити як підмодель, як у класі
+`PiecewiseLinearConstraint` у
 [piecewise_linear_function.py](https://github.com/d-krupke/cpsat-primer/blob/main/utils/piecewise_functions/piecewise_linear_function.py).
-Each submodel handles a piecewise linear function independently, interfacing
-with the main model through shared `x` and `y` variables. By encapsulating the
-logic for each piecewise function in a dedicated class, we make it reusable and
-testable in isolation.
+Кожна підмодель керує однією функцією, взаємодіючи з моделлю через `x` та `y`.
+Інкапсуляція робить логіку повторно використовуваною і тестованою окремо.
 
 ```python
 from ortools.sat.python import cp_model
@@ -1121,10 +1018,10 @@ model.add(produce_1 * requirements_1[0] + produce_2 * requirements_2[0] <= buy_1
 model.add(produce_1 * requirements_1[1] + produce_2 * requirements_2[1] <= buy_2)
 model.add(produce_1 * requirements_1[2] + produce_2 * requirements_2[2] <= buy_3)
 
-# You can find the PiecewiseLinearFunction and PiecewiseLinearConstraint classes in the utils directory
+# PiecewiseLinearFunction і PiecewiseLinearConstraint — у utils
 from piecewise_functions import PiecewiseLinearFunction, PiecewiseLinearConstraint
 
-# Define the functions for the costs
+# Функції витрат
 costs_1 = [(0, 0), (1000, 400), (1500, 1300)]
 costs_2 = [(0, 0), (300, 300), (700, 500), (1200, 600), (1500, 1100)]
 costs_3 = [(0, 0), (200, 400), (500, 700), (1000, 900), (1500, 1500)]
@@ -1139,7 +1036,7 @@ f_costs_3 = PiecewiseLinearFunction(
     xs=[x for x, y in costs_3], ys=[y for x, y in costs_3]
 )
 
-# Define the functions for the gains
+# Функції доходу
 gain_1 = [(0, 0), (100, 800), (200, 1600), (300, 2000)]
 gain_2 = [(0, 0), (80, 1000), (150, 1300), (200, 1400), (300, 1500)]
 
@@ -1150,27 +1047,26 @@ f_gain_2 = PiecewiseLinearFunction(
     xs=[x for x, y in gain_2], ys=[y for x, y in gain_2]
 )
 
-# Create y >= f(x) constraints for the costs
+# y >= f(x) для витрат
 x_costs_1 = PiecewiseLinearConstraint(model, buy_1, f_costs_1, upper_bound=False)
 x_costs_2 = PiecewiseLinearConstraint(model, buy_2, f_costs_2, upper_bound=False)
 x_costs_3 = PiecewiseLinearConstraint(model, buy_3, f_costs_3, upper_bound=False)
 
-# Create y <= f(x) constraints for the gains
+# y <= f(x) для доходу
 x_gain_1 = PiecewiseLinearConstraint(model, produce_1, f_gain_1, upper_bound=True)
 x_gain_2 = PiecewiseLinearConstraint(model, produce_2, f_gain_2, upper_bound=True)
 
-# Maximize the gains minus the costs
+# Максимізуємо дохід мінус витрати
 model.maximize(x_gain_1.y + x_gain_2.y - (x_costs_1.y + x_costs_2.y + x_costs_3.y))
 ```
 
-Testing complex optimization models is often challenging because outputs can be
-sensitive to small changes in the model. Even with a good test case, detected
-errors may be difficult to trace. By extracting elements into submodels, you can
-test these submodels independently, ensuring they work correctly before
-integrating them into the main model.
+Тестування складних оптимізаційних моделей часто складне, бо результати можуть
+змінюватися навіть через дрібні зміни. Навіть якщо тест знаходить помилку,
+виявити джерело складно. Винесення елементів у підмоделі дозволяє тестувати їх
+окремо, забезпечуючи коректність перед інтеграцією.
 
-Submodels are usually much simpler than the overall problem, making them easy to
-optimize and, thus, fast to test their optimal solution.
+Підмоделі зазвичай значно простіші за основну задачу, тож оптимізуються швидко,
+а отже тести працюють швидко.
 
 ```python
 from ortools.sat.python import cp_model
@@ -1180,11 +1076,11 @@ def test_piecewise_linear_upper_bound_constraint():
     x = model.new_int_var(0, 20, "x")
     f = PiecewiseLinearFunction(xs=[0, 10, 20], ys=[0, 10, 5])
 
-    # Using the submodel
+    # Використовуємо підмодель
     c = PiecewiseLinearConstraint(model, x, f, upper_bound=True)
     model.maximize(c.y)
 
-    # Checking its behavior
+    # Перевіряємо поведінку
     solver = cp_model.CpSolver()
     status = solver.solve(model)
     assert status == cp_model.OPTIMAL
@@ -1192,9 +1088,8 @@ def test_piecewise_linear_upper_bound_constraint():
     assert solver.value(x) == 10
 ```
 
-Alternatively, testing for feasibility or infeasibility can be a good choice,
-especially if the submodel does not directly correspond to an optimization
-problem on its own.
+Альтернативно можна тестувати здійсненність/недопустимість, особливо якщо
+підмодель не є оптимізаційною задачею сама по собі.
 
 ```python
 from ortools.sat.python import cp_model
@@ -1205,13 +1100,13 @@ def test_piecewise_linear_upper_bound_constraint_via_fixation():
     f = PiecewiseLinearFunction(xs=[0, 10, 20], ys=[0, 10, 5])
     c = PiecewiseLinearConstraint(model, x, f, upper_bound=True)
 
-    # Fix the variables to specific values
+    # Фіксуємо змінні на конкретних значеннях
     model.add(x == 10)
     model.add(c.y == 10)
 
     solver = cp_model.CpSolver()
     status = solver.solve(model)
-    assert status == cp_model.OPTIMAL, "The model should be feasible"
+    assert status == cp_model.OPTIMAL, "Модель має бути допустимою"
 
 def test_piecewise_linear_upper_bound_constraint_via_fixation_infeasible():
     model = cp_model.CpModel()
@@ -1219,41 +1114,37 @@ def test_piecewise_linear_upper_bound_constraint_via_fixation_infeasible():
     f = PiecewiseLinearFunction(xs=[0, 10, 20], ys=[0, 10, 5])
     c = PiecewiseLinearConstraint(model, x, f, upper_bound=True)
 
-    # Fix the variables to specific values that violate the constraint
+    # Фіксуємо значення, що порушують обмеження
     model.add(x == 10)
     model.add(c.y == 11)
 
     solver = cp_model.CpSolver()
     status = solver.solve(model)
-    assert status == cp_model.INFEASIBLE, "The model should be infeasible"
+    assert status == cp_model.INFEASIBLE, "Модель має бути недопустимою"
 ```
 
-### Embedding CP-SAT in an Application via multiprocessing
+### Вбудовування CP-SAT у застосунок через multiprocessing
 
-If you want to embed CP-SAT in your application for potentially long-running
-optimization tasks, you can utilize callbacks to provide users with progress
-updates and potentially interrupt the process early. However, one issue is that
-the application can only react during the callback. Since the callback is not
-always called frequently, this may lead to problematic delays, making it
-unsuitable for graphical user interfaces (GUIs) or application programming
-interfaces (APIs).
+Якщо ви хочете вбудувати CP-SAT у застосунок для потенційно довгих
+оптимізаційних задач, можна використати callbacks, щоб показувати прогрес і
+дозволяти раннє припинення. Проте застосунок може реагувати лише в момент
+callback, а вони не завжди викликаються часто. Це може спричинити затримки і
+погано підходить для GUI чи API.
 
-An alternative is to let the solver run in a separate process and communicate
-with it using a pipe. This approach allows the solver to be interrupted at any
-time, enabling the application to react immediately. Python's multiprocessing
-module provides reasonably simple ways to achieve this.
-[This example](https://github.com/d-krupke/cpsat-primer/blob/main/examples/embedding_cpsat/)
-showcases such an approach. However, for scaling this approach up, you will
-actually have to build a task queues where the solver is run by workers. Using
-multiprocessing can still be useful for the worker to remain responsive for stop
-signals while the solver is running.
+Альтернатива — запускати solver в окремому процесі й спілкуватися з ним через
+pipe. Це дозволяє перервати solver у будь-який момент і дає миттєву реакцію.
+Python multiprocessing пропонує досить прості інструменти для цього.
+[Цей приклад](https://github.com/d-krupke/cpsat-primer/blob/main/examples/embedding_cpsat/)
+показує такий підхід. Щоб масштабувати його, зазвичай потрібна черга задач, де
+solver запускається воркерами. Multiprocessing все одно корисний, бо дозволяє
+воркеру залишатися чутливим до сигналів зупинки, поки solver працює.
 
 | ![Interactive Solver with Streamlit using multiprocessing](https://github.com/d-krupke/cpsat-primer/blob/main/images/streamlit_solver.gif) |
 | :----------------------------------------------------------------------------------------------------------------------------------------: |
-|                                _Using multiprocessing, one can build a responsive interface for a solver._                                 |
+|                                _Використовуючи multiprocessing, можна створити чутливий інтерфейс для solver-а._                                 |
 
-[@oulianov](https://github.com/oulianov) deployed it
-[here](https://cpsat-embeddings-demo.streamlit.app/) for you to try out in your
-browser.
+[@oulianov](https://github.com/oulianov) розгорнув це
+[тут](https://cpsat-embeddings-demo.streamlit.app/), щоб можна було спробувати
+у браузері.
 
 ---
