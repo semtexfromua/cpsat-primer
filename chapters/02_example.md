@@ -2,71 +2,69 @@
 
 <a name="02-example"></a>
 
-## A Simple Example
+## Простий приклад
 
 <!-- START_SKIP_FOR_README -->
 
-![Example Cover](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/logo_example.webp)
+![Обкладинка прикладу](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/logo_example.webp)
 
 <!-- STOP_SKIP_FOR_README -->
 
-Before we dive into any internals, let us take a quick look at a simple
-application of CP-SAT. This example is so simple that you could solve it by
-hand, but know that CP-SAT would (probably) be fine with you adding a thousand
-(maybe even ten- or hundred-thousand) variables and constraints more. The basic
-idea of using CP-SAT is, analogous to MIPs, to define an optimization problem in
-terms of variables, constraints, and objective function, and then let the solver
-find a solution for it. We call such a formulation that can be understood by the
-corresponding solver a _model_ for the problem. For people not familiar with
-this
-[declarative approach](https://programiz.pro/resources/imperative-vs-declarative-programming/),
-you can compare it to SQL, where you also just state what data you want, not how
-to get it. However, it is not purely declarative, because it can still make a
-huge(!) difference how you model the problem and getting that right takes some
-experience and understanding of the internals. You can still get lucky for
-smaller problems (let us say a few hundred to thousands of variables) and obtain
-optimal solutions without having an idea of what is going on. The solvers can
-handle more and more 'bad' problem models effectively with every year.
+Перш ніж заглиблюватися у внутрішні деталі, швидко погляньмо на просте
+застосування CP-SAT. Приклад настільки простий, що його можна розв’язати вручну,
+але пам’ятайте, що CP-SAT (ймовірно) нормально впорається, якщо ви додасте
+тисячу (а можливо й десятки чи сотні тисяч) змінних і обмежень більше. Базова
+ідея використання CP-SAT, подібно до MIP, — визначити оптимізаційну задачу через
+змінні, обмеження й цільову функцію, а потім дозволити розв’язувачу знайти
+розв’язок. Таку формалізацію, яку відповідний розв’язувач може зрозуміти,
+називають _моделлю_ задачі. Для тих, хто не знайомий із
+[декларативним підходом](https://programiz.pro/resources/imperative-vs-declarative-programming/),
+можна провести аналогію з SQL: ви описуєте, які дані хочете отримати, а не як
+їх добути. Втім, це не суто декларативний підхід, адже те, _як_ ви моделюєте
+задачу, може мати величезне (!) значення, і правильне моделювання потребує
+досвіду та розуміння внутрішньої роботи. Для невеликих задач (скажімо, кілька
+сотень або тисяч змінних) ви можете просто «пощастити» й отримати оптимальні
+розв’язки, не маючи чіткого уявлення про те, що відбувається. Розв’язувачі
+щороку все краще справляються з «поганими» моделями.
 
 > [!NOTE]
 >
-> A **model** in mathematical programming refers to a mathematical description
-> of a problem, consisting of variables, constraints, and optionally an
-> objective function that can be understood by the corresponding solver class.
-> _Modelling_ refers to transforming a problem (instance) into the corresponding
-> framework, e.g., by making all constraints linear as required for Mixed
-> Integer Linear Programming. Be aware that the
-> [SAT](https://en.wikipedia.org/wiki/SAT_solver)-community uses the term
-> _model_ to refer to a (feasible) variable assignment, i.e., solution of a
-> SAT-formula. If you struggle with this terminology, maybe you want to read
-> this short guide on
+> **Модель** у математичному програмуванні означає математичний опис задачі, що
+> складається зі змінних, обмежень і, за потреби, цільової функції, яку може
+> розуміти відповідний клас розв’язувачів. _Моделювання_ — це перетворення
+> задачі (екземпляра) у відповідну форму, наприклад перетворення всіх обмежень
+> у лінійні, як цього вимагає змішане цілочисельне лінійне програмування. Зауважте,
+> що спільнота [SAT](https://en.wikipedia.org/wiki/SAT_solver) використовує
+> термін _model_ для позначення (допустимого) присвоєння змінних, тобто розв’язку
+> SAT-формули. Якщо ви плутаєтеся в термінах, можливо, варто прочитати короткий
+> гайд
 > [Math Programming Modelling Basics](https://www.gurobi.com/resources/math-programming-modeling-basics/).
 
-Our first problem has no deeper meaning, except for showing the basic workflow
-of creating the variables (x and y), adding the constraint $x+y<=30$ on them,
-setting the objective function (maximize $30x + 50y$), and obtaining a solution:
+Наша перша задача не має глибшого сенсу, окрім демонстрації базового робочого
+процесу: створення змінних (x і y), додавання обмеження $x+y<=30$, задання цілі
+(максимізувати $30x + 50y$) і отримання розв’язку:
 
 ```python
 from ortools.sat.python import cp_model
 
 model = cp_model.CpModel()
 
-# Variables
+# Змінні
 x = model.new_int_var(0, 100, "x")
 y = model.new_int_var(0, 100, "y")
 
-# Constraints
+# Обмеження
 model.add(x + y <= 30)
 
-# Objective
+# Ціль
 model.maximize(30 * x + 50 * y)
 
-# Solve
+# Розв’язання
 solver = cp_model.CpSolver()
 status_code = solver.solve(model)
 status_name = solver.status_name()
 
-# Print the solver status and the optimal solution.
+# Виводимо статус розв’язувача та оптимальний розв’язок.
 print(f"{status_name} ({status_code})")
 print(f"x={solver.value(x)},  y={solver.value(y)}")
 ```
@@ -74,41 +72,39 @@ print(f"x={solver.value(x)},  y={solver.value(y)}")
     OPTIMAL (4)
     x=0,  y=30
 
-Pretty easy, right? For solving a generic problem, not just one specific
-instance, you would of course create a dictionary or list of variables and use
-something like `model.add(sum(vars)<=n)`, because you do not want to create the
-model by hand for larger instances.
+Дуже просто, так? Для розв’язання загальної задачі, а не одного конкретного
+екземпляра, ви, звісно, створите словник або список змінних і використаєте
+щось на кшталт `model.add(sum(vars)<=n)`, адже ви не хочете вручну створювати
+модель для великих екземплярів.
 
-The solver can return five different statuses:
+Розв’язувач може повертати п’ять різних статусів:
 
-| Status          | Code | Description                                                                                                                                                                           |
-| --------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `UNKNOWN`       | 0    | The solver has not run for long enough.                                                                                                                                               |
-| `MODEL_INVALID` | 1    | The model is invalid. You will rarely see that status.                                                                                                                                |
-| `FEASIBLE`      | 2    | The model has a feasible, but not necessarily optimal, solution. If your model does not have an objective, every feasible model will return `OPTIMAL`, which may be counterintuitive. |
-| `INFEASIBLE`    | 3    | The model has no feasible solution. This means that your constraints are too restrictive.                                                                                             |
-| `OPTIMAL`       | 4    | The model has an optimal solution. If your model does not have an objective, `OPTIMAL` is returned instead of `FEASIBLE`.                                                             |
+| Статус          | Код | Опис                                                                                                                                                                                         |
+| --------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `UNKNOWN`       | 0    | Розв’язувач працював недостатньо довго.                                                                                                                                                       |
+| `MODEL_INVALID` | 1    | Модель некоректна. Такий статус трапляється рідко.                                                                                                                                            |
+| `FEASIBLE`      | 2    | Модель має допустимий, але не обов’язково оптимальний, розв’язок. Якщо цільова функція відсутня, кожна допустима модель повертає `OPTIMAL`, що може бути неочевидно.                        |
+| `INFEASIBLE`    | 3    | Модель не має допустимого розв’язку. Це означає, що обмеження надто жорсткі.                                                                                                                   |
+| `OPTIMAL`       | 4    | Модель має оптимальний розв’язок. Якщо цільова функція відсутня, повертається `OPTIMAL` замість `FEASIBLE`.                                                                                   |
 
 > [!TIP]
 >
-> The status `UNBOUNDED` does _not_ exist, as CP-SAT does not have unbounded
-> variables. Classical MIP solvers allow unbounded variables, which can lead to
-> unbounded solutions, meaning that the objective function can grow indefinitely
-> without reaching a maximum or minimum value. In constraint programming,
-> unbounded domains are usually neither allowed nor useful. However, in linear
-> programming, they are important, e.g., when exploiting duality.
+> Статусу `UNBOUNDED` _немає_, оскільки в CP-SAT немає необмежених змінних.
+> Класичні MIP-розв’язувачі дозволяють необмежені змінні, що може призводити до
+> необмежених розв’язків, тобто цільова функція може необмежено зростати або
+> спадати без досягнення максимуму чи мінімуму. У програмуванні з обмеженнями
+> необмежені домени зазвичай не допускаються і не є корисними. Натомість у
+> лінійному програмуванні вони важливі, наприклад при використанні двоїстості.
 
-For larger models, CP-SAT will unfortunately not always able to compute an
-optimal solution. However, the good news is that the solver will likely still
-find a satisfactory solution and provide a bound on the optimal solution. Once
-you reach this point, understanding how to interpret the solver's log becomes
-crucial for analyzing the solver's performance. We will learn more about this
-later.
+Для великих моделей CP-SAT, на жаль, не завжди зможе знайти оптимальний
+розв’язок. Але гарна новина в тому, що розв’язувач, ймовірно, все одно знайде
+задовільний розв’язок і надасть межу для оптимального значення. На цьому етапі
+вміння інтерпретувати лог розв’язувача стає критично важливим для аналізу його
+продуктивності. Про це ми поговоримо пізніше.
 
-### Mathematical Model
+### Математична модель
 
-The mathematical model of the code above would usually be written by experts
-something like this:
+Математична модель наведеного вище коду зазвичай записується експертами так:
 
 ```math
 \max 30x + 50y
@@ -130,16 +126,15 @@ something like this:
 x,y \in \mathbb{Z}
 ```
 
-The `s.t.` stands for `subject to`, sometimes also read as `such that`.
+` s.t.` означає `subject to`, інколи також читають як `such that`.
 
-### Overloading
+### Перевантаження операторів
 
-One aspect of using CP-SAT solver that often poses challenges for learners is
-understanding operator overloading in Python and the distinction between the two
-types of variables involved. In this context, `x` and `y` serve as mathematical
-variables. That is, they are placeholders that will only be assigned specific
-values during the solving phase. To illustrate this more clearly, let us explore
-an example within the Python shell:
+Один із аспектів використання CP-SAT, що часто викликає труднощі у новачків, —
+це розуміння перевантаження операторів у Python і відмінностей між двома типами
+змінних. У цьому контексті `x` і `y` — це математичні змінні. Тобто це
+заглушки, яким конкретні значення будуть присвоєні лише під час розв’язання.
+Щоб проілюструвати це точніше, розгляньмо приклад у Python-оболонці:
 
 ```pycon
 >>> model = cp_model.CpModel()
@@ -154,68 +149,65 @@ sum(x(0..100), 1)
 <ortools.sat.python.cp_model.BoundedLinearExpression object at 0x7d8d5a765df0>
 ```
 
-In this example, `x` is not a conventional number but a placeholder defined to
-potentially assume any value between 0 and 100. When 1 is added to `x`, the
-result is a new placeholder representing the sum of `x` and 1. Similarly,
-comparing this sum to 1 produces another placeholder, which encapsulates the
-comparison of the sum with 1. These placeholders do not hold concrete values at
-this stage but are essential for defining constraints within the model.
-Attempting operations like `if x + 1 <= 1: print("True")` will trigger a
-`NotImplementedError`, as the condition `x+1<=1` cannot be evaluated directly.
+У цьому прикладі `x` — не звичайне число, а заглушка, що потенційно може
+приймати будь-яке значення між 0 і 100. Коли до `x` додаємо 1, результатом
+стає нова заглушка, що представляє суму `x` і 1. Аналогічно, порівняння цієї
+суми з 1 породжує ще одну заглушку, яка інкапсулює сам факт порівняння. На цьому
+етапі ці заглушки не мають конкретних значень, але вони потрібні для опису
+обмежень моделі. Спроба виконати операцію на кшталт `if x + 1 <= 1: print("True")`
+викличе `NotImplementedError`, адже умова `x+1<=1` не може бути безпосередньо
+оцінена.
 
-Although this approach to defining models might initially seem perplexing, it
-facilitates a closer alignment with mathematical notation, which in turn can
-make it easier to identify and correct errors in the modeling process.
+Хоча такий спосіб опису моделей може спочатку здаватися дивним, він дозволяє
+наблизитися до математичної нотації, що, у свою чергу, полегшує виявлення та
+виправлення помилок у моделі.
 
-### More examples
+### Більше прикладів
 
-If you are not yet satisfied,
-[this folder contains many Jupyter Notebooks with examples from the developers](https://github.com/google/or-tools/tree/stable/examples/notebook/sat).
-For example
+Якщо вам замало,
+[ця папка містить багато Jupyter Notebook-прикладів від розробників](https://github.com/google/or-tools/tree/stable/examples/notebook/sat).
+Наприклад:
 
 - [multiple_knapsack_sat.ipynb](https://github.com/google/or-tools/blob/stable/examples/notebook/sat/multiple_knapsack_sat.ipynb)
-  shows how to solve a multiple knapsack problem.
+  показує, як розв’язати задачу про кілька рюкзаків.
 - [nurses_sat.ipynb](https://github.com/google/or-tools/blob/stable/examples/notebook/sat/nurses_sat.ipynb)
-  shows how to schedule the shifts of nurses.
+  показує, як складати графік змін медсестер.
 - [bin_packing_sat.ipynb](https://github.com/google/or-tools/blob/stable/examples/notebook/sat/bin_packing_sat.ipynb)
-  shows how to solve a bin packing problem.
-- ... (if you know more good examples I should mention here, please let me
-  know!)
+  показує, як розв’язати задачу пакування в контейнери (bin packing).
+- ... (якщо ви знаєте ще гарні приклади, які варто згадати тут — дайте знати!)
 
-Further, you can find an extensive and beginner-friendly example on scheduling
-workers
-[here](https://pganalyze.com/blog/a-practical-introduction-to-constraint-programming-using-cp-sat).
+Крім того, є великий і дружній до початківців приклад розкладу працівників
+[тут](https://pganalyze.com/blog/a-practical-introduction-to-constraint-programming-using-cp-sat).
 
-Now that you have seen a minimal model, let us explore the various options
-available for problem modeling. While an experienced optimizer might be able to
-handle most problems using just the elements previously discussed, clearly
-expressing your intentions can help CP-SAT optimize your problem more
-effectively.
+Тепер, коли ви побачили мінімальну модель, давайте розглянемо різні варіанти
+моделювання задач. Хоча досвідчений оптимізатор може впоратися з більшістю задач,
+використовуючи лише щойно описані елементи, чітке формулювання ваших намірів
+може допомогти CP-SAT ефективніше оптимізувати задачу.
 
 > :video:
 >
-> Optimization problems are everywhere in the real world. If you want a quick
-> overview of practical applications, the video
+> Оптимізаційні задачі всюди в реальному світі. Якщо вам потрібен швидкий
+> огляд практичних застосувань, відео
 > [Optimization 360 (Optimization Everywhere)](https://www.youtube.com/watch?v=bWbCjedszc0&list=PLHiHZENG6W8B7f6OEiDg5Gj0Jz35iZ17Z&index=3)
-> from Gurobi's Opti 202 Training highlights a variety of domains where
-> optimization plays a key role.
+> з тренінгу Gurobi Opti 202 показує різноманітні домени, де
+> оптимізація відіграє ключову роль.
 >
-> Here is a summary table of example problems from the video:
+> Ось підсумкова таблиця прикладів задач з відео:
 >
-> | **Problem / Domain**                    | **Optimization Challenge**                                                                                                           |
+> | **Задача / Домен**                      | **Оптимізаційний виклик**                                                                                                            |
 > | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-> | Milk & Dairy Processing                 | Blend raw milk with varying fat/protein contents into consistent end products like milk, butter, and cheese.                         |
-> | Power Grid Operation                    | Plan and dispatch electricity generation across multiple time horizons while maintaining grid stability and regulatory requirements. |
-> | Pet Food Formulation                    | Choose ingredient mixes that minimize cost while meeting nutritional constraints and availability limits.                            |
-> | Car Supply Chain & Inventory            | Decide which car models and configurations to stock at dealerships to balance demand, customization, and inventory costs.            |
-> | Environmental Compliance (Toyota)       | Allocate vehicle production across markets to meet diverse emissions and fuel-efficiency regulations at minimal cost.                |
-> | Parts Logistics & Pre-Sequencing (Audi) | Sequence thousands of car parts into limited staging areas and deliver them to the assembly line in the correct order.               |
-> | School Redistricting                    | Assign students to schools under constraints like capacity, travel distance, community continuity, and fairness.                     |
-> | ATM Cash Replenishment                  | Schedule deliveries of cash to ATMs to minimize idle capital and transportation costs while preventing shortages.                    |
-> | Workforce Shift Scheduling              | Assign staff to shifts while respecting fairness, workload limits, legal rules, and organizational needs.                            |
-> | Forestry & Sustainable Harvesting       | Plan harvesting and planting over decades to maximize long-term yield and carbon storage while ensuring sustainability.              |
-> | Package Delivery (Last Mile)            | Assign packages to routes and drivers efficiently at massive scale while accounting for geography and driver familiarity.            |
-> | Food Truck Location                     | Select daily locations for a fleet of food trucks to maximize expected profit given spatial demand.                                  |
-> | Sports Scheduling / Team Assignment     | Create balanced match schedules or fair teams while respecting skill levels and participant constraints.                             |
-> | Grocery Store Pricing                   | Jointly set prices of hundreds of interrelated products to maximize revenue while accounting for substitution effects.               |
-> | Food Delivery Platforms (Instacart)     | Match drivers, customers, and restaurants under uncertain demand and availability to deliver orders efficiently and reliably.        |
+> | Переробка молока та молочної продукції  | Змішати сире молоко з різним вмістом жиру/білка, щоб отримати стабільні кінцеві продукти (молоко, масло, сир).                       |
+> | Робота енергомережі                     | Планувати та диспетчеризувати генерацію електроенергії на кількох горизонтах часу, підтримуючи стабільність мережі та регуляторні вимоги. |
+> | Формування кормів для тварин            | Обирати суміші інгредієнтів, що мінімізують вартість, дотримуючись харчових обмежень і лімітів доступності.                         |
+> | Ланцюг постачання авто та запаси        | Визначати, які моделі та конфігурації авто тримати в дилерів, балансуючи попит, кастомізацію та витрати на запаси.                  |
+> | Екологічна відповідність (Toyota)       | Розподіляти виробництво авто між ринками, щоб дотриматися норм викидів і паливної ефективності з мінімальною вартістю.              |
+> | Логістика деталей і попереднє секвенсування (Audi) | Упорядковувати тисячі деталей авто в обмежених зонах і доставляти їх на конвеєр у правильному порядку.                      |
+> | Перерозподіл шкільних округів           | Призначати учнів до шкіл з урахуванням місткості, відстані, цілісності спільноти та справедливості.                                |
+> | Поповнення готівки в банкоматах          | Планувати доставки готівки до банкоматів, мінімізуючи простоювання капіталу та транспортні витрати, запобігаючи дефіциту.           |
+> | Планування змін персоналу               | Призначати працівників на зміни, дотримуючись справедливості, лімітів навантаження, правових вимог і потреб організації.           |
+> | Лісове господарство та стале вирубування | Планувати рубки та висадку протягом десятиліть, максимізуючи довгостроковий врожай і збереження вуглецю при сталому підході.        |
+> | Доставка посилок (останній кілометр)    | Призначати посилки на маршрути та водіїв у великому масштабі, враховуючи географію й знайомість водія з місцевістю.                 |
+> | Локації фудтраків                       | Обирати щоденні місця для автопарку фудтраків, максимізуючи очікуваний прибуток з огляду на просторовий попит.                      |
+> | Спортивні розклади / розподіл команд    | Створювати збалансовані розклади матчів або чесні команди з урахуванням рівнів навичок і обмежень учасників.                       |
+> | Ціноутворення супермаркетів             | Спільно встановлювати ціни на сотні взаємопов’язаних товарів, максимізуючи дохід із урахуванням ефектів заміщення.                  |
+> | Платформи доставки їжі (Instacart)      | Зіставляти водіїв, клієнтів і ресторани за умов невизначеного попиту та доступності, щоб доставляти замовлення ефективно і надійно. |
