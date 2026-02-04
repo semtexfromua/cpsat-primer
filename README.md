@@ -1683,204 +1683,192 @@ model.add_inverse(v, w)
 <!-- ./chapters/04B_advanced_modelling.md -->
 <a name="04B-advanced-modelling"></a>
 
-## Advanced Modeling
+## Просунуте моделювання
 
 
-After having seen the basic elements of CP-SAT, this chapter will introduce you
-to the more complex constraints. These constraints are already focused on
-specific problems, such as routing or scheduling, but very generic and powerful
-within their domain. However, they also need more explanation on the correct
-usage.
+Після знайомства з базовими елементами CP-SAT у цьому розділі ми перейдемо до
+складніших обмежень. Вони вже орієнтовані на конкретні задачі — наприклад,
+маршрутизацію чи планування — але всередині свого домену дуже універсальні й
+потужні. Водночас вони потребують більш детального пояснення щодо правильного
+використання.
 
-- [Tour Constraints](#04-modelling-circuit): `add_circuit`,
+- [Обмеження турів](#04-modelling-circuit): `add_circuit`,
   `add_multiple_circuit`, `add_reservoir_constraint_with_active`
-- [Intervals](#04-modelling-intervals): `new_interval_var`,
+- [Інтервали](#04-modelling-intervals): `new_interval_var`,
   `new_interval_var_series`, `new_fixed_size_interval_var`,
   `new_optional_interval_var`, `new_optional_interval_var_series`,
   `new_optional_fixed_size_interval_var`,
   `new_optional_fixed_size_interval_var_series`,
   `add_no_overlap`,`add_no_overlap_2d`, `add_cumulative`
-- [Automaton Constraints](#04-modelling-automaton): `add_automaton`
-- [Reservoir Constraints](#04-modelling-reservoir): `add_reservoir_constraint`,
-- [Piecewise Linear Constraints](#04-modelling-pwl): Not officially part of
-  CP-SAT, but we provide some free copy&pasted code to do it.
+- [Обмеження автомата](#04-modelling-automaton): `add_automaton`
+- [Обмеження резервуара](#04-modelling-reservoir): `add_reservoir_constraint`
+- [Кусково-лінійні обмеження](#04-modelling-pwl): офіційно не частина CP-SAT,
+  але ми надаємо безкоштовний код для копіювання.
 
 <a name="04-modelling-circuit"></a>
 
-### Circuit/Tour-Constraints
+### Обмеження circuit/турів
 
-Routes and tours are essential in addressing optimization challenges across
-various fields, far beyond traditional routing issues. For example, in DNA
-sequencing, optimizing the sequence in which DNA fragments are assembled is
-crucial, while in scientific research, methodically ordering the reconfiguration
-of experiments can greatly reduce operational costs and downtime. The
-`add_circuit` and `add_multiple_circuit` constraints in CP-SAT allow you to
-easily model various scenarios. These constraints extend beyond the classical
-[Traveling Salesman Problem (TSP)](https://en.wikipedia.org/wiki/Travelling_salesman_problem),
-allowing for solutions where not every node needs to be visited and
-accommodating scenarios that require multiple disjoint sub-tours. This
-adaptability makes them invaluable for a broad spectrum of practical problems
-where the sequence and arrangement of operations critically impact efficiency
-and outcomes.
+Маршрути й тури важливі для розв’язання оптимізаційних задач у багатьох сферах,
+далеко за межами класичної маршрутизації. Наприклад, у секвенуванні ДНК
+оптимізація порядку збирання фрагментів критична, а в наукових дослідженнях
+методичне впорядкування переналаштувань експериментів може суттєво зменшити
+операційні витрати та простої. Обмеження `add_circuit` і `add_multiple_circuit`
+в CP-SAT дозволяють легко моделювати різні сценарії. Вони виходять за межі
+класичної
+[задачі комівояжера (TSP)](https://en.wikipedia.org/wiki/Travelling_salesman_problem),
+дозволяючи розв’язки, де не потрібно відвідувати всі вершини, а також
+підтримуючи кілька неперетинних підтурів. Така адаптивність робить їх
+неоціненними для широкого кола практичних задач, де порядок і організація
+операцій критично впливають на ефективність і результат.
 
 |                         ![TSP Example](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/optimal_tsp.png)                         |
 | :-------------------------------------------------------------------------------------------------------------------------------------------------: |
-| The Traveling Salesman Problem (TSP) asks for the shortest possible route that visits every vertex exactly once and returns to the starting vertex. |
+| Задача комівояжера (TSP) шукає найкоротший маршрут, який відвідує кожну вершину рівно один раз і повертається до стартової вершини. |
 
-The Traveling Salesman Problem is one of the most famous and well-studied
-combinatorial optimization problems. It is a classic example of a problem that
-is easy to understand, common in practice, but hard to solve. It also has a
-special place in the history of optimization, as many techniques that are now
-used generally were first developed for the TSP. If you have not done so yet, I
-recommend watching
-[this talk by Bill Cook](https://www.youtube.com/watch?v=5VjphFYQKj8), or even
-reading the book
+Задача комівояжера — одна з найвідоміших і найкраще досліджених комбінаторних
+оптимізаційних задач. Це класичний приклад задачі, яку легко зрозуміти,
+поширеної на практиці, але складної для розв’язання. Вона також займає особливе
+місце в історії оптимізації, адже багато загальних технік спершу були розроблені
+саме для TSP. Якщо ще не робили цього, рекомендую переглянути
+[цю доповідь Bill Cook](https://www.youtube.com/watch?v=5VjphFYQKj8) або навіть
+прочитати книгу
 [In Pursuit of the Traveling Salesman](https://press.princeton.edu/books/paperback/9780691163529/in-pursuit-of-the-traveling-salesman).
 
 > [!TIP]
 >
-> If your problem is specifically the Traveling Salesperson Problem (TSP), you
-> might find the
-> [Concorde solver](https://www.math.uwaterloo.ca/tsp/concorde.html)
-> particularly effective. For problems closely related to the TSP, a Mixed
-> Integer Programming (MIP) solver may be more suitable, as many TSP variants
-> yield strong linear programming relaxations that MIP solvers can efficiently
-> exploit. Additionally, consider
-> [OR-Tools Routing](https://developers.google.com/optimization/routing) if
-> routing constitutes a significant aspect of your problem. However, for
-> scenarios where variants of the TSP are merely a component of a larger
-> problem, utilizing CP-SAT with the `add_circuit` or `add_multiple_circuit`
-> constraints can be very beneficial.
+> Якщо ваша задача — саме TSP, можливо, вам буде корисним
+> [розв’язувач Concorde](https://www.math.uwaterloo.ca/tsp/concorde.html).
+> Для задач, близьких до TSP, більш відповідним може бути MIP-розв’язувач,
+> оскільки багато варіантів TSP дають сильні лінійні релаксації, які MIP
+> ефективно використовують. Також зверніть увагу на
+> [OR-Tools Routing](https://developers.google.com/optimization/routing), якщо
+> маршрутизація — значна частина вашої задачі. Але коли варіанти TSP — лише
+> компонент більшої задачі, CP-SAT із `add_circuit` або `add_multiple_circuit`
+> може бути дуже корисним.
 
 |                                                                                                                                                        ![TSP BnB Example](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/tsp_bnb_improved.png)                                                                                                                                                         |
 | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| This example shows why Mixed Integer Programming solvers are so good in solving the TSP. The linear relaxation (at the top) is already very close to the optimal solution. By branching, i.e., trying 0 and 1, on just two fractional variables, we not only find the optimal solution but can also prove optimality. The example was generated with the [DIY TSP Solver](https://www.math.uwaterloo.ca/tsp/D3/bootQ.html). |
+| Цей приклад показує, чому MIP-розв’язувачі такі сильні для TSP. Лінійна релаксація (вгорі) вже дуже близька до оптимального розв’язку. Розгалужуючись, тобто пробуючи 0 і 1, лише для двох дробових змінних, ми не лише знаходимо оптимальний розв’язок, а й доводимо оптимальність. Приклад згенеровано за допомогою [DIY TSP Solver](https://www.math.uwaterloo.ca/tsp/D3/bootQ.html). |
 
 #### `add_circuit`
 
-The `add_circuit` constraint is utilized to solve circuit problems within
-directed graphs, even allowing loops. It operates by taking a list of triples
-`(u,v,var)`, where `u` and `v` denote the source and target vertices,
-respectively, and `var` is a Boolean variable that indicates if an edge is
-included in the solution. The constraint ensures that the edges marked as `True`
-form a single circuit visiting each vertex exactly once, aside from vertices
-with a loop set as `True`. Vertex indices should start at 0 and must not be
-skipped to avoid isolation and infeasibility in the circuit.
+Обмеження `add_circuit` використовується для розв’язання задач про цикли у
+орієнтованих графах і навіть дозволяє петлі. Воно приймає список трійок
+`(u,v,var)`, де `u` і `v` — початкова і кінцева вершини, а `var` — булева
+змінна, яка показує, чи включене ребро в розв’язок. Обмеження гарантує, що
+ребра з `True` формують один цикл, який відвідує кожну вершину рівно один раз,
+за винятком вершин із петлею, встановленою в `True`. Індекси вершин мають
+починатися з 0 і не можуть мати пропусків, інакше це призведе до ізоляції та
+недопустимості циклу.
 
-Here is an example using the CP-SAT solver to address a directed Traveling
-Salesperson Problem (TSP):
+Ось приклад використання CP-SAT для орієнтованої задачі комівояжера:
 
 ```python
 from ortools.sat.python import cp_model
 
-# Directed graph with weighted edges
+# Орієнтований граф із вагами ребер
 dgraph = {(0, 1): 13, (1, 0): 17, ...(2, 3): 27}
 
-# Initialize CP-SAT model
+# Ініціалізуємо модель CP-SAT
 model = cp_model.CpModel()
 
-# Boolean variables for each edge
+# Булеві змінні для кожного ребра
 edge_vars = {(u, v): model.new_bool_var(f"e_{u}_{v}") for (u, v) in dgraph.keys()}
 
-# Circuit constraint for a single tour
+# Обмеження circuit для одного туру
 model.add_circuit([(u, v, var) for (u, v), var in edge_vars.items()])
 
-# Objective function to minimize total cost
+# Цільова функція — мінімізувати сумарну вартість
 model.minimize(sum(dgraph[(u, v)] * x for (u, v), x in edge_vars.items()))
 
-# Solve model
+# Розв’язуємо модель
 solver = cp_model.CpSolver()
 status = solver.solve(model)
 if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
     tour = [(u, v) for (u, v), x in edge_vars.items() if solver.value(x)]
     print("Tour:", tour)
 
-# Output: [(0, 1), (2, 0), (3, 2), (1, 3)], i.e., 0 -> 1 -> 3 -> 2 -> 0
+# Output: [(0, 1), (2, 0), (3, 2), (1, 3)], тобто 0 -> 1 -> 3 -> 2 -> 0
 ```
 
-This constraint can be adapted for paths by adding a virtual enforced edge that
-closes the path into a circuit, such as `(3, 0, 1)` for a path from vertex 0 to
-vertex 3.
+Це обмеження можна адаптувати для шляхів, додавши віртуальне ребро, яке
+замикає шлях у цикл, наприклад `(3, 0, 1)` для шляху від вершини 0 до вершини 3.
 
-#### Creative usage of `add_circuit`
+#### Креативне використання `add_circuit`
 
-The `add_circuit` constraint can be creatively adapted to solve various related
-problems. While there are more efficient algorithms for solving the Shortest
-Path Problem, let us demonstrate how to adapt the `add_circuit` constraint for
-educational purposes.
+`add_circuit` можна творчо адаптувати для різних споріднених задач. Хоча для
+задачі найкоротшого шляху існують ефективніші алгоритми, покажімо, як
+адаптувати `add_circuit` в освітніх цілях.
 
 ```python
 from ortools.sat.python import cp_model
 
-# Define a weighted, directed graph with edge costs
+# Задаємо зважений орієнтований граф із вартістю ребер
 dgraph = {(0, 1): 13, (1, 0): 17, ...(2, 3): 27}
 
 source_vertex = 0
 target_vertex = 3
 
-# Add zero-cost loops for vertices not being the source or target
+# Додаємо нульові петлі для вершин, які не є джерелом або ціллю
 for v in [1, 2]:
     dgraph[(v, v)] = 0
 
-# Initialize CP-SAT model and variables
+# Ініціалізуємо модель CP-SAT і змінні
 model = cp_model.CpModel()
 edge_vars = {(u, v): model.new_bool_var(f"e_{u}_{v}") for (u, v) in dgraph}
 
-# Define the circuit including a pseudo-edge from target to source
+# Визначаємо цикл із псевдоребром від цілі до джерела
 circuit = [(u, v, var) for (u, v), var in edge_vars.items()] + [
     (target_vertex, source_vertex, 1)
 ]
 model.add_circuit(circuit)
 
-# Minimize total cost
+# Мінімізуємо сумарну вартість
 model.minimize(sum(dgraph[(u, v)] * x for (u, v), x in edge_vars.items()))
 
-# Solve and extract the path
+# Розв’язуємо та отримуємо шлях
 solver = cp_model.CpSolver()
 status = solver.solve(model)
 if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
     path = [(u, v) for (u, v), x in edge_vars.items() if solver.value(x) and u != v]
     print("Path:", path)
 
-# Output: [(0, 1), (1, 3)], i.e., 0 -> 1 -> 3
+# Output: [(0, 1), (1, 3)], тобто 0 -> 1 -> 3
 ```
 
-This approach showcases the flexibility of the `add_circuit` constraint for
-various tour and path problems. Explore further examples:
+Цей підхід демонструє гнучкість `add_circuit` для різних задач турів і шляхів.
+Ось ще приклад:
 
 - [Budget constrained tours](https://github.com/d-krupke/cpsat-primer/blob/main/examples/add_circuit_budget.py):
-  Optimize the largest possible tour within a specified budget.
+  оптимізація найбільшого можливого туру в межах заданого бюджету.
 
 #### `add_multiple_circuit`
 
-When solving problems involving multiple trips starting from a depot, we can use
-the `add_multiple_circuit` constraint. This constraint is similar to
-`add_circuit` but explicitly allows the depot to be visited multiple times. Like
-`add_circuit`, the `add_multiple_circuit` constraint supports optional vertices
-through self-loops.
+Для задач із кількома поїздками з депо можна використати `add_multiple_circuit`.
+Це обмеження схоже на `add_circuit`, але явно дозволяє відвідувати депо кілька
+разів. Як і `add_circuit`, `add_multiple_circuit` підтримує опційні вершини
+через петлі.
 
-This feature is particularly useful for modeling Vehicle Routing Problems (VRP),
-where multiple tours originate from a single depot. Usually, VRP includes
-additional constraints since, otherwise, returning to the depot unnecessarily is
-suboptimal. While duplicating the graph and applying `add_circuit` on each copy
-is an alternative, using `add_multiple_circuit` avoids the need for multiple
-graph copies and corresponding variable sets, allowing a single set of variables
-and edges.
+Це особливо корисно для задач маршрутизації транспорту (VRP), де кілька турів
+починаються з одного депо. Зазвичай VRP має додаткові обмеження, бо інакше
+повернення в депо без потреби є неоптимальним. Альтернативою є дублювання графа
+та застосування `add_circuit` на кожній копії, але `add_multiple_circuit`
+дозволяє уникнути копіювання графа і створення кількох наборів змінних, залишаючи
+єдиний набір змінних та ребер.
 
-A disadvantage of this method is that expressing certain constraints, such as
-prohibiting two nodes from being visited during the same trip, becomes more
-complex since all trips share variables. Nevertheless, many constraints can
-still be modeled effectively, such as vehicle capacity in the Capacitated
-Vehicle Routing Problem (CVRP). The CVRP is a classical optimization problem in
-operations research and logistics, which involves determining the shortest
-possible set of routes for a fleet of identical vehicles starting and ending at
-a single depot (this can also be the same vehicle doing multiple trips). Each
-customer must be visited exactly once, with the constraint that the total demand
-serviced on each trip does not exceed the vehicle capacity.
+Недоліком методу є те, що деякі обмеження, наприклад заборона відвідувати дві
+вершини в одному турі, стають складнішими, адже всі тури спільно використовують
+змінні. Водночас багато обмежень усе ще можна ефективно моделювати, наприклад
+обмеження місткості в задачі CVRP. CVRP — класична задача в операційному
+дослідженні та логістиці: потрібно знайти найкоротший набір маршрутів для
+флоту однакових транспортів, що стартують і завершують у єдиному депо (це може
+бути і той самий транспорт, що робить кілька поїздок). Кожного клієнта треба
+відвідати рівно один раз, з обмеженням, що сумарний попит на кожному турі не
+перевищує місткість транспортного засобу.
 
-The following code illustrates implementing the CVRP using the
-`add_multiple_circuit` constraint by introducing an additional variable to track
-vehicle capacity at each vertex.
+Нижче наведено приклад реалізації CVRP із `add_multiple_circuit` і додатковою
+змінною для відстеження місткості на кожній вершині.
 
 ```python
 from typing import Hashable
@@ -1889,7 +1877,7 @@ from ortools.sat.python import cp_model
 
 
 class CvrpMultiCircuit:
-    """CVRP via CP-SAT multi-circuit constraint."""
+    """CVRP через multi-circuit обмеження CP-SAT."""
 
     def __init__(
         self,
@@ -1904,11 +1892,11 @@ class CvrpMultiCircuit:
         self.capacity = capacity
         self.demand_label = demand_label
 
-        # Vertex list with depot first
+        # Список вершин з депо на початку
         self.vertices = [depot] + [v for v in graph.nodes() if v != depot]
         self.index = {v: i for i, v in enumerate(self.vertices)}
 
-        # Boolean arc variables for both directions
+        # Булеві змінні дуг для обох напрямків
         self.arc_vars = {
             (i, j): self.model.new_bool_var(f"arc_{i}_{j}")
             for u, v in graph.edges
@@ -1916,10 +1904,10 @@ class CvrpMultiCircuit:
         }
         arcs = [(i, j, var) for (i, j), var in self.arc_vars.items()]
 
-        # Multi-circuit constraint
+        # Обмеження multi-circuit
         self.model.add_multiple_circuit(arcs)
 
-        # Capacity variables and constraints
+        # Змінні місткості та обмеження
         self.cap_vars = [
             self.model.new_int_var(0, capacity, f"cap_{i}")
             for i in range(len(self.vertices))
@@ -1945,7 +1933,7 @@ class CvrpMultiCircuit:
         self.model.minimize(self.weight(label=label))
 
     def extract_tours(self, solver: cp_model.CpSolver) -> list[list]:
-        # Build directed graph of selected arcs
+        # Будуємо орієнтований граф обраних дуг
         dg = nx.DiGraph(
             [
                 (self.vertices[i], self.vertices[j])
@@ -1954,7 +1942,7 @@ class CvrpMultiCircuit:
             ]
         )
 
-        # Eulerian circuit and split at depot
+        # Ейлерів цикл і розбиття за депо
         euler = nx.eulerian_circuit(dg, source=self.depot)
         tours, curr = [], [self.depot]
         for u, v in euler:
@@ -1969,23 +1957,21 @@ class CvrpMultiCircuit:
 
 |                                                                                                                 ![CVRP Example](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/cvrp_example.png)                                                                                                                  |
 | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| The Capacitated Vehicle Routing Problem (CVRP) seeks the shortest possible routes that visit every vertex exactly once and return to the starting vertex. The depot acts as the starting and ending point of each tour. The example graph is weighted by roughly its geometric distance, with a vehicle capacity constraint set to 15. |
+| Задача CVRP шукає найкоротші маршрути, що відвідують кожну вершину рівно один раз і повертаються до стартової вершини. Депо є початком і кінцем кожного туру. Граф у прикладі зважений приблизною геометричною відстанню, а місткість транспортного засобу встановлена на 15. |
 
 > [!WARNING]
 >
-> Although the `add_multiple_circuit` constraint enables additional LNS
-> strategies and may improve lower bounds, using the standard
-> Miller-Tucker-Zemlin (MTZ) formulation can sometimes be more efficient for the
-> CVRP. Both methods outperform the use of `add_circuit` on multiple graph
-> copies. Implementations for all three CVRP modeling strategies can be found
-> [here](https://github.com/d-krupke/cpsat-primer/blob/main/examples/cvrp/).
+> Хоча `add_multiple_circuit` дозволяє додаткові LNS-стратегії та може
+> покращувати нижні межі, стандартна формулювання Miller-Tucker-Zemlin (MTZ)
+> іноді ефективніша для CVRP. Обидва підходи кращі за використання `add_circuit`
+> на кількох копіях графа. Реалізації всіх трьох підходів моделювання CVRP є
+> [тут](https://github.com/d-krupke/cpsat-primer/blob/main/examples/cvrp/).
 
-#### Performance of `add_circuit` for the TSP
+#### Продуктивність `add_circuit` для TSP
 
-The table below displays the performance of the CP-SAT solver on various
-instances of the TSPLIB, using the `add_circuit` constraint, under a 90-second
-time limit. The performance can be considered reasonable, but can be easily
-beaten by a Mixed Integer Programming solver.
+Таблиця нижче показує продуктивність CP-SAT на різних інстансах TSPLIB із
+використанням `add_circuit` та лімітом 90 секунд. Продуктивність можна вважати
+достатньою, але MIP-розв’язувач легко її перевершує.
 
 | Instance | # vertices | runtime | lower bound | objective | opt. gap |
 | :------- | ---------: | ------: | ----------: | --------: | -------: |
@@ -2018,48 +2004,41 @@ beaten by a Mixed Integer Programming solver.
 | lin318   |        318 |   92.43 |       41915 |     52025 |      19% |
 | pr439    |        439 |   94.22 |      105610 |    163452 |      35% |
 
-There are two prominent formulations to model the Traveling Salesman Problem
-(TSP) without an `add_circuit` constraint: the
-[Dantzig-Fulkerson-Johnson (DFJ) formulation](https://en.wikipedia.org/wiki/Travelling_salesman_problem#Dantzig%E2%80%93Fulkerson%E2%80%93Johnson_formulation)
-and the
-[Miller-Tucker-Zemlin (MTZ) formulation](https://en.wikipedia.org/wiki/Travelling_salesman_problem#Miller%E2%80%93Tucker%E2%80%93Zemlin_formulation[21]).
-The DFJ formulation is generally regarded as more efficient due to its stronger
-linear relaxation. However, it requires lazy constraints, which are not
-supported by the CP-SAT solver. When implemented without lazy constraints, the
-performance of the DFJ formulation is comparable to that of the MTZ formulation
-in CP-SAT. Nevertheless, both formulations perform significantly worse than the
-`add_circuit` constraint. This indicates the superiority of using the
-`add_circuit` constraint for handling tours and paths in such problems. Unlike
-end users, the `add_circuit` constraint can utilize lazy constraints internally,
-offering a substantial advantage in solving the TSP.
+Існують дві основні формулювання для моделювання TSP без `add_circuit`:
+[формулювання Данцига—Фалкерсона—Джонсона (DFJ)](https://en.wikipedia.org/wiki/Travelling_salesman_problem#Dantzig%E2%80%93Fulkerson%E2%80%93Johnson_formulation)
+та
+[формулювання Міллера—Такера—Земліна (MTZ)](https://en.wikipedia.org/wiki/Travelling_salesman_problem#Miller%E2%80%93Tucker%E2%80%93Zemlin_formulation[21]).
+DFJ загалом ефективніше через сильнішу лінійну релаксацію. Однак воно потребує
+«ледачих» обмежень, які CP-SAT не підтримує. Без них продуктивність DFJ у CP-SAT
+порівнянна з MTZ. Попри це, обидва формулювання значно гірші за `add_circuit`.
+Це підкреслює перевагу `add_circuit` для турів і шляхів. На відміну від
+користувача, `add_circuit` може використовувати lazy constraints всередині,
+що дає суттєву перевагу.
 
 <a name="04-modelling-intervals"></a>
 
-### Scheduling and Packing with Intervals
+### Планування і пакування з інтервалами
 
-A special case of variables are the interval variables, that allow to model
-intervals, i.e., a span of some length with a start and an end. There are fixed
-length intervals, flexible length intervals, and optional intervals to model
-various use cases. These intervals become interesting in combination with the
-no-overlap constraints for 1D and 2D. We can use this for geometric packing
-problems, scheduling problems, and many other problems, where we have to prevent
-overlaps between intervals. These variables are special because they are
-actually not a variable, but a container that bounds separately defined start,
-length, and end variables.
+Особливий тип змінних — інтервальні змінні, що дозволяють моделювати інтервали,
+тобто відрізок певної довжини зі стартом і кінцем. Існують інтервали фіксованої
+довжини, змінної довжини та опційні інтервали для різних сценаріїв. Вони
+особливо корисні в поєднанні з обмеженнями відсутності перекриття у 1D та 2D.
+Це підходить для задач геометричного пакування, планування й інших задач, де
+потрібно уникати накладень інтервалів. Ці змінні особливі тим, що фактично це
+не змінна, а контейнер, який обмежує окремо задані змінні старту, довжини й
+кінця.
 
-There are four types of interval variables: `new_interval_var`,
-`new_fixed_size_interval_var`, `new_optional_interval_var`, and
-`new_optional_fixed_size_interval_var`. The `new_optional_interval_var` is the
-most expressive but also the most expensive, while `new_fixed_size_interval_var`
-is the least expressive and the easiest to optimize. All four types take a
-`start=` variable. Intervals with `fixed_size` in their name require a constant
-`size=` argument defining the interval length. Otherwise, the `size=` argument
-can be a variable in combination with an `end=` variable, which complicates the
-solution. Intervals with `optional` in their name include an `is_present=`
-argument, a boolean indicating if the interval is present. The no-overlap
-constraints, discussed later, apply only to intervals that are present, allowing
-for modeling problems with multiple resources or optional tasks. Instead of a
-pure integer variable, all arguments also accept an affine expression, e.g.,
+Є чотири типи інтервальних змінних: `new_interval_var`,
+`new_fixed_size_interval_var`, `new_optional_interval_var` та
+`new_optional_fixed_size_interval_var`. `new_optional_interval_var` є
+найвиразнішим, але й найдорожчим, тоді як `new_fixed_size_interval_var` —
+найпростішим і найефективнішим. Усі типи приймають `start=` змінну. Інтервали
+з `fixed_size` вимагають константний `size=`, що задає довжину. Інакше `size=`
+може бути змінною в парі з `end=`, що ускладнює розв’язання. Інтервали з
+`optional` мають аргумент `is_present=`, булеву змінну, що показує, чи інтервал
+присутній. Обмеження no-overlap застосовуються лише до присутніх інтервалів,
+що дозволяє моделювати задачі з кількома ресурсами чи опційними задачами. Замість
+цілочисельної змінної всі аргументи можуть приймати афінні вирази, наприклад
 `start=5*start_var+3`.
 
 ```python
@@ -2070,19 +2049,19 @@ length_var = model.new_int_var(10, 20, "length")
 end_var = model.new_int_var(0, 100, "end")
 is_present_var = model.new_bool_var("is_present")
 
-# creating an interval whose length can be influenced by a variable (more expensive)
+# інтервал із довжиною, яку можна змінювати (дорожчий)
 flexible_interval = model.new_interval_var(
     start=start_var, size=length_var, end=end_var, name="flexible_interval"
 )
 
-# creating an interval of fixed length
+# інтервал фіксованої довжини
 fixed_interval = model.new_fixed_size_interval_var(
     start=start_var,
-    size=10,  # needs to be a constant
+    size=10,  # має бути константою
     name="fixed_interval",
 )
 
-# creating an interval that can be present or not and whose length can be influenced by a variable (most expensive)
+# опційний інтервал зі змінною довжиною (найдорожчий)
 optional_interval = model.new_optional_interval_var(
     start=start_var,
     size=length_var,
@@ -2091,30 +2070,28 @@ optional_interval = model.new_optional_interval_var(
     name="optional_interval",
 )
 
-# creating an interval that can be present or not
+# опційний інтервал фіксованої довжини
 optional_fixed_interval = model.new_optional_fixed_size_interval_var(
     start=start_var,
-    size=10,  # needs to be a constant
+    size=10,  # має бути константою
     is_present=is_present_var,
     name="optional_fixed_interval",
 )
 ```
 
-These interval variables are not useful on their own, as we could have easily
-achieved the same with a simple linear constraint. However, CP-SAT provides
-special constraints for these interval variables, that would actually be much
-harder to model by hand and are also much more efficient.
+Ці інтервальні змінні самі по собі не корисні, адже те саме можна зробити
+простими лінійними обмеженнями. Проте CP-SAT має спеціальні обмеження для
+інтервалів, які важко моделювати вручну і які значно ефективніші.
 
-CP-SAT offers the following three constraints for intervals:
-`add_no_overlap`,`add_no_overlap_2d`, `add_cumulative`. `add_no_overlap` is used
-to prevent overlaps between intervals on a single dimension, e.g., time.
-`add_no_overlap_2d` is used to prevent overlaps between intervals on two
-dimensions, e.g., for packing rectangles. `add_cumulative` is used to model a
-resource constraint, where the sum of the demands of the overlapping intervals
-must not exceed the capacity of the resource.
+CP-SAT пропонує три обмеження для інтервалів:
+`add_no_overlap`, `add_no_overlap_2d`, `add_cumulative`. `add_no_overlap`
+забороняє перекриття в одному вимірі (наприклад, час). `add_no_overlap_2d`
+забороняє перекриття у двох вимірах (наприклад, пакування прямокутників).
+`add_cumulative` моделює ресурсне обмеження, де сума попитів перекривних
+інтервалів не перевищує місткість ресурсу.
 
-The `add_no_overlap` constraints takes a list of (optional) interval variables
-and ensures that no two present intervals overlap.
+`add_no_overlap` приймає список (опційних) інтервалів і гарантує, що жодні два
+присутні інтервали не перекриваються.
 
 ```python
 model.add_no_overlap(
@@ -2128,12 +2105,11 @@ model.add_no_overlap(
 )
 ```
 
-The `add_no_overlap_2d` constraints takes two lists of (optional) interval and
-ensures that for every `i` and `j` either `x_intervals[i]` and `x_intervals[j]`
-or `y_intervals[i]` and `y_intervals[j]` do not overlap. Thus, both lists must
-have the same length as `x_intervals[i]` and `y_intervals[i]` are considered
-belonging together. If either `x_intervals[i]` or `y_intervals[i]` are optional,
-the whole object is optional.
+`add_no_overlap_2d` приймає два списки (опційних) інтервалів і забезпечує, що для
+кожної пари `i` та `j` інтервали `x_intervals[i]` і `x_intervals[j]` або
+`y_intervals[i]` і `y_intervals[j]` не перекриваються. Отже, обидва списки мають
+мати однакову довжину, а `x_intervals[i]` і `y_intervals[i]` вважаються парою.
+Якщо `x_intervals[i]` або `y_intervals[i]` опційні, то весь об’єкт є опційним.
 
 ```python
 model.add_no_overlap_2d(
@@ -2154,15 +2130,13 @@ model.add_no_overlap_2d(
 )
 ```
 
-The `add_cumulative` constraint is used to model a resource constraint, where
-the sum of the demands of the overlapping intervals must not exceed the capacity
-of the resource. An example could be scheduling the usage of certain energy
-intensive machines, where the sum of the energy demands must not exceed the
-capacity of the power grid. It takes a list of intervals, a list of demands, and
-a capacity variable. The list of demands must have the same length as the list
-of intervals, as the demands of the intervals are matched by index. As capacity
-and demands can be variables (or affine expressions), quite complex resource
-constraints can be modeled.
+`add_cumulative` використовується для ресурсних обмежень, де сума попитів
+перекривних інтервалів не може перевищувати місткість ресурсу. Наприклад,
+планування енергоємних машин, коли сумарне споживання не повинно перевищувати
+потужність мережі. Обмеження приймає список інтервалів, список попитів і змінну
+місткості. Попити мають ту саму довжину, що й інтервали, бо попит зіставляється
+за індексом. Оскільки місткість і попити можуть бути змінними (або афінними
+виразами), можна моделювати досить складні ресурсні обмеження.
 
 ```python
 demand_vars = [model.new_int_var(1, 10, f"demand_{i}") for i in range(4)]
@@ -2181,34 +2155,31 @@ model.add_cumulative(
 
 > [!WARNING]
 >
-> Do not directly jump to intervals when you have a scheduling problem.
-> Intervals are great if you actually have a somewhat continuous time or space
-> that you need to schedule. If you have a more discrete problem, such as a
-> scheduling problem with a fixed number of slots, you can often model this
-> problem much more efficiently using simple Boolean variables and constraints.
-> Especially if you can use domain knowledge to find clusters of meetings that
-> cannot overlap, this can be much more efficient. If the scheduling is
-> dominated by the transitions, your scheduling problem may actually be a
-> routing problems, for which the `add_circuit` constraint is more suitable.
+> Не переходьте одразу до інтервалів у задачах планування. Інтервали корисні,
+> коли у вас є більш-менш неперервний час чи простір. Якщо задача більш
+> дискретна, наприклад має фіксовану кількість слотів, часто ефективніше
+> змоделювати її простими булевими змінними та обмеженнями. Особливо якщо можна
+> використати доменні знання, щоб знайти кластери зустрічей, які не можуть
+> перекриватися, це може бути значно ефективніше. Якщо планування домінують
+> переходи, ваша задача може бути радше маршрутизаційною, і тоді більше підходить
+> `add_circuit`.
 
-Let us examine a few examples of how to use these constraints effectively.
+Розгляньмо кілька прикладів використання цих обмежень.
 
-#### Scheduling for a Conference Room with Intervals
+#### Планування конференц-залу з інтервалами
 
-Assume we have a conference room and need to schedule several meetings. Each
-meeting has a fixed length and a range of possible start times. The time slots
-are in 5-minute intervals starting at 8:00 AM and ending at 6:00 PM. Thus, there
-are $10 \times 12 = 120$ time slots, and we can use a simple integer variable to
-model the start time. With fixed meeting lengths, we can use the
-`new_fixed_size_interval_var` to model the intervals. The `add_no_overlap`
-constraint ensures no two meetings overlap, and domains for the start time can
-model the range of possible start times.
+Припустимо, у нас є конференц-зал і треба запланувати кілька зустрічей. Кожна
+зустріч має фіксовану тривалість і діапазон можливих стартів. Слоти — по 5
+хвилин від 8:00 до 18:00. Отже, є $10 \times 12 = 120$ слотів, і ми можемо
+використовувати просту цілочисельну змінну для старту. Для фіксованих тривалостей
+зручно використовувати `new_fixed_size_interval_var`. `add_no_overlap` гарантує
+відсутність перекриття, а домени стартових змінних задають можливі часові вікна.
 
-To handle input data, let us define a `namedtuple` to store the meeting and two
-functions to convert between time and index.
+Для обробки даних введемо `namedtuple` для зустрічей і дві функції для
+перетворення часу в індекс і назад.
 
 ```python
-# Convert time to index and back
+# Конвертуємо час у індекс і назад
 def t_to_idx(hour, minute):
     return (hour - 8) * 12 + minute // 5
 
@@ -2219,51 +2190,51 @@ def idx_to_t(time_idx):
     return f"{hour}:{minute:02d}"
 
 
-# Define meeting information using namedtuples
+# Опис зустрічі
 MeetingInfo = namedtuple("MeetingInfo", ["start_times", "duration"])
 ```
 
-Then let us create a few meetings we want to schedule.
+Створімо кілька зустрічей.
 
 ```python
-# Meeting definitions
+# Опис зустрічей
 meetings = {
     "meeting_a": MeetingInfo(
         start_times=[
             [t_to_idx(8, 0), t_to_idx(12, 0)],
             [t_to_idx(16, 0), t_to_idx(17, 0)],
         ],
-        duration=120 // 5,  # 2 hours
+        duration=120 // 5,  # 2 години
     ),
     "meeting_b": MeetingInfo(
         start_times=[
             [t_to_idx(10, 0), t_to_idx(12, 0)],
         ],
-        duration=30 // 5,  # 30 minutes
+        duration=30 // 5,  # 30 хвилин
     ),
     "meeting_c": MeetingInfo(
         start_times=[
             [t_to_idx(16, 0), t_to_idx(17, 0)],
         ],
-        duration=15 // 5,  # 15 minutes
+        duration=15 // 5,  # 15 хвилин
     ),
     "meeting_d": MeetingInfo(
         start_times=[
             [t_to_idx(8, 0), t_to_idx(10, 0)],
             [t_to_idx(12, 0), t_to_idx(14, 0)],
         ],
-        duration=60 // 5,  # 1 hour
+        duration=60 // 5,  # 1 година
     ),
 }
 ```
 
-Now we can create the CP-SAT model and add the intervals and constraints.
+Тепер створимо модель CP-SAT і додамо інтервали та обмеження.
 
 ```python
-# Create a new CP-SAT model
+# Створюємо модель CP-SAT
 model = cp_model.CpModel()
 
-# Create start time variables for each meeting
+# Створюємо змінні старту для кожної зустрічі
 start_time_vars = {
     meeting_name: model.new_int_var_from_domain(
         cp_model.Domain.from_intervals(meeting_info.start_times),
@@ -2272,7 +2243,7 @@ start_time_vars = {
     for meeting_name, meeting_info in meetings.items()
 }
 
-# Create interval variables for each meeting
+# Створюємо інтервали для кожної зустрічі
 interval_vars = {
     meeting_name: model.new_fixed_size_interval_var(
         start=start_time_vars[meeting_name],
@@ -2282,18 +2253,18 @@ interval_vars = {
     for meeting_name, meeting_info in meetings.items()
 }
 
-# Ensure that now two meetings overlap
+# Гарантуємо, що зустрічі не перекриваються
 model.add_no_overlap(list(interval_vars.values()))
 ```
 
-And finally, we can solve the model and extract the solution.
+І нарешті, розв’яжемо модель і витягнемо розклад.
 
 ```python
-# Solve the model
+# Розв’язуємо модель
 solver = cp_model.CpSolver()
 status = solver.solve(model)
 
-# Extract and print the solution
+# Витягуємо та друкуємо розклад
 scheduled_times = {}
 if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
     for meeting_name in meetings:
@@ -2304,26 +2275,25 @@ else:
     print("No feasible solution found.")
 ```
 
-Doing some quick magic with matplotlib, we can visualize the schedule.
+Трохи магії з matplotlib — і можемо візуалізувати розклад.
 
 |                ![Schedule](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/scheduling_example.png)                |
 | :-----------------------------------------------------------------------------------------------------------------------------------: |
-| A possible non-overlapping schedule for the above example. The instance is quite simple, but you could try adding some more meetings. |
+| Можливий неперекривний розклад для цього прикладу. Інстанс простий, але можна спробувати додати ще зустрічей. |
 
-#### Scheduling for Multiple Resources with Optional Intervals
+#### Планування для кількох ресурсів з опційними інтервалами
 
-Now, imagine we have multiple resources, such as multiple conference rooms, and
-we need to schedule the meetings such that no two meetings overlap in the same
-room. This can be modeled with optional intervals, where the intervals exist
-only if the meeting is scheduled in the room. The `add_no_overlap` constraint
-ensures that no two meetings overlap in the same room.
+Тепер уявімо, що у нас кілька ресурсів, наприклад кілька конференц-залів, і ми
+потрібно запланувати зустрічі так, щоб у межах одного залу вони не перекривалися.
+Це можна змоделювати опційними інтервалами, які існують лише якщо зустріч
+призначено в конкретний зал. `add_no_overlap` гарантує відсутність перекриття
+зустрічей у кожному залі.
 
-Because we now have two rooms, we need to create a more challenging instance
-first. Otherwise, the solver may not need to use both rooms. We do this by
-simply adding more and longer meetings.
+Оскільки у нас два зали, зробимо задачу складнішою — інакше розв’язувач міг би
+обійтися одним залом. Для цього просто додамо більше і довших зустрічей.
 
 ```python
-# Meeting definitions
+# Опис зустрічей
 meetings = {
     "meeting_a": MeetingInfo(
         start_times=[
@@ -2357,16 +2327,15 @@ meetings = {
 }
 ```
 
-This time, we need to create an interval variable for each room and meeting, as
-well as a Boolean variable indicating if the meeting is scheduled in the room.
-We cannot use the same interval variable for multiple rooms, as otherwise the
-interval would be present in both rooms.
+Тепер треба створити інтервал для кожного залу та зустрічі, а також булеву
+змінну, яка показує, чи зустріч призначена в зал. Не можна використовувати
+один інтервал для двох залів, інакше він буде присутній одночасно в обох.
 
 ```python
-# Create the model
+# Створюємо модель
 model = cp_model.CpModel()
 
-# Create start time and room variables
+# Створюємо змінні старту та кімнат
 start_time_vars = {
     name: model.new_int_var_from_domain(
         cp_model.Domain.from_intervals(info.start_times), f"start_{name}"
@@ -2380,10 +2349,10 @@ room_vars = {
     for name in meetings
 }
 
-# Create interval variables and add no-overlap constraint
+# Створюємо інтервали та додаємо no-overlap
 interval_vars = {
     name: {
-        # We need a separate interval for each room
+        # Окремий інтервал для кожної кімнати
         room: model.new_optional_fixed_size_interval_var(
             start=start_time_vars[name],
             size=info.duration,
@@ -2396,11 +2365,11 @@ interval_vars = {
 }
 ```
 
-Now we can enforce that each meeting is assigned to exactly one room and that
-there is no overlap between meetings in the same room.
+Тепер гарантуємо, що кожна зустріч призначена рівно в один зал і що у кожному
+залі немає перекриття.
 
 ```python
-# Ensure each meeting is assigned to exactly one room
+# Кожну зустріч призначаємо рівно в один зал
 for name, room_dict in room_vars.items():
     model.add_exactly_one(room_dict.values())
 
@@ -2408,47 +2377,44 @@ for room in rooms:
     model.add_no_overlap([interval_vars[name][room] for name in meetings])
 ```
 
-Again, doing some quick magic with matplotlib, we get the following schedule.
+І знову візуалізуємо розклад.
 
 | ![Schedule multiple rooms](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/scheduling_multiple_resources.png) |
 | :-------------------------------------------------------------------------------------------------------------------------------: |
-|                          A possible non-overlapping schedule for the above example with multiple rooms.                           |
+| Можливий неперекривний розклад для наведеного прикладу з кількома залами. |
 
 > [!TIP]
 >
-> You could easily extend this model to schedule as many meetings as possible
-> using an objective function. You could also maximize the distance between two
-> meetings by using a variable size interval. This would be a good exercise to
-> try.
+> Цю модель легко розширити, щоб максимізувати кількість зустрічей через
+> цільову функцію. Також можна максимізувати відстань між двома зустрічами,
+> використавши інтервал зі змінною довжиною. Це хороша вправа.
 
-#### Packing rectangles without overlaps
+#### Пакування прямокутників без перекриття
 
-Let us examine how to check if a set of rectangles can be packed into a
-container without overlaps. This is a common problem in logistics, where boxes
-must be packed into a container, or in cutting stock problems, where pieces are
-cut from a larger material.
+Розгляньмо, як перевірити, чи можна упакувати набір прямокутників у контейнер
+без перекриття. Це поширена задача в логістиці або задачах розкрою.
 
-First, we define namedtuples for the rectangles and the container.
+Спочатку визначимо `namedtuple` для прямокутників і контейнера.
 
 ```python
 from collections import namedtuple
 
-# Define namedtuples for rectangles and container
+# Визначаємо namedtuple для прямокутників і контейнера
 Rectangle = namedtuple("Rectangle", ["width", "height"])
 Container = namedtuple("Container", ["width", "height"])
 
-# Example usage
+# Приклад
 rectangles = [Rectangle(width=2, height=3), Rectangle(width=4, height=5)]
 container = Container(width=10, height=10)
 ```
 
-Next, we create variables for the bottom-left corners of the rectangles. These
-variables are constrained to ensure the rectangles remain within the container.
+Далі створимо змінні для нижніх лівих кутів прямокутників і обмежимо їх, щоб
+прямокутники залишалися в межах контейнера.
 
 ```python
 model = cp_model.CpModel()
 
-# Create variables for the bottom-left corners of the rectangles
+# Змінні для нижніх лівих кутів
 x_vars = [
     model.new_int_var(0, container.width - box.width, name=f"x1_{i}")
     for i, box in enumerate(rectangles)
@@ -2459,13 +2425,11 @@ y_vars = [
 ]
 ```
 
-Next, we create interval variables for each rectangle. The start of these
-intervals corresponds to the bottom-left corner, and the size is the width or
-height of the rectangle. We use the `add_no_overlap_2d` constraint to ensure
-that no two rectangles overlap.
+Створимо інтервали для кожного прямокутника. Початок — нижній лівий кут, розмір
+— ширина або висота. Використаємо `add_no_overlap_2d`, щоб уникнути перекриттів.
 
 ```python
-# Create interval variables representing the width and height of the rectangles
+# Інтервали для ширини та висоти прямокутників
 x_interval_vars = [
     model.new_fixed_size_interval_var(
         start=x_vars[i], size=box.width, name=f"x_interval_{i}"
@@ -2479,25 +2443,25 @@ y_interval_vars = [
     for i, box in enumerate(rectangles)
 ]
 
-# Ensure no two rectangles overlap
+# Забороняємо перекриття
 model.add_no_overlap_2d(x_interval_vars, y_interval_vars)
 ```
 
-The optional intervals with flexible length allow us to model rotations and find
-the largest possible packing. The code may appear complex, but it remains
-straightforward considering the problem's complexity.
+Опційні інтервали зі змінною довжиною дозволяють моделювати повороти та
+знаходити найбільше можливе пакування. Код здається складним, але є досить
+прямолінійним з огляду на складність задачі.
 
-First, we define namedtuples for the rectangles and the container.
+Спочатку визначимо `namedtuple` для прямокутників і контейнера.
 
 ```python
 from collections import namedtuple
 from ortools.sat.python import cp_model
 
-# Define namedtuples for rectangles and container
+# Визначаємо namedtuple для прямокутників і контейнера
 Rectangle = namedtuple("Rectangle", ["width", "height", "value"])
 Container = namedtuple("Container", ["width", "height"])
 
-# Example usage
+# Приклад
 rectangles = [
     Rectangle(width=2, height=3, value=1),
     Rectangle(width=4, height=5, value=1),
@@ -2505,14 +2469,14 @@ rectangles = [
 container = Container(width=10, height=10)
 ```
 
-Next, we create variables for the coordinates of the rectangles. This includes
-variables for the bottom-left and top-right corners, as well as a boolean
-variable to indicate if a rectangle is rotated.
+Далі створимо змінні для координат прямокутників, включно з нижніми лівими та
+верхніми правими кутами, а також булевою змінною, що показує, чи прямокутник
+повернутий.
 
 ```python
 model = cp_model.CpModel()
 
-# Create variables for the bottom-left and top-right corners of the rectangles
+# Змінні для нижніх лівих і верхніх правих кутів
 bottom_left_x_vars = [
     model.new_int_var(0, container.width, name=f"x1_{i}")
     for i, box in enumerate(rectangles)
@@ -2530,38 +2494,36 @@ upper_right_y_vars = [
     for i, box in enumerate(rectangles)
 ]
 
-# Create variables to indicate if a rectangle is rotated
+# Змінні, що показують поворот
 rotated_vars = [model.new_bool_var(f"rotated_{i}") for i in range(len(rectangles))]
 ```
 
-We then create variables for the width and height of each rectangle, adjusting
-for rotation. Constraints ensure these variables are set correctly based on
-whether the rectangle is rotated.
+Тепер створимо змінні ширини та висоти з урахуванням повороту, і обмеження, що
+зв’язують їх із поворотом.
 
 ```python
-# Create variables for the width and height, adjusted for rotation
+# Змінні ширини та висоти з урахуванням повороту
 width_vars = []
 height_vars = []
 for i, box in enumerate(rectangles):
     domain = cp_model.Domain.from_values([box.width, box.height])
     width_vars.append(model.new_int_var_from_domain(domain, name=f"width_{i}"))
     height_vars.append(model.new_int_var_from_domain(domain, name=f"height_{i}"))
-    # There are two possible assignments for width and height
+    # Два можливі варіанти присвоєння ширини/висоти
     model.add_allowed_assignments(
         [width_vars[i], height_vars[i], rotated_vars[i]],
         [(box.width, box.height, 0), (box.height, box.width, 1)],
     )
 ```
 
-Next, we create a boolean variable indicating if a rectangle is packed or not,
-and then interval variables representing its occupied space in the container.
-These intervals are used to enforce the no-overlap constraint.
+Далі створимо булеву змінну, що означає, чи прямокутник упакований, і інтервали,
+що представляють його займаний простір. Їх використовуємо для `add_no_overlap_2d`.
 
 ```python
-# Create variables indicating if a rectangle is packed
+# Змінні, що вказують, чи прямокутник упакований
 packed_vars = [model.new_bool_var(f"packed_{i}") for i in range(len(rectangles))]
 
-# Create interval variables representing the width and height of the rectangles
+# Інтервали для ширини та висоти
 x_interval_vars = [
     model.new_optional_interval_var(
         start=bottom_left_x_vars[i],
@@ -2583,52 +2545,50 @@ y_interval_vars = [
     for i, box in enumerate(rectangles)
 ]
 
-# Ensure no two rectangles overlap
+# Забороняємо перекриття
 model.add_no_overlap_2d(x_interval_vars, y_interval_vars)
 ```
 
-Finally, we maximize the number of packed rectangles by defining an objective
-function.
+Нарешті, максимізуємо кількість упакованих прямокутників через цільову функцію.
 
 ```python
-# Maximize the number of packed rectangles
+# Максимізуємо кількість упакованих прямокутників
 model.maximize(sum(box.value * x for x, box in zip(packed_vars, rectangles)))
 ```
 
 |                       ![./images/dense_packing.png](https://github.com/d-krupke/cpsat-primer/blob/main/images/dense_packing.png)                       |
 | :----------------------------------------------------------------------------------------------------------------------------------------------------: |
-| This dense packing was found by CP-SAT in less than 0.3s, which is quite impressive and seems to be more efficient than a naive Gurobi implementation. |
+| Це щільне пакування CP-SAT знайшов менш ніж за 0.3 с, що вражає і виглядає ефективнішим за наївну реалізацію в Gurobi. |
 
-You can find the full code here:
+Повний код можна знайти тут:
 
-|                           Problem Variant                            |                                                                                Code                                                                                 |
+|                           Варіант задачі                           |                                                                                Код                                                                                 |
 | :------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-|     Deciding feasibility of packing rectangles without rotations     |    [./evaluations/packing/solver/packing_wo_rotations.py](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/packing/solver/packing_wo_rotations.py)    |
-| Finding the largest possible packing of rectangles without rotations |   [./evaluations/packing/solver/knapsack_wo_rotations.py](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/packing/solver/knapsack_wo_rotations.py)   |
-|      Deciding feasibility of packing rectangles with rotations       |  [./evaluations/packing/solver/packing_with_rotations.py](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/packing/solver/packing_with_rotations.py)  |
-|  Finding the largest possible packing of rectangles with rotations   | [./evaluations/packing/solver/knapsack_with_rotations.py](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/packing/solver/knapsack_with_rotations.py) |
+|     Перевірка здійсненності пакування без поворотів     |    [./evaluations/packing/solver/packing_wo_rotations.py](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/packing/solver/packing_wo_rotations.py)    |
+| Пошук найбільшого пакування без поворотів |   [./evaluations/packing/solver/knapsack_wo_rotations.py](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/packing/solver/knapsack_wo_rotations.py)   |
+|      Перевірка здійсненності пакування з поворотами       |  [./evaluations/packing/solver/packing_with_rotations.py](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/packing/solver/packing_with_rotations.py)  |
+|  Пошук найбільшого пакування з поворотами   | [./evaluations/packing/solver/knapsack_with_rotations.py](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/packing/solver/knapsack_with_rotations.py) |
 
-CP-SAT is good at finding a feasible packing, but incapable of proving
-infeasibility in most cases. When using the knapsack variant, it can still pack
-most of the rectangles even for the larger instances.
+CP-SAT добре знаходить здійсненне пакування, але майже не здатен довести
+недопустимість. У варіанті «рюкзака» він усе одно пакує більшість прямокутників
+навіть для великих інстансів.
 
 |                           ![./images/packing_plot_solved.png](https://github.com/d-krupke/cpsat-primer/blob/main/images/packing_plot_solved.png)                           |
 | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| The number of solved instances for the packing problem (90s time limit). Rotations make things slightly more difficult. None of the used instances were proved infeasible. |
+| Кількість розв’язаних інстансів для задачі пакування (ліміт 90 с). Повороти трохи ускладнюють задачу. Жоден з використаних інстансів не було доведено як недопустимий. |
 |                            ![./images/packing_percentage.png](https://github.com/d-krupke/cpsat-primer/blob/main/images/packing_percentage.png)                            |
-|                                           However, CP-SAT is able to pack nearly all rectangles even for the largest instances.                                            |
+|                                           Однак CP-SAT здатен упакувати майже всі прямокутники навіть для найбільших інстансів.                                            |
 
-#### Resolution and Parameters
+#### Роздільна здатність і параметри
 
-In earlier versions of CP-SAT, the performance of no-overlap constraints was
-greatly influenced by the resolution. This impact has evolved, yet it remains
-somewhat inconsistent. In a notebook example, I explored how resolution affects
-the execution time of the no-overlap constraint in versions 9.3 and 9.8 of
-CP-SAT. For version 9.3, there is a noticeable increase in execution time as the
-resolution grows. Conversely, in version 9.8, execution time actually reduces
-when the resolution is higher, a finding supported by repeated tests. This
-unexpected behavior suggests that the performance of CP-SAT regarding no-overlap
-constraints has not stabilized and may continue to vary in upcoming versions.
+У ранніх версіях CP-SAT продуктивність обмежень no-overlap сильно залежала від
+роздільної здатності. З часом це змінилося, але вплив залишається непослідовним.
+У прикладі в ноутбуці я дослідив, як роздільна здатність впливає на час
+виконання `add_no_overlap` у версіях 9.3 і 9.8. Для 9.3 час виконання
+помітно зростає зі збільшенням роздільної здатності. Натомість у 9.8 час
+виконання зменшується при більшій роздільній здатності, що підтвердили повторні
+тести. Це несподіване спостереження свідчить, що продуктивність CP-SAT щодо
+no-overlap ще не стабілізувалася і може змінюватися в майбутніх версіях.
 
 | Resolution | Runtime (CP-SAT 9.3) | Runtime (CP-SAT 9.8) |
 | ---------- | -------------------- | -------------------- |
@@ -2638,12 +2598,11 @@ constraints has not stabilized and may continue to vary in upcoming versions.
 | 1000x      | 75s                  | 40.3s                |
 | 10_000x    | >15min               | 0.4s                 |
 
-[This notebook](https://github.com/d-krupke/cpsat-primer/blob/main/examples/add_no_overlap_2d.ipynb)
-was used to create the table above.
+[Цей ноутбук](https://github.com/d-krupke/cpsat-primer/blob/main/examples/add_no_overlap_2d.ipynb)
+використано для створення таблиці.
 
-However, while playing around with less documented features, I noticed that the
-performance for the older version can be improved drastically with the following
-parameters:
+Втім, експериментуючи з менш документованими можливостями, я помітив, що
+продуктивність у старішій версії можна суттєво покращити такими параметрами:
 
 ```python
 solver.parameters.use_energetic_reasoning_in_no_overlap_2d = True
@@ -2651,47 +2610,43 @@ solver.parameters.use_timetabling_in_no_overlap_2d = True
 solver.parameters.use_pairwise_reasoning_in_no_overlap_2d = True
 ```
 
-With the latest version of CP-SAT, I did not notice a significant difference in
-performance when using these parameters.
+У найновішій версії CP-SAT суттєвого приросту я не помітив.
 
 <a name="04-modelling-automaton"></a>
 
-### Automaton Constraints
+### Обмеження автомата
 
-Automaton constraints model finite state machines, enabling the representation
-of feasible transitions between states. This is particularly useful in software
-verification, where it is essential to ensure that a program follows a specified
-sequence of states. Given the critical importance of verification in research,
-there is likely a dedicated audience that appreciates this constraint. However,
-others may prefer to proceed to the next section.
+Обмеження автомата моделюють скінченні автомати, тобто допустимі переходи між
+станами. Це особливо корисно у верифікації ПЗ, де важливо, щоб програма
+дотримувалася заданої послідовності станів. З огляду на важливість верифікації
+в дослідженнях, ці обмеження мають свою аудиторію, але інші можуть перейти до
+наступного розділу.
 
 |                  ![Automaton Example](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/automaton.png)                   |
 | :----------------------------------------------------------------------------------------------------------------------------------------: |
-| An example of a finite state machine with four states and seven transitions. State 0 is the initial state, and state 3 is the final state. |
+| Приклад скінченного автомата з чотирма станами і сімома переходами. Стан 0 — початковий, стан 3 — кінцевий. |
 
-The automaton operates as follows: We have a list of integer variables
-`transition_variables` that represent the transition values. Starting from the
-`starting_state`, the next state is determined by the transition triple
-`(state, transition_value, next_state)` matching the first transition variable.
-If no such triple is found, the model is infeasible. This process repeats for
-each subsequent transition variable. It is crucial that the final transition
-leads to a final state (possibly via a loop); otherwise, the model remains
-infeasible.
+Автомат працює так: маємо список цілочисельних змінних `transition_variables`,
+які представляють значення переходів. Починаючи зі `starting_state`, наступний
+стан визначається трійкою `(state, transition_value, next_state)`, яка відповідає
+першій змінній переходу. Якщо такої трійки немає — модель недопустима. Процес
+повторюється для кожної наступної змінної. Важливо, щоб останній перехід вів у
+кінцевий стан (можливо, через петлю); інакше модель недопустима.
 
-The state machine from the example can be modeled as follows:
+Автомат із прикладу можна змоделювати так:
 
 ```python
 model = cp_model.CpModel()
 
 transition_variables = [model.new_int_var(0, 2, f"transition_{i}") for i in range(4)]
 transition_triples = [
-    (0, 0, 1),  # If in state 0 and the transition value is 0, go to state 1
-    (1, 0, 1),  # If in state 1 and the transition value is 0, stay in state 1
-    (1, 1, 2),  # If in state 1 and the transition value is 1, go to state 2
-    (2, 0, 0),  # If in state 2 and the transition value is 0, go to state 0
-    (2, 1, 1),  # If in state 2 and the transition value is 1, go to state 1
-    (2, 2, 3),  # If in state 2 and the transition value is 2, go to state 3
-    (3, 0, 3),  # If in state 3 and the transition value is 0, stay in state 3
+    (0, 0, 1),  # Якщо стан 0 і значення 0, переходимо в стан 1
+    (1, 0, 1),  # Якщо стан 1 і значення 0, залишаємося в стані 1
+    (1, 1, 2),  # Якщо стан 1 і значення 1, переходимо в стан 2
+    (2, 0, 0),  # Якщо стан 2 і значення 0, переходимо в стан 0
+    (2, 1, 1),  # Якщо стан 2 і значення 1, переходимо в стан 1
+    (2, 2, 3),  # Якщо стан 2 і значення 2, переходимо в стан 3
+    (3, 0, 3),  # Якщо стан 3 і значення 0, залишаємося в стані 3
 ]
 
 model.add_automaton(
@@ -2702,42 +2657,37 @@ model.add_automaton(
 )
 ```
 
-The assignment `[0, 1, 2, 0]` would be a feasible solution for this model,
-whereas the assignment `[1, 0, 1, 2]` would be infeasible because state 0 has no
-transition for value 1. Similarly, the assignment `[0, 0, 1, 1]` would be
-infeasible as it does not end in a final state.
+Присвоєння `[0, 1, 2, 0]` є допустимим, тоді як `[1, 0, 1, 2]` недопустиме, бо зі
+стану 0 немає переходу для значення 1. Так само `[0, 0, 1, 1]` недопустиме, бо
+не закінчується у кінцевому стані.
 
 > [!NOTE]
 >
-> The automaton constraint is for example used in this
-> [paper](https://arxiv.org/pdf/2410.11981) to model Parallel Batch Scheduling
-> With Incompatible Job Families.
+> Обмеження автомата, наприклад, використано в цій
+> [статті](https://arxiv.org/pdf/2410.11981) для моделювання Parallel Batch
+> Scheduling With Incompatible Job Families.
 
 <a name="04-modelling-reservoir"></a>
 
-### Reservoir Constraints
+### Обмеження резервуара
 
-Sometimes, we need to keep the balance between inflows and outflows of a
-reservoir. The name giving example is a water reservoir, where we need to keep
-the water level between a minimum and a maximum level. The reservoir constraint
-takes a list of time variables, a list of integer level changes, and the minimum
-and maximum level of the reservoir. If the affine expression `times[i]` is
-assigned a value `t`, then the current level changes by `level_changes[i]`. Note
-that at the moment, variable level changes are not supported, which means level
-changes are constant at time `t`. The constraint ensures that the level stays
-between the minimum and maximum level at all time, i.e.
+Інколи потрібно підтримувати баланс між притоками та відтоками резервуара.
+Найочевидніший приклад — водосховище, де рівень води має бути між мінімумом і
+максимумом. Обмеження резервуара приймає список часових змінних, список зміни
+рівня та мінімальний/максимальний рівень. Якщо афінний вираз `times[i]`
+набуває значення `t`, тоді поточний рівень змінюється на `level_changes[i]`.
+Зауважте, що змінні зміни рівня наразі не підтримуються — зміни сталі у момент
+`t`. Обмеження гарантує, що рівень завжди між мінімумом і максимумом:
 `sum(level_changes[i] if times[i] <= t) in [min_level, max_level]`.
 
-There are many other examples apart from water reservoirs, where you need to
-balance demands and supplies, such as maintaining a certain stock level in a
-warehouse, or ensuring a certain staffing level in a clinic. The
-`add_reservoir_constraint` constraint in CP-SAT allows you to model such
-problems easily.
+Є багато прикладів, окрім водосховища, де потрібно балансувати попит і
+пропозицію: підтримка запасів на складі або забезпечення рівня персоналу в
+клініці. `add_reservoir_constraint` у CP-SAT дозволяє легко моделювати такі
+задачі.
 
-In the following example, `times[i]` represents the time at which the change
-`level_changes[i]` will be applied, thus both lists needs to be of the same
-length. The reservoir level starts at 0, and the minimum level has to be
-$\leq 0$ and the maximum level has to be $\geq 0$.
+У наведеному прикладі `times[i]` — час застосування зміни `level_changes[i]`,
+тому обидва списки мають однакову довжину. Рівень резервуара стартує з 0, і
+мінімальний рівень має бути $\leq 0$, а максимальний — $\geq 0$.
 
 ```python
 times = [model.new_int_var(0, 10, f"time_{i}") for i in range(10)]
@@ -2751,13 +2701,12 @@ model.add_reservoir_constraint(
 )
 ```
 
-Additionally, the `add_reservoir_constraint_with_active` constraint allows you
-to model a reservoir with _optional_ changes. Here, we additionally have a list
-of Boolean variables `actives`, where `actives[i]` indicates if the change
-`level_changes[i]` takes place, i.e. if
-`sum(level_changes[i] * actives[i] if times[i] <= t) in [min_level, max_level]`
-If a change is not active, it is as if it does not exist, and the reservoir
-level remains the same, independent of the time and change values.
+Додатково, `add_reservoir_constraint_with_active` дозволяє моделювати резервуар
+з _опційними_ змінами. Тут маємо список булевих змінних `actives`, де
+`actives[i]` означає, чи відбувається зміна `level_changes[i]`, тобто
+`sum(level_changes[i] * actives[i] if times[i] <= t) in [min_level, max_level]`.
+Якщо зміна не активна, це як якщо б її не існувало, і рівень залишається
+незмінним незалежно від часу й значення зміни.
 
 ```python
 times = [model.new_int_var(0, 10, f"time_{i}") for i in range(10)]
@@ -2773,27 +2722,25 @@ model.add_reservoir_constraint_with_active(
 )
 ```
 
-To illustrate the usage of the reservoir constraint, we look at an example for
-scheduling nurses in a clinic. For the full example, take a look at the
-[notebook](https://github.com/d-krupke/cpsat-primer/blob/main/examples/add_reservoir.ipynb).
+Щоб проілюструвати використання, розгляньмо приклад планування медсестер у
+клініці. Повний приклад — у
+[ноутбуці](https://github.com/d-krupke/cpsat-primer/blob/main/examples/add_reservoir.ipynb).
 
-The clinic needs to ensure that there are always enough nurses available without
-over-staffing too much. For a 12-hour work day, we model the demands for nurses
-as integers for each hour of the day.
+Клініці потрібно, щоб завжди було достатньо медсестер без надлишку. Для 12-годинного
+робочого дня змоделюємо попит як ціле число для кожної години.
 
 ```python
-# a positive number means we need more nurses, a negative number means we need fewer nurses.
+# додатне число означає, що потрібно більше медсестер, від’ємне — менше.
 demand_change_at_t = [3, 0, 0, 0, 2, 0, 0, 0, -1, 0, -1, 0, -3]
 demand_change_times = list(range(len(demand_change_at_t)))  # [0, 1, ..., 12]
 ```
 
-We have a list of nurses, each with an individual availability as well as a
-maximum shift length.
+Є список медсестер, кожна має власну доступність та максимальну тривалість зміни.
 
 ```python
 max_shift_length = 5
 
-# begin and end of the availability of each nurse
+# початок і кінець доступності кожної медсестри
 nurse_availabilities = 2 * [
     (0, 7),
     (0, 4),
@@ -2807,17 +2754,16 @@ nurse_availabilities = 2 * [
 ]
 ```
 
-We now initialize all relevant variables of the model. Each nurse is assigned a
-start and end time of their shift as well as a Boolean variable indicating if
-they are working at all.
+Ініціалізуємо змінні моделі: старт і кінець зміни кожної медсестри та булеву
+змінну, що показує, чи вона працює.
 
 ```python
-# boolean variable to indicate if a nurse is scheduled
+# булева змінна, що показує, чи медсестру заплановано
 nurse_scheduled = [
     model.new_bool_var(f"nurse_{i}_scheduled") for i in range(len(nurse_availabilities))
 ]
 
-# model the begin and end of each shift
+# моделюємо початок і кінець кожної зміни
 shifts_begin = [
     model.new_int_var(begin, end, f"begin_nurse_{i}")
     for i, (begin, end) in enumerate(nurse_availabilities)
@@ -2829,43 +2775,39 @@ shifts_end = [
 ]
 ```
 
-We now add some basic constraints to ensure that the shifts are valid.
+Додаємо базові обмеження, щоб зміни були валідними.
 
 ```python
 for begin, end in zip(shifts_begin, shifts_end):
-    model.add(end >= begin)  # make sure the end is after the begin
-    model.add(end - begin <= max_shift_length)  # make sure, the shifts are not too long
+    model.add(end >= begin)  # кінець після початку
+    model.add(end - begin <= max_shift_length)  # зміна не надто довга
 ```
 
-Our reservoir level is the number of nurses scheduled at any time minus the
-demand for nurses up until that point. We can now add the reservoir constraint
-to ensure that we have enough nurses available at all times while not having too
-many nurses scheduled (i.e., the reservoir level is between 0 and 2). We have
-three types of changes in the reservoir:
+Рівень резервуара — це кількість запланованих медсестер у будь-який момент
+мінус попит до цього моменту. Додаємо обмеження резервуара, щоб завжди вистачало
+персоналу, але не було надлишку (рівень між 0 і 2). Маємо три типи змін:
 
-1. The demand for nurses changes at the beginning of each hour. For these we use
-   fixed integer times and activate all changes. Note that the demand changes
-   are negated, as an increase in demand lowers the reservoir level.
-2. If a nurse begins a shift, we increase the reservoir level by 1. We use the
-   `shifts_begin` variables as times and change the reservoir level only if the
-   nurse is scheduled.
-3. Once a nurse ends a shift, we decrease the reservoir level by 1. We use the
-   `shifts_end` variables as times and change the reservoir level only if the
-   nurse is scheduled.
+1. Попит змінюється на початку кожної години. Для цього використовуємо фіксовані
+   моменти часу і активуємо всі зміни. Попит зі знаком мінус, бо зростання попиту
+   знижує рівень резервуара.
+2. Початок зміни медсестри підвищує рівень на 1. Час — `shifts_begin`, зміна
+   активна лише якщо медсестра запланована.
+3. Завершення зміни знижує рівень на 1. Час — `shifts_end`, зміна активна лише
+   якщо медсестра запланована.
 
 ```python
 times = demand_change_times
 demands = [
     -demand for demand in demand_change_at_t
-]  # an increase in demand lowers the reservoir
+]  # зростання попиту знижує резервуар
 actives = [1] * len(demand_change_times)
 
 times += list(shifts_begin)
-demands += [1] * len(shifts_begin)  # a nurse begins a shift
+demands += [1] * len(shifts_begin)  # медсестра починає зміну
 actives += list(nurse_scheduled)
 
 times += list(shifts_end)
-demands += [-1] * len(shifts_end)  # a nurse ends a shift
+demands += [-1] * len(shifts_end)  # медсестра завершує зміну
 actives += list(nurse_scheduled)
 
 model.add_reservoir_constraint_with_active(
@@ -2879,131 +2821,118 @@ model.add_reservoir_constraint_with_active(
 
 > [!NOTE]
 >
-> The reservoir constraints can express conditions that are difficult to model
-> "by hand". However, while I do not have much experience with them, I would not
-> expect them to be particularly easy to optimize. Let me know if you have
-> either good or bad experiences with them in practice and for which problem
-> scales they work well.
+> Обмеження резервуара дозволяють описувати умови, які важко змоделювати
+> «вручну». Проте, хоча в мене небагато практики з ними, я не очікував би, що їх
+> легко оптимізувати. Напишіть, якщо у вас є позитивний або негативний досвід
+> використання та для яких масштабів задач вони працюють добре.
 
 <a name="04-modelling-pwl"></a>
 
-### Non-Linear Constraints/Piecewise Linear Functions
+### Нелінійні обмеження / кусково-лінійні функції
 
-In practice, you often have cost functions that are not linear. For example,
-consider a production problem where you have three different items you produce.
-Each item has different components, you have to buy. The cost of the components
-will first decrease with the amount you buy, then at some point increase again
-as your supplier will be out of stock and you have to buy from a more expensive
-supplier. Additionally, you only have a certain amount of customers willing to
-pay a certain price for your product. If you want to sell more, you will have to
-lower the price, which will decrease your profit.
+На практиці часто трапляються функції витрат, які не є лінійними. Наприклад,
+виробнича задача, де ви виробляєте три різні вироби. Кожен виріб має різні
+компоненти, які потрібно купувати. Вартість компонентів спочатку зменшується зі
+збільшенням обсягу, а потім зростає, коли постачальник вичерпує запаси і
+доводиться купувати у дорожчого. Крім того, кількість клієнтів, готових платити
+певну ціну, обмежена. Якщо хочете продавати більше, доведеться знижувати ціну,
+що зменшить прибуток.
 
-Let us assume such a function looks like $y=f(x)$ in the following figure.
-Unfortunately, it is a rather complex function that we cannot directly express
-in CP-SAT. However, we can approximate it with a piecewise linear function as
-shown in red. Such piecewise linear approximations are very common, and some
-solvers can even do them automatically, e.g., Gurobi. The resolution can be
-arbitrarily high, but the more segments you have, the more complex the model
-becomes. Thus, it is usually only chosen to be as high as necessary.
+Припустімо, така функція має вигляд $y=f(x)$ на рисунку нижче. На жаль, це
+досить складна функція, яку не можна напряму виразити в CP-SAT. Проте можна
+наблизити її кусково-лінійною функцією (червона лінія). Такі апроксимації дуже
+поширені, а деякі розв’язувачі навіть роблять це автоматично, наприклад Gurobi.
+Роздільну здатність можна збільшувати довільно, але чим більше сегментів, тим
+складніша модель. Тому зазвичай її роблять лише настільки високою, наскільки
+потрібно.
 
 |                                                                                                                     ![./images/pwla.png](https://github.com/d-krupke/cpsat-primer/blob/main/images/pwla.png)                                                                                                                      |
 | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| We can model an arbitrary continuous function with a piecewise linear function. Here, we split the original function into a number of straight segments. The accuracy can be adapted to the requirements. The linear segments can then be expressed in CP-SAT. The fewer such segments, the easier it remains to model and solve. |
+| Ми можемо змоделювати довільну неперервну функцію кусково-лінійною. Тут ми розбиваємо оригінал на кілька лінійних сегментів. Точність можна адаптувати під вимоги. Лінійні сегменти далі можна виразити в CP-SAT. Чим менше сегментів, тим простіше моделювати і розв’язувати. |
 
-Using linear constraints (`model.add`) and reification (`.only_enforce_if`), we
-can model such a piecewise linear function in CP-SAT. For this we simply use
-boolean variables to decide for a segment, and then activate the corresponding
-linear constraint via reification. However, this has two problems in CP-SAT, as
-shown in the next figure.
+Використовуючи лінійні обмеження (`model.add`) та реїфікацію (`.only_enforce_if`),
+можна змоделювати кусково-лінійну функцію в CP-SAT. Для цього використовуємо
+булеві змінні, що вибирають сегмент, і активуємо відповідне лінійне обмеження
+через реїфікацію. Однак у CP-SAT виникають дві проблеми, показані на рисунку.
 
 |                                                                                                             ![./images/pwla_problems.png](https://github.com/d-krupke/cpsat-primer/blob/main/images/pwla_problems.png)                                                                                                              |
 | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Even if the function f(x) now consists of linear segments, we cannot simply implement $y=f(x)$ in CP-SAT. First, for many $x$-values, $f(x)$ will be not integral and, thus, infeasible. Second, the canonical representation of many linear segments will require non-integral coefficients, which are also not allowed in CP-SAT. |
+| Навіть якщо f(x) складається з лінійних сегментів, ми не можемо просто реалізувати $y=f(x)$ в CP-SAT. По-перше, для багатьох значень $x$ функція дає нецілі значення, отже модель стає недопустимою. По-друге, канонічне представлення лінійних сегментів часто потребує нецілих коефіцієнтів, що також заборонено в CP-SAT. |
 
-- **Problem A:** Even if we can express a segment as a linear function, the
-  result of the function may not be integral. In the example, $f(5)$ would be
-  $3.5$ and, thus, if we enforce $y=f(x)$, $x$ would be prohibited to be $5$,
-  which is not what we want. There are two options now. Either, we use a more
-  complex piecewise linear approximation that ensures that the function will
-  always yield integral solutions or we use inequalities instead. The first
-  solution has the issue that this can require too many segments, making it far
-  too expensive to optimize. The second solution will be a weaker constraint as
-  now we can only enforce $y<=f(x)$ or $y>=f(x)$, but not $y=f(x)$. If you try
-  to enforce it by $y<=f(x)$ and $y>=f(x)$, you will end with the same
-  infeasibility as before. However, often an inequality will be enough. If the
-  problem is to prevent $y$ from becoming too large, you use $y<=f(x)$, if the
-  problem is to prevent $y$ from becoming too small, you use $y>=f(x)$. If we
-  want to represent the costs by $f(x)$, we would use $y>=f(x)$ to minimize the
-  costs.
+- **Проблема A:** навіть якщо сегмент — лінійна функція, результат може бути
+  нецілим. У прикладі $f(5)=3{,}5$, і якщо ми задаємо $y=f(x)$, то значення
+  $x=5$ стає забороненим, що не є бажаним. Є два варіанти: або використовувати
+  складнішу апроксимацію, яка гарантує цілі значення, або застосувати
+  нерівності. Перший варіант може вимагати занадто багато сегментів і бути
+  надто дорогим. Другий дає слабше обмеження, адже ми можемо задати лише
+  $y<=f(x)$ або $y>=f(x)$, але не $y=f(x)$. Якщо спробувати обидві нерівності,
+  отримаємо ту саму недопустимість. Але часто достатньо однієї нерівності.
+  Якщо потрібно обмежити $y$ зверху — використовуємо $y<=f(x)$, якщо знизу —
+  $y>=f(x)$. Якщо $f(x)$ представляє витрати, то використовуємо $y>=f(x)$ і
+  мінімізуємо $y$.
 
-- **Problem B:** The canonical representation of a linear function is $y=ax+b$.
-  However, this will often require non-integral coefficients. Luckily, we can
-  automatically scale them up to integral values by adding a scaling factor. The
-  inequality $y=0.5x+0.5$ in the example can also be represented as $2y=x+1$. I
-  will spare you the math, but it just requires a simple trick with the least
-  common multiple. Of course, the required scaling factor can become large, and
-  at some point lead to overflows.
+- **Проблема B:** канонічна форма лінійної функції — $y=ax+b$. Часто потрібні
+  нецілі коефіцієнти. Їх можна масштабувати до цілих, додаючи масштабний
+  множник. Наприклад, нерівність $y=0.5x+0.5$ можна переписати як $2y=x+1$.
+  Це робиться через НСК, але масштаб може стати великим і привести до
+  переповнень.
 
-An implementation could now look as follows:
+Можлива реалізація:
 
 ```python
-# We want to enforce y=f(x)
+# Ми хочемо задати y=f(x)
 x = model.new_int_var(0, 7, "x")
 y = model.new_int_var(0, 5, "y")
 
-# use boolean variables to decide for a segment
+# Булеві змінні для вибору сегмента
 segment_active = [model.new_bool_var("segment_1"), model.new_bool_var("segment_2")]
-model.add_at_most_one(segment_active)  # enforce one segment to be active
+model.add_at_most_one(segment_active)  # активний лише один сегмент
 
-# Segment 1
-# if 0<=x<=3, then y >= 0.5*x + 0.5
+# Сегмент 1
+# якщо 0<=x<=3, тоді y >= 0.5*x + 0.5
 model.add(2 * y >= x + 1).only_enforce_if(segment_active[0])
 model.add(x >= 0).only_enforce_if(segment_active[0])
 model.add(x <= 3).only_enforce_if(segment_active[0])
 
-# Segment 2
+# Сегмент 2
 model.add(_SLIGHTLY_MORE_COMPLEX_INEQUALITY_).only_enforce_if(segment_active[1])
 model.add(x >= 3).only_enforce_if(segment_active[1])
 model.add(x <= 7).only_enforce_if(segment_active[1])
 
 model.minimize(y)
-# if we were to maximize y, we would have used <= instead of >=
+# якщо б ми максимізували y, використовували б <= замість >=
 ```
 
-This can be quite tedious, but luckily, I wrote a small helper class that will
-do this automatically for you. You can find it in
+Це може бути доволі громіздко, але я написав невеликий helper-клас, який робить
+це автоматично. Він знаходиться в
 [./utils/piecewise_functions](https://github.com/d-krupke/cpsat-primer/blob/main/utils/piecewise_functions/).
-Simply copy it into your code.
+Просто скопіюйте у свій код.
 
-This code does some further optimizations:
+Цей код робить додаткові оптимізації:
 
-1. Considering every segment as a separate case can be quite expensive and
-   inefficient. Thus, it can make a serious difference if you can combine
-   multiple segments into a single case. This can be achieved by detecting
-   convex ranges, as the constraints of convex areas do not interfere with each
-   other.
-2. Adding the convex hull of the segments as a redundant constraint that does
-   not depend on any `only_enforce_if` can in some cases help the solver to find
-   better bounds. `only_enforce_if`-constraints are often not very good for the
-   linear relaxation, and having the convex hull as independent constraint can
-   directly limit the solution space, without having to do any branching on the
-   cases.
+1. Розгляд кожного сегмента як окремого випадку може бути дорогим і
+   неефективним. Тому суттєво допомагає, якщо ви можете об’єднати кілька
+   сегментів в один випадок. Це можна зробити, виявляючи опуклі ділянки, адже
+   обмеження опуклих областей не заважають одне одному.
+2. Додавання опуклої оболонки сегментів як надлишкового обмеження, що не
+   залежить від `only_enforce_if`, іноді допомагає розв’язувачу краще обмежити
+   область. Обмеження з `only_enforce_if` зазвичай погано працюють для лінійної
+   релаксації, а незалежна опукла оболонка одразу обмежує простір розв’язків без
+   гілкування по випадках.
 
-Let us use this code to solve an instance of the problem above.
+Застосуймо цей код до задачі вище.
 
-We have two products that each require three components. The first product
-requires 3 of component 1, 5 of component 2, and 2 of component 3. The second
-product requires 2 of component 1, 1 of component 2, and 3 of component 3. We
-can buy up to 1500 of each component for the price given in the figure below. We
-can produce up to 300 of each product and sell them for the price given in the
-figure below.
+У нас є два продукти, кожен вимагає три компоненти. Перший продукт потребує 3
+компоненти 1, 5 компоненти 2 і 2 компоненти 3. Другий продукт потребує 2
+компоненти 1, 1 компоненту 2 і 3 компоненти 3. Ми можемо купити до 1500 кожного
+компонента за цінами з рисунка нижче. Виробляти можна до 300 одиниць кожного
+продукту і продавати їх за цінами з рисунка.
 
 | ![./images/production_example_cost_components.png](https://github.com/d-krupke/cpsat-primer/blob/main/images/production_example_cost_components.png) | ![./images/production_example_selling_price.png](https://github.com/d-krupke/cpsat-primer/blob/main/images/production_example_selling_price.png) |
 | :--------------------------------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------------------------: |
-|                                                Costs for buying components necessary for production.                                                 |                                                         Selling price for the products.                                                          |
+| Витрати на закупівлю компонентів для виробництва. | Ціни продажу продукції. |
 
-We want to maximize the profit, i.e., the selling price minus the costs for
-buying the components. We can model this as follows:
+Хочемо максимізувати прибуток, тобто дохід мінус витрати на компоненти. Модель:
 
 ```python
 requirements_1 = (3, 5, 2)
@@ -3023,14 +2952,14 @@ model.add(produce_1 * requirements_1[0] + produce_2 * requirements_2[0] <= buy_1
 model.add(produce_1 * requirements_1[1] + produce_2 * requirements_2[1] <= buy_2)
 model.add(produce_1 * requirements_1[2] + produce_2 * requirements_2[2] <= buy_3)
 
-# You can find this code it ./utils!
+# Код із ./utils!
 from piecewise_functions import PiecewiseLinearFunction, PiecewiseLinearConstraint
 
-# Define the functions for the costs
+# Функції витрат
 costs_1 = [(0, 0), (1000, 400), (1500, 1300)]
 costs_2 = [(0, 0), (300, 300), (700, 500), (1200, 600), (1500, 1100)]
 costs_3 = [(0, 0), (200, 400), (500, 700), (1000, 900), (1500, 1500)]
-# PiecewiseLinearFunction is a pydantic model and can be serialized easily!
+# PiecewiseLinearFunction — pydantic модель і легко серіалізується
 f_costs_1 = PiecewiseLinearFunction(
     xs=[x for x, y in costs_1], ys=[y for x, y in costs_1]
 )
@@ -3041,22 +2970,22 @@ f_costs_3 = PiecewiseLinearFunction(
     xs=[x for x, y in costs_3], ys=[y for x, y in costs_3]
 )
 
-# Define the functions for the gain
+# Функції доходу
 gain_1 = [(0, 0), (100, 800), (200, 1600), (300, 2_000)]
 gain_2 = [(0, 0), (80, 1_000), (150, 1_300), (200, 1_400), (300, 1_500)]
 f_gain_1 = PiecewiseLinearFunction(xs=[x for x, y in gain_1], ys=[y for x, y in gain_1])
 f_gain_2 = PiecewiseLinearFunction(xs=[x for x, y in gain_2], ys=[y for x, y in gain_2])
 
-# Create y>=f(x) constraints for the costs
+# Обмеження y>=f(x) для витрат
 x_costs_1 = PiecewiseLinearConstraint(model, buy_1, f_costs_1, upper_bound=False)
 x_costs_2 = PiecewiseLinearConstraint(model, buy_2, f_costs_2, upper_bound=False)
 x_costs_3 = PiecewiseLinearConstraint(model, buy_3, f_costs_3, upper_bound=False)
 
-# Create y<=f(x) constraints for the gain
+# Обмеження y<=f(x) для доходу
 x_gain_1 = PiecewiseLinearConstraint(model, produce_1, f_gain_1, upper_bound=True)
 x_gain_2 = PiecewiseLinearConstraint(model, produce_2, f_gain_2, upper_bound=True)
 
-# Maximize the gain minus the costs
+# Максимізуємо дохід мінус витрати
 model.Maximize(x_gain_1.y + x_gain_2.y - (x_costs_1.y + x_costs_2.y + x_costs_3.y))
 
 solver = cp_model.CpSolver()
@@ -3070,7 +2999,7 @@ print(f"Produce {solver.value(produce_2)} of product 2")
 print(f"Overall gain: {solver.objective_value}")
 ```
 
-This will give you the following output:
+Отримаємо такий результат:
 
 ```
 Buy 930 of component 1
@@ -3081,10 +3010,9 @@ Produce 150 of product 2
 Overall gain: 1120.0
 ```
 
-Unfortunately, these problems quickly get very complicated to model and solve.
-This is just a proof that, theoretically, you can model such problems in CP-SAT.
-Practically, you can lose a lot of time and sanity with this if you are not an
-expert.
+На жаль, такі задачі швидко стають дуже складними для моделювання і розв’язання.
+Це лише доказ того, що теоретично такі задачі можна моделювати в CP-SAT. На
+практиці без експертності можна втратити багато часу й нервів.
 
 <!-- This file was generated by the `build.py` script. Do not edit it manually. -->
 <!-- ./chapters/05_parameters.md -->
@@ -3092,48 +3020,46 @@ expert.
 
 <a name="05-parameters"></a>
 
-## Parameters
+## Параметри
 
 
-The CP-SAT solver offers numerous parameters to control its behavior. These
-parameters are implemented via
-[Protocol Buffers](https://developers.google.com/protocol-buffers) and can be
-manipulated using the `parameters` member. To explore all available options,
-refer to the well-documented `proto` file in the
-[official repository](https://github.com/google/or-tools/blob/stable/ortools/sat/sat_parameters.proto).
-Below, I will highlight the most important parameters so you can get the most
-out of CP-SAT.
+CP-SAT має багато параметрів для керування своєю поведінкою. Ці параметри
+реалізовані через
+[Protocol Buffers](https://developers.google.com/protocol-buffers) і змінюються
+через властивість `parameters`. Щоб переглянути всі доступні опції, дивіться
+добре задокументований `proto`-файл в
+[офіційному репозиторії](https://github.com/google/or-tools/blob/stable/ortools/sat/sat_parameters.proto).
+Нижче я виділю найважливіші параметри, щоб ви могли отримати максимум від CP-SAT.
 
-> :warning: Only a few parameters, such as `max_time_in_seconds`, are suitable
-> for beginners. Most other parameters, like decision strategies, are best left
-> at their default settings, as they are well-chosen and tampering with them
-> could disrupt optimizations. For better performance, focus on improving your
-> model.
+> :warning: Лише кілька параметрів, таких як `max_time_in_seconds`, підходять
+> початківцям. Більшість інших параметрів, як-от стратегії рішень, краще
+> залишати за замовчуванням, бо вони добре підібрані, і втручання може лише
+> нашкодити оптимізаціям. Для кращої продуктивності зосередьтеся на покращенні
+> моделі.
 
-### Logging
+### Логування
 
-The `log_search_progress` parameter is crucial at the beginning. It enables
-logging of the search progress, providing insights into how CP-SAT solves your
-problem. While you may deactivate it later for production, it is beneficial
-during development to understand the process and respond to any issues.
+Параметр `log_search_progress` особливо важливий на початку. Він вмикає лог
+пошуку, що дає уявлення про те, як CP-SAT розв’язує вашу задачу. У продакшені
+ви можете його вимкнути, але під час розробки він корисний для розуміння
+процесу й реагування на проблеми.
 
 ```python
 solver = cp_model.CpSolver()
 solver.parameters.log_search_progress = True
 
-# Custom log function, for example, using the Python logging module instead of stdout
-# Useful in a Jupyter notebook, where logging to stdout might not be visible
+# Власна функція логування, наприклад через Python logging замість stdout
+# Корисно в Jupyter, де stdout може бути не видно
 solver.log_callback = print  # (str)->None
-# If using a custom log function, you can disable logging to stdout
+# Якщо використовуєте власну функцію логування, можна вимкнути stdout
 solver.parameters.log_to_stdout = False
 ```
 
-The log offers valuable information for understanding CP-SAT and your
-optimization problem. It details aspects such as how many variables were
-directly removed and which techniques most effectively contributed to improving
-lower and upper bounds.
+Лог містить цінну інформацію для розуміння CP-SAT і вашої задачі. Він показує,
+скільки змінних було видалено, які техніки найефективніше покращували нижні та
+верхні межі, тощо.
 
-An example log might look like this:
+Приклад логу:
 
 ```
 Starting CP-SAT solver v9.10.4067
@@ -3188,55 +3114,49 @@ Starting presolve at 0.00s
 ...
 ```
 
-Given the complexity of the log, I developed a tool to visualize and comment on
-it. You can copy and paste your log into the tool, which will automatically
-highlight the most important details. Be sure to check out the examples.
+З огляду на складність логу, я розробив інструмент для візуалізації та
+коментування. Ви можете просто вставити лог у цей інструмент — він автоматично
+підсвітить найважливіші моменти. Обов’язково перегляньте приклади.
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://cpsat-log-analyzer.streamlit.app/)
 [![d-krupke - CP-SAT Log Analyzer](https://img.shields.io/badge/d--krupke-CP--SAT%20Log%20Analyzer-blue?style=for-the-badge&logo=github)](https://github.com/d-krupke/CP-SAT-Log-Analyzer)
 
 |                                                                                                                       ![Search Progress](https://github.com/d-krupke/cpsat-primer/blob/main/images/search_progress.png)                                                                                                                       |
 | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| A plot of the search progress over time as visualized by the log analyzer using information from the log (a different log than displayed above). This plot helps you understand which part of your problem is more challenging: finding a good solution or proving its quality. Based on this, you can implement appropriate countermeasures. |
+| Графік прогресу пошуку з часом, побудований аналізатором логів (інший лог, ніж вище). Він допомагає зрозуміти, що складніше: знайти гарний розв’язок чи довести його якість. На цій основі можна застосувати відповідні контрзаходи. |
 
-We will revisit the logs in the next chapter.
+Ми повернемося до логів у наступному розділі.
 
 > [!TIP]
 >
-> From my experience as a lecturer, I often encounter students who believe
-> CP-SAT is stuck, only to discover that their model building includes an
-> unnecessarily complex $O(n^5)$ nested loop, which would take days to run. It
-> is natural to assume that the issue lies with CP-SAT because it handles the
-> hard part of solving the problem. However, even the seemingly simple part of
-> model building can consume a lot of time if implemented incorrectly. By
-> enabling logging, students could immediately see that the issue lies in their
-> own code rather than with CP-SAT. This simple step can save a lot of time and
-> frustration.
+> З мого викладацького досвіду, я часто бачив, як студенти вважали, що CP-SAT
+> «завис», і лише потім виявлялося, що в їхньому коді побудови моделі є
+> зайвий вкладений цикл $O(n^5)$, який виконується днями. Логічно підозрювати
+> CP-SAT, бо він розв’язує складну частину задачі. Але навіть «проста» частина
+> побудови моделі може забрати багато часу, якщо реалізована невірно. Увімкнувши
+> логування, студенти одразу бачили, що проблема у їхньому коді, а не в CP-SAT.
+> Це може зберегти багато часу й нервів.
 
-### Time Limit and Status
+### Ліміт часу і статус
 
-When working with large or complex models, the CP-SAT solver may not always
-reach an optimal solution within a reasonable time frame and could potentially
-run indefinitely. Therefore, setting a time limit is advisable, particularly in
-a production environment, to prevent the solver from running endlessly. Even
-within a time limit, CP-SAT often finds a reasonably good solution, although it
-may not be proven optimal.
+Працюючи з великими або складними моделями, CP-SAT може не знайти оптимальний
+розв’язок за розумний час і потенційно працювати безкінечно. Тому важливо
+встановлювати ліміт часу, особливо в продакшені. Навіть у межах ліміту CP-SAT
+часто знаходить досить хороший розв’язок, хоча він може бути не доведено
+оптимальним.
 
-Determining an appropriate time limit depends on various factors and usually
-requires some experimentation. I typically start with a time limit between 60
-and 300 seconds, as this provides a balance between not having to wait too long
-during model testing and giving the solver enough time to find a good solution.
+Вибір адекватного ліміту часу залежить від багатьох факторів і потребує
+експериментів. Я зазвичай починаю з 60–300 секунд, щоб не чекати надто довго
+під час тестування і водночас дати розв’язувачу шанс знайти хороший розв’язок.
 
-To set a time limit (in seconds) before running the solver, use the following
-command:
+Щоб встановити ліміт часу (у секундах), використайте:
 
 ```python
-solver.parameters.max_time_in_seconds = 60  # 60s time limit
+solver.parameters.max_time_in_seconds = 60  # 60с ліміт
 ```
 
-After running the solver, it is important to check the status to determine
-whether an optimal solution, a feasible solution, or no solution at all has been
-found:
+Після запуску важливо перевіряти статус, щоб зрозуміти, чи знайдено оптимальний
+або допустимий розв’язок, чи розв’язку немає:
 
 ```python
 status = solver.solve(model)
@@ -3246,89 +3166,81 @@ else:
     print("Help?! No solution available! :( ")
 ```
 
-The possible status codes are:
+Можливі статуси:
 
-- `OPTIMAL` (4): An optimal solution has been found.
-- `FEASIBLE` (2): A feasible solution has been found, and a bound may be
-  available to assess its quality via `solver.best_objective_bound`.
-- `INFEASIBLE` (3): No solution can satisfy all constraints.
-- `MODEL_INVALID` (1): The CP-SAT model is incorrectly specified.
-- `UNKNOWN` (0): No solution was found, and no infeasibility proof is available.
-  A bound may still be available.
+- `OPTIMAL` (4): знайдено оптимальний розв’язок.
+- `FEASIBLE` (2): знайдено допустимий розв’язок; можна оцінити його якість через
+  `solver.best_objective_bound`.
+- `INFEASIBLE` (3): жоден розв’язок не задовольняє всі обмеження.
+- `MODEL_INVALID` (1): модель CP-SAT задана некоректно.
+- `UNKNOWN` (0): розв’язок не знайдено і доказ недопустимості відсутній.
+  Проте межа може бути доступна.
 
-To get the name from the status code, use `solver.status_name(status)`.
+Щоб отримати назву статусу за кодом, використовуйте `solver.status_name(status)`.
 
-In addition to limiting runtime, you can specify acceptable solution quality
-using `absolute_gap_limit` and `relative_gap_limit`. The absolute limit stops
-the solver when the solution is within a specified value of the bound. The
-relative limit stops the solver when the objective value (O) is within a
-specified ratio of the bound (B). To stop when the solution is (provably) within
-5% of the optimum, use:
+Окрім ліміту часу, можна задавати допустиму якість розв’язку через
+`absolute_gap_limit` та `relative_gap_limit`. Абсолютний ліміт зупиняє
+розв’язувач, коли розв’язок у межах заданого значення від межі. Відносний
+ліміт зупиняє, коли значення цілі (O) знаходиться у певному відсотку від межі
+(B). Щоб зупинитися, коли розв’язок (доведено) в межах 5% від оптимуму:
 
 ```python
 solver.parameters.relative_gap_limit = 0.05
 ```
 
-For cases where progress stalls or for other reasons, solution callbacks can be
-used to halt the solver. With these, you can decide on every new solution if the
-solution is good enough or if the solver should continue searching for a better
-one. Unlike Gurobi, CP-SAT does not support adding lazy constraints from these
-callbacks (or at all), which is a significant limitation for problems requiring
-dynamic model adjustments.
+Якщо прогрес зупинився або з інших причин, можна використати callback для
+розв’язків, щоб зупиняти пошук за певних умов. З їхньою допомогою ви можете
+перевіряти кожен новий розв’язок і вирішувати, чи достатньо він хороший. На
+відміну від Gurobi, CP-SAT не підтримує додавання lazy constraints із callback
+(і взагалі їх не підтримує), що є важливим обмеженням для задач з динамічними
+корекціями моделі.
 
-To add a solution callback, inherit from the base class
-`CpSolverSolutionCallback`. Documentation for this base class and its operations
-is available
-[here](https://developers.google.com/optimization/reference/python/sat/python/cp_model#cp_model.CpSolverSolutionCallback).
+Щоб додати callback, потрібно успадкувати `CpSolverSolutionCallback`. Документація
+доступна
+[тут](https://developers.google.com/optimization/reference/python/sat/python/cp_model#cp_model.CpSolverSolutionCallback).
 
 ```python
 class MySolutionCallback(cp_model.CpSolverSolutionCallback):
     def __init__(self, data):
         cp_model.CpSolverSolutionCallback.__init__(self)
-        self.data = data  # Store data in the callback.
+        self.data = data  # Зберігаємо дані
 
     def on_solution_callback(self):
-        obj = self.objective_value  # Best solution value
-        bound = self.best_objective_bound  # Best bound
+        obj = self.objective_value  # Найкраще значення
+        bound = self.best_objective_bound  # Найкраща межа
         print(f"The current value of x is {self.Value(x)}")
         if abs(obj - bound) < 10:
-            self.StopSearch()  # Stop search for a better solution
+            self.StopSearch()  # Зупиняємо пошук
         # ...
 
 
 solver.solve(model, MySolutionCallback(None))
 ```
 
-An
-[official example using callbacks](https://github.com/google/or-tools/blob/stable/ortools/sat/samples/stop_after_n_solutions_sample_sat.py)
-is available.
+Офіційний приклад із callback:
+[тут](https://github.com/google/or-tools/blob/stable/ortools/sat/samples/stop_after_n_solutions_sample_sat.py).
 
 > [!WARNING]
 >
-> Bounds in optimization can be a double-edged sword. On one hand, they indicate
-> how close you are to the optimal solution within your chosen model, and they
-> allow you to terminate the optimization process early if the solution is
-> sufficiently close. On the other hand, they can be misleading for two key
-> reasons. First, the bounds pertain to the optimization model and may give a
-> false sense of quality, as neither the model nor the data are typically
-> perfect. Second, in some cases, obtaining good bounds within a reasonable time
-> may be impossible, yet the solution might still be good—you simply may not
-> realize it. This can lead to wasted resources as you pursue tighter models or
-> better approaches with little to no real benefit. While bounds are extremely
-> useful, it is important to understand their origin and limitations, and not
-> regard them as the final determinant of solution quality.
+> Межі — це палка з двома кінцями. З одного боку, вони показують, наскільки ви
+> близько до оптимуму в межах обраної моделі, і дозволяють рано завершити
+> оптимізацію. З іншого — вони можуть вводити в оману з двох причин. По-перше,
+> межі стосуються моделі і можуть створити хибне відчуття якості, адже ні модель,
+> ні дані зазвичай не ідеальні. По-друге, іноді отримати хороші межі за
+> розумний час неможливо, хоча сам розв’язок може бути хорошим — ви просто цього
+> не знаєте. Це може призвести до марних витрат ресурсів у гонитві за кращими
+> межами чи підходами. Межі корисні, але важливо розуміти їхнє походження і
+> обмеження.
 
-Besides querying the objective value of the best solution and the best known
-bound, you can also access internal metrics such as `self.num_booleans`,
-`self.num_branches`, and `self.num_conflicts`. These metrics will be discussed
-later.
+Окрім значення цілі та межі, можна отримати й внутрішні метрики, як-от
+`self.num_booleans`, `self.num_branches`, `self.num_conflicts`. Ці метрики
+обговоримо пізніше.
 
-As of version 9.10, CP-SAT also supports bound callbacks, which are triggered
-when the proven bound improves. Unlike solution callbacks, which activate upon
-finding new solutions, bound callbacks are useful for stopping the search when
-the bound is sufficiently good. The syntax for bound callbacks differs from that
-of solution callbacks, as they are implemented as free functions that directly
-access the solver object.
+Починаючи з версії 9.10, CP-SAT підтримує callbacks для меж (bound callbacks),
+які викликаються, коли доведена межа покращується. На відміну від
+solution callbacks, які спрацьовують при знаходженні нового розв’язку, bound
+callbacks корисні для зупинки пошуку, коли межа достатньо хороша. Синтаксис
+відрізняється: це вільні функції, які напряму працюють із solver.
 
 ```python
 solver = cp_model.CpSolver()
@@ -3343,9 +3255,8 @@ def bound_callback(bound):
 solver.best_bound_callback = bound_callback
 ```
 
-Instead of using a simple function, you can also use a callable object to store
-a reference to the solver object. This approach allows you to define the
-callback outside the local scope, providing greater flexibility.
+Замість простої функції можна використати callable-об’єкт, щоб зберігати
+посилання на solver. Це дозволяє винести callback за межі локальної області.
 
 ```python
 class BoundCallback:
@@ -3359,62 +3270,56 @@ class BoundCallback:
             self.solver.stop_search()
 ```
 
-This method is more flexible than the solution callback and can be considered
-more Pythonic.
+Цей метод гнучкіший і виглядає більш «пайтонічно».
 
-Additionally, whenever there is a new solution or bound, a log message is
-generated. You can hook into the log output to decide when to stop the search
-using CP-SAT's log callback.
+Крім того, при кожному новому розв’язку або межі генерується лог-повідомлення.
+Ви можете під’єднатися до логів і вирішувати, коли зупиняти пошук, через
+log callback.
 
 ```python
-solver.parameters.log_search_progress = True  # Enable logging
+solver.parameters.log_search_progress = True  # Увімкнути логування
 solver.log_callback = lambda msg: print("LOG:", msg)  # (str) -> None
 ```
 
 > [!WARNING]
 >
-> Be careful when using callbacks, as they can slow down the solver
-> significantly. Callbacks are often called frequently, forcing a switch back to
-> the slower Python layer. I have often seen students frustrated by slow solver
-> performance, only to discover that most of the solver's time is spent in the
-> callback function. Even if the operations within the callback are not complex,
-> the time spent can add up quickly and affect overall performance.
+> Будьте обережні з callbacks: вони можуть суттєво сповільнити розв’язувач.
+> Вони викликаються часто і змушують повертатися до повільнішого Python-рівня.
+> Я часто бачив, як студенти скаржилися на повільну роботу solver-а, а
+> більшість часу витрачалася саме у callback. Навіть прості операції в
+> callback можуть швидко накопичувати затрати часу.
 
-### Parallelization
+### Паралелізація
 
-CP-SAT is a portfolio-solver that uses different techniques to solve the
-problem. There is some information exchange between the different workers, but
-it does not split the solution space into different parts, thus, it does not
-parallelize the branch-and-bound algorithm as MIP-solvers do. This can lead to
-some redundancy in the search, but running different techniques in parallel will
-also increase the chance of running the right technique. Predicting which
-technique will be the best for a specific problem is often hard, thus, this
-parallelization can be quite useful.
+CP-SAT — портфельний розв’язувач, який використовує різні техніки паралельно.
+Є певний обмін інформацією між воркерами, але CP-SAT не ділить простір рішень
+на частини, як це робить branch-and-bound у MIP. Це може призводити до певної
+надлишковості пошуку, але паралельне використання різних технік підвищує шанси
+знайти «правильну» стратегію. Передбачити, яка техніка найкраща для конкретної
+задачі, часто складно, тому паралелізація може бути дуже корисною.
 
-By default, CP-SAT leverages all available cores (including hyperthreading). You
-can control the parallelization of CP-SAT by setting the number of search
-workers.
+За замовчуванням CP-SAT використовує всі доступні ядра (включно з
+гіпертредингом). Ви можете керувати паралелізацією, встановивши кількість
+воркерів.
 
 ```python
-solver.parameters.num_workers = 8  # use 8 cores
+solver.parameters.num_workers = 8  # використовувати 8 ядер
 ```
 
 > [!TIP]
 >
-> For many models, you can boost performance by manually reducing the number of
-> workers to match the number of physical cores, or even fewer. This can be
-> beneficial for several reasons: it allows the remaining workers to run at a
-> higher frequency, provides more memory bandwidth, and reduces potential
-> interference between workers. However, be aware that reducing the number of
-> workers might also decrease the overall chance of one of them making progress,
-> as there are fewer directions being explored simultaneously.
+> Для багатьох моделей продуктивність можна підвищити, зменшивши кількість
+> воркерів до кількості фізичних ядер або навіть менше. Це дає змогу іншим
+> воркерам працювати на вищій частоті, отримати більше пропускної здатності
+> пам’яті та зменшити взаємні перешкоди. Але майте на увазі: менше воркерів
+> означає менше напрямків пошуку одночасно, що може знизити шанси прогресу.
 
-Here are the solvers used by CP-SAT 9.9 on different parallelization levels for
-an optimization problem and no additional specifications (e.g., decision
-strategies). Each row describes the addition of various solvers with respect to
-the previous row. Note that some parameters/constraints/objectives can change
-the parallelization strategy. Also check
-[the official documentation](https://github.com/google/or-tools/blob/main/ortools/sat/docs/troubleshooting.md#improving-performance-with-multiple-workers).
+Ось які сабсолвери використовує CP-SAT 9.9 на різних рівнях паралелізації для
+оптимізаційної задачі без додаткових специфікацій (наприклад, стратегій рішень).
+Кожен рядок описує додаткові сабсолвери порівняно з попереднім рядком. Зверніть
+увагу, що деякі параметри/обмеження/цілі можуть змінювати стратегію
+паралелізації. Також див. офіційну документацію:
+[troubleshooting](https://github.com/google/or-tools/blob/main/ortools/sat/docs/troubleshooting.md#improving-performance-with-multiple-workers).
 
 | # Workers | Full Problem Subsolvers                                                        | First Solution Subsolvers                                                                                                                                                                                                                                                                 | Incomplete Subsolvers                                                                                                                                                                                                                                                  | Helper Subsolvers                                                                 |
 | --------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
@@ -3432,68 +3337,57 @@ the parallelization strategy. Also check
 | **32**    | +2 solvers: `objective_lb_search_max_lp`, `objective_lb_search_no_lp`          | +8 solvers: `fj_long_lin_default`, `fj_long_lin_random`, `fj_long_random`, `fj_short_lin_random`, `fj_short_random`, `fs_random_no_lp`, `fs_random_quick_restart_no_lp`                                                                                                                   | +1 solver: `violation_ls(3)`                                                                                                                                                                                                                                           |                                                                                   |
 | **64**    |                                                                                | +11 solvers: `fj_long_default(2)`, `fj_long_lin_default(2)`, `fj_long_lin_random(2)`, `fj_long_random(2)`, `fj_short_default(2)`, `fj_short_lin_default(2)`, `fj_short_random(2)`, `fs_random(6)`, `fs_random_no_lp(6)`, `fs_random_quick_restart(6)`, `fs_random_quick_restart_no_lp(5)` | +1 solver: `violation_ls(7)`                                                                                                                                                                                                                                           |                                                                                   |
 
-Important steps:
+Важливі моменти:
 
-- With a single worker, only the default subsolver is used.
-- With two workers or more, CP-SAT starts using incomplete subsolvers, i.e.,
-  heuristics such as LNS.
-- With five workers, CP-SAT will also have a first solution subsolver.
-- With 32 workers, all 15 full problem subsolvers are used.
-- For more than 32 workers, primarily the number of first solution subsolvers is
-  increased.
+- З одним воркером використовується лише default сабсолвер.
+- З двома і більше воркерами CP-SAT починає використовувати неповні сабсолвери,
+  тобто евристики, як-от LNS.
+- З п’ятьма воркерами CP-SAT також має сабсолвер для першого розв’язку.
+- З 32 воркерами використовуються всі 15 повних сабсолверів.
+- Понад 32 воркери здебільшого збільшують кількість сабсолверів першого розв’язку.
 
-**Full problem subsolvers** are solvers that search the full problem space,
-e.g., by a branch-and-bound algorithm. Available full problem subsolvers are:
+**Full problem subsolvers** — це сабсолвери, які шукають у повному просторі,
+наприклад за допомогою branch-and-bound. Доступні:
 
-- `default_lp`: LCG-based search with default linearization of the model.
-  - `max_lp`: Same as `default_lp` but with maximal linearization.
-  - `no_lp`: Same as `default_lp` but without linearization.
-- `lb_tree_search`: This solver is focussed on improving the proven bound, not
-  on finding better solutions. By disproving the feasibility of the cheapest
-  nodes in the search tree, it incrementally improves the bound, but has only
-  little chances to find better solutions.
-- `objective_lb_search`: Also focussed on improving the bound by disproving the
-  feasibility of the current lower bound.
-  - `objective_lb_search_max_lp`: With maximal linearization.
-  - `objective_lb_search_no_lp`: Without linearization.
-  - `objective_shaving_search_max_lp`: Should be quite similar to
-    `objective_lb_search_max_lp`.
-  - `objective_shaving_search_no_lp`: Should be quite similar to
-    `objective_lb_search_no_lp`.
-- `probing`: Fixing variables and seeing what happens.
-  - `probing_max_lp`: Same as probing but with maximal linearization.
-- `pseudo_costs`: Uses pseudo costs for branching, which are computed from
-  historical changes in objective bounds following certain branching decisions.
-- `quick_restart`: Restarts the search more eagerly. Restarts rebuild the search
-  tree from scratch, but keep learned clauses. This allows to recover from bad
-  decisions, and lead to smaller search trees by learning from the mistakes of
-  the past.
-  - `quick_restart_no_lp`: Same as `quick_restart` but without linearization.
-- `reduced_costs`: Uses the reduced costs of the linear relaxation for
-  branching.
-- `core`: A strategy from the SAT-community that extracts unsatisfiable cores of
-  the formula.
-- `fixed`: User-specified search strategy.
+- `default_lp`: пошук на базі LCG із типовою лінеаризацією.
+  - `max_lp`: те саме, але з максимальною лінеаризацією.
+  - `no_lp`: те саме, але без лінеаризації.
+- `lb_tree_search`: зосереджений на покращенні доведеної межі, а не на пошуку
+  кращих розв’язків. Він спростовує дешеві вузли дерева, поступово покращуючи
+  межу, але має мало шансів знайти кращі розв’язки.
+- `objective_lb_search`: також фокусується на покращенні межі через спростування
+  поточної нижньої межі.
+  - `objective_lb_search_max_lp`: із максимальною лінеаризацією.
+  - `objective_lb_search_no_lp`: без лінеаризації.
+  - `objective_shaving_search_max_lp`: має бути схожим на `objective_lb_search_max_lp`.
+  - `objective_shaving_search_no_lp`: має бути схожим на `objective_lb_search_no_lp`.
+- `probing`: фіксує змінні та дивиться, що відбувається.
+  - `probing_max_lp`: те саме, але з максимальною лінеаризацією.
+- `pseudo_costs`: використовує псевдовартість для вибору гілок на основі
+  історичних змін меж.
+- `quick_restart`: робить частіші перезапуски. Перезапуски перебудовують дерево
+  з нуля, але зберігають навчений набір клауз. Це допомагає виходити з поганих
+  рішень і зменшує дерево пошуку.
+  - `quick_restart_no_lp`: те саме, але без лінеаризації.
+- `reduced_costs`: використовує reduced costs лінійної релаксації для розгалуження.
+- `core`: стратегія зі світу SAT, що витягує unsat cores.
+- `fixed`: користувацька стратегія.
 
-You can modify the used subsolvers by `solver.parameters.subsolvers`,
-`solver.parameters.extra_subsolvers`, and `solver.parameters.ignore_subsolvers`.
-This can be interesting, e.g., if you are using CP-SAT especially because the
-linear relaxation is not useful (and the BnB-algorithm performing badly). There
-are even more options, but for these you can simply look into the
-[documentation](https://github.com/google/or-tools/blob/49b6301e1e1e231d654d79b6032e79809868a70e/ortools/sat/sat_parameters.proto#L513).
-Be aware that fine-tuning such a solver is not a simple task, and often you do
-more harm than good by tinkering around. However, I noticed that decreasing the
-number of search workers can actually improve the runtime for some problems.
-This indicates that at least selecting the right subsolvers that are best fitted
-for your problem can be worth a shot. For example `max_lp` is probably a waste
-of resources if you know that your model has a terrible linear relaxation. In
-this context I want to recommend having a look on some relaxed solutions when
-dealing with difficult problems to get a better understanding of which parts a
-solver may struggle with (use a linear programming solver, like Gurobi, for
-this).
+Використані сабсолвери можна змінювати через `solver.parameters.subsolvers`,
+`solver.parameters.extra_subsolvers` та `solver.parameters.ignore_subsolvers`.
+Це може бути цікаво, якщо ви використовуєте CP-SAT, бо лінійна релаксація
+марна (і BnB працює погано). Є ще більше опцій, див. документацію:
+[сат параметри](https://github.com/google/or-tools/blob/49b6301e1e1e231d654d79b6032e79809868a70e/ortools/sat/sat_parameters.proto#L513).
+Пам’ятайте: тюнінг solver-а складний, і часто можна зробити гірше, ніж краще.
+Втім, я помічав, що зменшення кількості воркерів іноді покращує час виконання.
+Це означає, що підбір правильних сабсолверів може бути корисним. Наприклад,
+`max_lp` — марна трата ресурсів, якщо ви знаєте, що у моделі слабка лінійна
+релаксація. У цьому контексті рекомендую дивитися на релаксовані розв’язки
+складних задач, щоб краще зрозуміти, де solver може «застрягати» (для цього
+можна використовувати LP-розв’язувач, наприклад Gurobi).
 
-You can evaluate the performance of the different strategies by looking at the
-`Solutions` and `Objective bounds` blocks in the log. Here an example:
+Ефективність стратегій можна оцінювати через блоки `Solutions` і `Objective bounds`
+в логах. Приклад:
 
 ```
 Solutions (7)             Num   Rank
@@ -3508,19 +3402,16 @@ Objective bounds                     Num
   'objective_shaving_search_no_lp':    1
 ```
 
-For solutions, the first number is the number of solutions found by the
-strategy, the second number is the range of the ranks of the solutions. The
-value `[1,7]` indicates that the solutions found by the strategy have ranks
-between 1 and 7. In this case, it means that the strategy `no_lp` found the best
-and the worst solution.
+Для розв’язків перше число — кількість розв’язків, друге — діапазон рангів. [1,7]
+означає, що знайдені розв’язки мали ранги від 1 до 7. У цьому прикладі
+стратегія `no_lp` знайшла як найкращий, так і найгірший розв’язок.
 
-For objective bounds, the number indicates how often the strategy contributed to
-the best bound. For this example, it seems that the `no_lp` strategies are the
-most successful. Note that for both cases, it is more interesting, which
-strategies do not appear in the list.
+Для меж число означає, скільки разів стратегія внесла вклад у найкращу межу.
+У цьому прикладі виглядає, що найуспішніші — `no_lp`. Важливо також, які
+стратегії взагалі відсутні у списку.
 
-In the search log, you can also see at which time which subsolver contributed
-something. This log also includes the incomplete and first solution subsolvers.
+У логу пошуку також видно, коли і який сабсолвер щось зробив. Це включає
+неповні та first-solution сабсолвери:
 
 ```
 #1       0.01s best:43    next:[6,42]     no_lp (fixed_bools=0/155)
@@ -3549,37 +3440,34 @@ something. This log also includes the incomplete and first solution subsolvers.
 #Model   2.98s var:66/126 constraints:91/162
 ```
 
-**Incomplete subsolvers** are solvers that do not search the full problem space,
-but work heuristically. Notable strategies are large neighborhood search (LNS)
-and feasibility pumps. The first one tries to find a better solution by changing
-only a few variables, the second one tries to make infeasible/incomplete
-solutions feasible. You can also run only the incomplete subsolvers by setting
-`solver.parameters.use_lns_only = True`, but this needs to be combined with a
-time limit, as the incomplete subsolvers do not know when to stop.
+**Неповні сабсолвери** — це евристики, які не шукають у повному просторі.
+Приклади: large neighborhood search (LNS) і feasibility pumps. Перший шукає
+кращий розв’язок, змінюючи лише кілька змінних, другий намагається зробити
+недопустимі/неповні розв’язки допустимими. Можна запускати лише неповні
+сабсолвери через `solver.parameters.use_lns_only = True`, але це потрібно
+поєднувати з лімітом часу, бо вони не знають, коли зупинитися.
 
-**First solution subsolvers** are strategies that try to find a first solution
-as fast as possible. They are often used to warm up the solver and to get a
-first impression of the problem.
+**Сабсолвери першого розв’язку** — стратегії, що намагаються швидко знайти
+перший розв’язок. Вони часто використовуються для «прогріву» solver-а.
 
 <!-- Source on Parallelization in Gurobi and general opportunities -->
 
-If you are interested in how Gurobi parallelizes its search, you can find a
-great video [here](https://www.youtube.com/watch?v=FJz1UxaMWRQ). Ed Rothberg
-also explains the general opportunities and challenges of parallelizing a
-solver, making it also interesting for understanding the parallelization of
-CP-SAT.
+Якщо цікавить, як Gurobi паралелізує пошук, є чудове відео
+[тут](https://www.youtube.com/watch?v=FJz1UxaMWRQ). Ed Rothberg також пояснює
+загальні можливості й виклики паралелізації solver-ів, що корисно і для
+розуміння CP-SAT.
 
 <!-- Give a disclaimer -->
 
-> :warning: This section could need some help as there is the possibility that I
-> am mixing up some of the strategies, or am drawing wrong connections.
+> :warning: Цей розділ може потребувати допомоги: є ймовірність, що я
+> переплутав деякі стратегії або зробив хибні висновки.
 
-#### Importing/Exporting Models for Comparison on Different Hardware
+#### Імпорт/експорт моделей для порівняння на різному залізі
 
-If you want to compare the performance of different parallelization levels or
-different hardware, you can use the following code snippets to export a model.
-Instead of having to rebuild the model or share any code, you can then simply
-load the model on a different machine and run the solver.
+Якщо ви хочете порівняти продуктивність різних рівнів паралелізації або
+обладнання, можна експортувати модель. Тоді не потрібно відтворювати її або
+ділитися кодом — можна просто завантажити модель на іншій машині й запустити
+solver.
 
 ```python
 from ortools.sat.python import cp_model
@@ -3594,20 +3482,20 @@ def _detect_binary_mode(filename: str) -> bool:
         return True
     raise ValueError(f"Unknown extension for file: {filename}")
 
-# Changed in ortools 9.15: was model.Proto().SerializeToString() / text_format.MessageToString()
-# Now use model.export_to_file() which auto-detects format by extension
+# Зміни в ortools 9.15: було model.Proto().SerializeToString() / text_format.MessageToString()
+# Тепер використовуємо model.export_to_file(), який сам визначає формат
 def export_model(model: cp_model.CpModel, filename: str, binary: bool | None = None):
     binary = _detect_binary_mode(filename) if binary is None else binary
-    # export_to_file uses .txt extension for text format, otherwise binary
-    # So we need to handle the mismatch for some extensions
+    # export_to_file використовує .txt для текстового формату, інакше бінарний
+    # Тому обробляємо невідповідності для деяких розширень
     if binary and filename.endswith(".txt"):
-        # Force binary even with .txt extension - use temp file
+        # Примусово бінарний формат для .txt через тимчасовий файл
         temp_file = filename + ".pb"
         model.export_to_file(temp_file)
         Path(filename).write_bytes(Path(temp_file).read_bytes())
         Path(temp_file).unlink()
     elif not binary and not filename.endswith(".txt"):
-        # Force text even without .txt extension
+        # Примусово текстовий формат без .txt
         temp_file = filename + ".txt"
         model.export_to_file(temp_file)
         Path(filename).write_text(Path(temp_file).read_text())
@@ -3615,13 +3503,13 @@ def export_model(model: cp_model.CpModel, filename: str, binary: bool | None = N
     else:
         model.export_to_file(filename)
 
-# Changed in ortools 9.15: was model.Proto().ParseFromString() / text_format.Parse()
-# Now use model.Proto().parse_text_format() for text, or cp_model_pb2 for binary
+# Зміни в ortools 9.15: було model.Proto().ParseFromString() / text_format.Parse()
+# Тепер використовуємо model.Proto().parse_text_format() для тексту або cp_model_pb2 для бінарного
 def import_model(filename: str, binary: bool | None = None) -> cp_model.CpModel:
     binary = _detect_binary_mode(filename) if binary is None else binary
     model = cp_model.CpModel()
     if binary:
-        # Parse binary via standard protobuf, then convert to text for import
+        # Парсимо бінарний формат через protobuf, потім конвертуємо в текст
         proto = cp_model_pb2.CpModelProto()
         proto.ParseFromString(Path(filename).read_bytes())
         model.Proto().parse_text_format(text_format.MessageToString(proto))
@@ -3630,43 +3518,40 @@ def import_model(filename: str, binary: bool | None = None) -> cp_model.CpModel:
     return model
 ```
 
-The binary mode is more efficient and should be used for large models. The text
-mode is human-readable and can be easier shared and compared.
+Бінарний формат ефективніший і має використовуватися для великих моделей.
+Текстовий формат зручніший для читання й порівняння.
 
-### Hints
+### Підказки (Hints)
 
-If you have a good intuition about how the solution might look—perhaps from
-solving a similar model or using a good heuristic—you can inform CP-SAT to
-incorporate this knowledge into its search. Some workers will try to follow
-these hints, which can significantly improve the solver's performance if they
-are good. If the hints actually represent a feasible solution, the solver can
-use them to prune the search space of all branches that have worse bounds than
-the hints.
+Якщо ви маєте інтуїцію, яким може бути розв’язок — можливо, з подібної моделі
+або доброї евристики — ви можете передати ці підказки CP-SAT. Деякі воркери
+спробують слідувати цим підказкам, що може значно покращити продуктивність, якщо
+підказки хороші. Якщо підказки представляють допустимий розв’язок, solver може
+використати їх, щоб обрізати гілки з гіршими межами.
 
 ```python
-model.add_hint(x, 1)  # Suggest that x will probably be 1
-model.add_hint(y, 2)  # Suggest that y will probably be 2
+model.add_hint(x, 1)  # Підказка: x, ймовірно, 1
+model.add_hint(y, 2)  # Підказка: y, ймовірно, 2
 ```
 
-For more examples, refer to
-[the official example](https://github.com/google/or-tools/blob/stable/ortools/sat/samples/solution_hinting_sample_sat.py).
-We will also see how to utilize hints for multi-objective optimization in the
-[Coding Patterns](#06-coding-patterns) chapter.
+Більше прикладів:
+[official example](https://github.com/google/or-tools/blob/stable/ortools/sat/samples/solution_hinting_sample_sat.py).
+Ми також побачимо використання hints для багатокритеріальної оптимізації в
+розділі [Coding Patterns](#06-coding-patterns).
 
 > [!TIP]
 >
-> Hints can significantly improve solver performance, especially if it struggles
-> to find a good initial solution (as indicated in the logs). This practice is
-> often called **warm-starting** the solver. You do not need to provide values
-> for all auxiliary variables, but if you use integer variables to approximate
-> continuous variables, it is beneficial to provide hints for these. CP-SAT may
-> struggle with quickly completing the solution, and only completed solutions
-> can be used for pruning the search space. If CP-SAT needs a long time to
-> complete the solution from the hint, it may have wasted a lot of time in
-> branches it could otherwise have pruned.
+> Підказки можуть суттєво покращити продуктивність, особливо якщо solver не
+> може швидко знайти хороший початковий розв’язок (видно в логах). Це часто
+> називають **warm-starting**. Не потрібно давати підказки для всіх допоміжних
+> змінних, але якщо ви використовуєте цілочисельні змінні для апроксимації
+> неперервних, варто дати підказки і для них. CP-SAT може довго доводити
+> допустимість підказки, і лише завершені розв’язки можна використовувати для
+> обрізання пошуку. Якщо solver довго завершує підказку, він може даремно
+> витратити час на гілки, які можна було б обрізати.
 
-To verify that your hints are feasible, you can temporarily fix variables to
-their hinted values and check if the model becomes infeasible:
+Щоб перевірити, чи підказки допустимі, можна тимчасово зафіксувати змінні на
+підказаних значеннях і перевірити, чи модель не стає недопустимою:
 
 ```python
 solver.parameters.fix_variables_to_their_hinted_value = True
@@ -3675,45 +3560,39 @@ if status == cp_model.INFEASIBLE:
     print("Hints are conflicting or infeasible!")
 ```
 
-If you suspect that your hints are not being utilized, it might indicate a
-logical error in your model or a bug in your code. This approach reliably
-detects infeasible hints by forcing the solver to use the exact hinted values.
+Якщо підказки не використовуються, це може свідчити про логічну помилку в моделі
+або баг у коді. Такий підхід надійно виявляє недопустимі підказки.
 
-There is also `solver.parameters.debug_crash_on_bad_hint = True`, which crashes
-the solver if it cannot complete hints into a feasible solution. However, this
-feature is unreliable: it only triggers in multi-worker mode, depends on a race
-condition between workers, and is controlled by `hint_conflict_limit` (default:
-10). The `fix_variables_to_their_hinted_value` approach above is simpler and
-deterministic.
+Також є `solver.parameters.debug_crash_on_bad_hint = True`, що падає solver
+при неможливості завершити підказку. Але ця функція ненадійна: спрацьовує лише
+в multi-worker режимі, залежить від гонки між воркерами, і контролюється
+`hint_conflict_limit` (за замовчуванням 10). Підхід із
+`fix_variables_to_their_hinted_value` простіший і детермінований.
 
 > [!WARNING]
 >
-> In older versions of CP-SAT, hints could sometimes visibly slow down the
-> solver, even if they were correct but not optimal. While this issue seems
-> resolved in the latest versions, it is important to note that bad hints can
-> still cause slowdowns by guiding the solver in the wrong direction.
+> У старих версіях CP-SAT підказки могли уповільнювати solver навіть якщо вони
+> були правильні, але не оптимальні. У нових версіях ця проблема, здається,
+> вирішена, але погані підказки все одно можуть вести solver у хибному напрямку.
 
-Often, you may need to explore the impact of forcing certain variables to
-specific values. To avoid copying the entire model multiple times to set the
-values of variables explicitly, you can also use hints to fix variables their
-hinted value with the following parameter:
+Часто потрібно дослідити вплив фіксації змінних на певні значення. Щоб не
+копіювати модель, можна використовувати hints і параметр
+`fix_variables_to_their_hinted_value`.
 
 ```python
 solver.parameters.fix_variables_to_their_hinted_value = True
 ```
 
-Hints can be cleared afterwards by calling `model.clear_hints()`, allowing you
-to test other hints without duplicating the model. While you cannot add complex
-expressions directly, fixing variables enables you to experiment with more
-intricate constraints without model duplication. For temporary complex
-constraints, model copying using `model.CopyFrom` may still be necessary, along
-with variable copying.
+Після цього підказки можна очистити через `model.clear_hints()` і тестувати інші
+варіанти без дублювання моделі. Хоча складні вирази напряму додати не можна,
+фіксація змінних дозволяє експериментувати зі складними обмеженнями без копій
+моделі. Для тимчасових складних обмежень інколи все ж потрібне копіювання через
+`model.CopyFrom` разом із копіюванням змінних.
 
-You can also use this function to complete hints for auxiliary variables, which
-are often tedious and error-prone to set manually. To do so, invoke the function
-below before solving the model. Adjust the time limit based on the difficulty of
-completing the hint. If the values can be determined through simple propagation,
-even large models can be processed quickly.
+Також можна використати функцію для автоматичного завершення hints для
+допоміжних змінних, які часто складно задавати вручну. Запустіть функцію перед
+розв’язанням. Встановіть ліміт часу залежно від складності. Якщо значення можна
+вивести простою пропагацією, навіть великі моделі обробляються швидко.
 
 ```python
 def complete_hint(
@@ -3762,115 +3641,106 @@ def complete_hint(
 
 > [!WARNING]
 >
-> During presolve, the model is modified. For example, symmetries may be broken
-> by prohibiting equivalent variations of the same solution. While such
-> modifications can significantly improve performance by reducing the search
-> space, they make it difficult to maintain the feasibility of hints, e.g., if a
-> hint corresponds to a pruned variation.
+> Під час presolve модель змінюється. Наприклад, симетрії можуть бути зламані
+> шляхом заборони еквівалентних варіантів одного розв’язку. Хоча це може
+> суттєво покращити продуктивність, це ускладнює збереження допустимості hints,
+> наприклад, якщо підказка відповідає «обрізаній» варіації.
 >
-> Unfortunately, CP-SAT has historically struggled to preserve the feasibility
-> of hints through presolve. Although some issues have been resolved in earlier
-> versions, I am still encountering this behavior in recent releases.
+> На жаль, CP-SAT історично мав труднощі зі збереженням допустимості hints під
+> час presolve. Хоча деякі проблеми вже виправлені, я досі бачу цю поведінку у
+> свіжих релізах.
 >
-> As a workaround, you can instruct CP-SAT to retain all feasible solutions
-> during presolve by setting:
+> Як обхідний шлях, можна змусити CP-SAT зберігати всі допустимі розв’язки під
+> час presolve:
 >
 > ```python
 > solver.parameters.keep_all_feasible_solutions_in_presolve = True
 > ```
 >
-> However, enabling this parameter may degrade solver performance. If you
-> observe that hints become infeasible after presolve, you should experimentally
-> determine whether maintaining feasible hints or doing the full presolve is
-> more beneficial.
+> Але цей параметр може погіршити продуктивність. Якщо помічаєте, що hints
+> стають недопустимими після presolve, експериментально визначте, що краще:
+> зберігати hints чи повноцінний presolve.
 
-## Reinforcing the Model
+## Посилення моделі
 
-For advanced users working with CP-SAT incrementally—i.e., modifying and solving
-the model multiple times—the following parameter may be of interest:
+Для просунутих користувачів, які працюють із CP-SAT інкрементально — тобто
+модифікують і розв’язують модель багато разів — може бути цікавим параметр:
 
 ```python
 solver.parameters.fill_tightened_domains_in_response = True
 ```
 
-When you remove the objective function and solve the feasibility version of your
-model, the solver returns tightened domains for the variables. This can
-significantly reduce the search space, improving solver performance, especially
-when solving the model multiple times with different objectives or additional
-constraints.
+Коли ви прибираєте цільову функцію і розв’язуєте задачу на здійсненність,
+solver повертає звужені домени змінних. Це може суттєво зменшити простір пошуку,
+покращивши продуктивність, особливо якщо ви розв’язуєте модель багато разів із
+різними цілями чи додатковими обмеженнями.
 
-However, if the objective function is left in place, feasible solutions may be
-excluded from the search space. These solutions might become relevant if the
-objective or constraints are altered later.
+Однак, якщо цільова функція залишається, деякі допустимі розв’язки можуть бути
+виключені. Вони можуть стати релевантними, якщо цілі чи обмеження зміняться
+пізніше.
 
-Enabling this parameter does not modify the model itself; rather, it provides a
-list of tightened variable domains in the response object which you can then use
-in your model.
+Увімкнення цього параметра не змінює модель; він лише повертає список звужених
+доменів у response об’єкті, які ви можете використати в моделі.
 
 ```python
-# Example after solving the model
+# Приклад після розв’язання
 for i, v in enumerate(self.model.proto.variables):
     print(f"Tightened domain for variable {i} '{v.name}' is {solver.response_proto.tightened_variables[i].domain}")
 ```
 
-### Assumptions
+### Припущення
 
-Another way to explore the impact of forcing certain variables to specific
-values is by means of assumptions, which is a common feature in many SAT
-solvers. Unlike fixing hinted values, assumptions are restricted to boolean
-literals in CP-SAT.
+Ще один спосіб дослідити вплив фіксації змінних — це припущення, що є типовою
+функцією в SAT-розв’язувачах. На відміну від фіксації hints, припущення
+обмежені булевими літералами в CP-SAT.
 
 ```python
 b1 = model.new_bool_var("b1")
 b2 = model.new_bool_var("b2")
 b3 = model.new_bool_var("b3")
 
-model.add_assumptions([b1, ~b2])  # assume b1=True, b2=False
-model.add_assumption(b3)  # assume b3=True (single literal)
+model.add_assumptions([b1, ~b2])  # припускаємо b1=True, b2=False
+model.add_assumption(b3)  # припускаємо b3=True (один літерал)
 # ... solve again and analyze ...
-model.clear_assumptions()  # clear all assumptions
+model.clear_assumptions()  # очищаємо припущення
 ```
 
 > [!NOTE]
 >
-> While incremental SAT solvers can reuse learned clauses from previous runs
-> despite changes in assumptions, CP-SAT does not support this feature. Its
-> solver is stateless and always starts from scratch.
+> Інкрементальні SAT-розв’язувачі можуть повторно використовувати вивчені
+> клаузи між запуском за різних припущень. CP-SAT цього не підтримує. Його
+> solver — безстанний і завжди починає з нуля.
 
-While assumptions can be used to explore different assignments of Boolean
-variables without reconstructing the model, CP-SAT offers a more powerful
-feature: the extraction of unsatisfiable cores from infeasible models. This
-capability is particularly useful for model debugging. By enabling constraints
-conditionally using `only_enforce_if(b)` and adding `b` as an assumption, one
-can isolate sources of infeasibility. If the model proves infeasible, CP-SAT can
-return a minimal subset of the assumptions, and thus the corresponding
-constraints, that lead to the conflict.
+Хоча припущення дозволяють досліджувати різні присвоєння булевих змінних без
+перебудови моделі, CP-SAT має потужнішу можливість: витягнення unsat core з
+недопустимих моделей. Це особливо корисно для налагодження. Умикаючи
+обмеження умовно через `only_enforce_if(b)` і додаючи `b` як припущення, можна
+ізолювати джерела недопустимості. Якщо модель недопустима, CP-SAT може
+повернути мінімальний набір припущень (і відповідних обмежень), що спричиняють
+конфлікт.
 
-Consider the following example. Suppose we have a model with three integer
-variables $x$, $y$, and $z$, along with the following constraints:
+Розгляньмо приклад. Маємо три цілочисельні змінні $x$, $y$, $z$ і обмеження:
 
 1. $x + y \leq 4$
 2. $x + z \leq 2$
 3. $z \geq 4$
 
-Since all variables are non-negative integers, this model is clearly infeasible
-due to the incompatibility between constraints (2) and (3). When dealing with
-larger models, identifying the source of infeasibility can be challenging.
-However, by using assumptions in conjunction with
-`sufficient_assumptions_for_infeasibility`, CP-SAT can automatically identify
-which constraints are responsible.
+За умови невід’ємності змінних модель явно недопустима через конфлікт між (2)
+і (3). У великих моделях знайти джерело недопустимості складно. Але з
+припущеннями і `sufficient_assumptions_for_infeasibility` CP-SAT може
+автоматично показати, які обмеження винні.
 
 ```python
 from ortools.sat.python import cp_model
 
 model = cp_model.CpModel()
 
-# Integer variables
+# Цілочисельні змінні
 x = model.new_int_var(0, 100, 'x')
 y = model.new_int_var(0, 100, 'y')
 z = model.new_int_var(0, 100, 'z')
 
-# Constraints
+# Обмеження
 indicator_1 = model.new_bool_var('Indicator 1: x + y <= 4')
 model.add(x + y <= 4).only_enforce_if(indicator_1)
 indicator_2 = model.new_bool_var('Indicator 2: x + z <= 2')
@@ -3878,10 +3748,10 @@ model.add(x + z <= 2).only_enforce_if(indicator_2)
 indicator_3 = model.new_bool_var('Indicator 3: z >= 4')
 model.add(z >= 4).only_enforce_if(indicator_3)
 
-# Assumptions
+# Припущення
 model.add_assumptions([indicator_1, indicator_2, indicator_3])
 
-# Solve
+# Розв’язання
 solver = cp_model.CpSolver()
 status = solver.solve(model)
 
@@ -3892,7 +3762,7 @@ for var_index in solver.sufficient_assumptions_for_infeasibility():
     print(f"{var_index}: '{model.proto.variables[var_index].name}'")
 ```
 
-This produces the following output:
+Результат:
 
 ```
 Minimal unsat core:
@@ -3900,83 +3770,72 @@ Minimal unsat core:
 5: 'Indicator 3: z >= 4'
 ```
 
-Unfortunately, not all constraints in CP-SAT support reification. However,
-lower-level constraints, where infeasibilities are most likely to occur,
-typically do. For higher-level constraints, workarounds may exist to express
-them in a reifiable form.
+На жаль, не всі обмеження в CP-SAT підтримують реїфікацію. Проте нижчорівневі
+обмеження, де недопустимість найімовірніша, зазвичай підтримують. Для
+високорівневих обмежень можуть існувати обхідні перетворення.
 
 > [!NOTE]
 >
-> You can find more information on this in the
-> [CPMpy documentation](https://cpmpy.readthedocs.io/en/latest/unsat_core_extraction.html),
-> a modelling library that also supports CP-SAT as backend.
+> Більше інформації у
+> [документації CPMpy](https://cpmpy.readthedocs.io/en/latest/unsat_core_extraction.html),
+> бібліотеки моделювання з підтримкою CP-SAT як бекенду.
 
 ### Presolve
 
-The CP-SAT solver includes a presolve step that simplifies the model before
-solving it. This step can significantly reduce the search space and enhance
-performance. However, presolve can be time-consuming, particularly for large
-models. If your model is relatively simple—meaning there are few genuinely
-challenging decisions for CP-SAT to make—and you notice that presolve is taking
-a long time while the search itself is fast, you might consider reducing the
-presolve effort.
+CP-SAT має етап presolve, який спрощує модель перед розв’язанням. Це може
+суттєво зменшити простір пошуку і покращити продуктивність. Однак presolve може
+бути дорогим, особливо для великих моделей. Якщо ваша модель відносно проста
+(тобто є небагато складних рішень), і ви бачите, що presolve займає багато
+часу, а сам пошук швидкий — можна зменшити presolve.
 
-For example, you can disable presolve entirely with:
+Наприклад, presolve можна повністю вимкнути:
 
 ```python
 solver.parameters.cp_model_presolve = False
 ```
 
-However, this approach might be too drastic, so you may prefer to limit presolve
-rather than disabling it completely.
+Але це надто радикально, тож можна лише обмежити presolve, а не вимикати.
 
-To reduce the number of presolve iterations, you can use:
+Щоб зменшити кількість ітерацій presolve, використовуйте:
 
 ```python
 solver.parameters.max_presolve_iterations = 3
 ```
 
-You can also limit specific presolve techniques. For instance, you can constrain
-the time or intensity of probing, which is a technique that tries to fix
-variables and observe the outcome. Although probing can be powerful, it is also
-time-intensive.
+Також можна обмежити конкретні техніки presolve, наприклад probing, який
+фіксує змінні та дивиться результат. Probing потужний, але затратний.
 
 ```python
 solver.parameters.cp_model_probing_level = 1
 solver.parameters.presolve_probing_deterministic_time_limit = 5
 ```
 
-There are additional parameters available to control presolve. Before making
-adjustments, I recommend reviewing the solver log to identify which aspects of
-presolve are causing long runtimes.
+Є додаткові параметри для керування presolve. Перед змінами рекомендую
+переглянути лог, щоб зрозуміти, що саме забирає час.
 
-Keep in mind that reducing presolve increases the risk of failing to solve more
-complex models. Ensure that you are not sacrificing performance on more
-challenging instances just to speed up simpler cases.
+Пам’ятайте: зменшення presolve може погіршити здатність розв’язувати складні
+моделі. Не жертвуйте продуктивністю на складних інстансах лише заради швидких
+простих випадків.
 
-### Adding Your Own Subsolver to the Portfolio
+### Додавання власного сабсолвера до портфеля
 
-As we have seen, CP-SAT uses a portfolio of different subsolvers, each
-configured with varying settings (e.g., different levels of linearization) to
-solve the model. You can also define your own subsolver with a specific
-configuration. It is important not to modify the parameters at the top level, as
-this would affect all subsolvers, including the LNS-workers. Doing so could
-disrupt the balance of the portfolio, potentially activating costly techniques
-for the LNS-workers, which could slow them down to the point of being
-ineffective. Additionally, you risk creating a default subsolver incompatible
-with your model - such as one that requires an objective function - causing
-CP-SAT to exclude most or all subsolvers from the portfolio, resulting in a
-solver that is either inefficient or nonfunctional.
+Як ми бачили, CP-SAT використовує портфель сабсолверів із різними налаштуваннями
+(наприклад, різним рівнем лінеаризації). Ви можете задати свій сабсолвер із
+певною конфігурацією. Важливо не змінювати параметри на верхньому рівні, бо це
+вплине на всі сабсолвери, включно з LNS. Це може зруйнувати баланс портфеля,
+увімкнувши дорогі техніки для LNS, що сповільнить їх до непридатності. Також
+ви ризикуєте створити сабсолвер за замовчуванням, несумісний з моделлю
+(наприклад, якщо він вимагає ціль), і тоді CP-SAT може виключити більшість або
+усі сабсолвери, зробивши solver неефективним або неспроможним.
 
-For example, in packing problems, certain expensive propagation techniques can
-significantly speed up the search but can also drastically slow it down if
-misused. To handle this, you can add a single subsolver that applies these
-techniques. If the parameters do not help, only one worker will be slowed down,
-while the rest of the portfolio remains unaffected. However, if the parameters
-are beneficial, that worker can share its solutions and (variable) bounds with
-the rest of the portfolio, boosting overall performance.
+Наприклад, у задачах пакування деякі дорогі техніки пропагації можуть сильно
+прискорити пошук, але при неправильному використанні — сильно сповільнити.
+Тому можна додати один сабсолвер із цими техніками. Якщо вони не допоможуть,
+сповільниться лише один воркер, а решта портфеля працюватиме нормально. Якщо ж
+допоможуть — цей воркер зможе ділитися розв’язками та межами з іншими,
+покращуючи загальну продуктивність.
 
-Here is how you can define and add a custom subsolver:
+Ось як додати власний сабсолвер:
 
 ```python
 from ortools.sat import sat_parameters_pb2
@@ -3988,98 +3847,85 @@ packing_subsolver.use_energetic_reasoning_in_no_overlap_2d = True
 packing_subsolver.use_timetabling_in_no_overlap_2d = True
 packing_subsolver.max_pairs_pairwise_reasoning_in_no_overlap_2d = 5_000
 
-# Add the subsolver to the portfolio
-solver.parameters.subsolver_params.append(packing_subsolver)  # Define the subsolver
+# Додаємо сабсолвер до портфеля
+solver.parameters.subsolver_params.append(packing_subsolver)  # Визначення
 solver.parameters.extra_subsolvers.append(
     packing_subsolver.name
-)  # Activate the subsolver
+)  # Активація
 ```
 
-After adding the subsolver, you can check the log to verify that it is included
-in the list of active subsolvers. If it is not shown, you probably used
-parameters incompatible with the model, causing the subsolver to be excluded.
+Після додавання перевірте в логах, чи сабсолвер активний. Якщо його немає,
+ймовірно, параметри несумісні з моделлю, і його виключили.
 
 ```
 8 full problem subsolvers: [MyPackingSubsolver, default_lp, max_lp, no_lp, probing, probing_max_lp, quick_restart, quick_restart_no_lp]
 ```
 
-If you want to find out how the existing subsolvers are configured, you can
-check out the
+Якщо хочете дізнатися, як налаштовані існуючі сабсолвери, див. файл
 [cp_model_search.cc](https://github.com/google/or-tools/blob/stable/ortools/sat/cp_model_search.cc)
-file in the OR-Tools repository.
+в репозиторії OR-Tools.
 
 > [!TIP]
 >
-> You can also overwrite the parameters of an existing subsolver by using the
-> same name. Only the parameters you explicitly change will be updated, while
-> the others will remain as they are. Additionally, you can add multiple
-> subsolvers to the portfolio, but keep in mind that doing so might push some
-> predefined subsolvers out of the portfolio if there are not enough workers
-> available.
+> Ви також можете перевизначити параметри існуючого сабсолвера, використавши
+> те саме ім’я. Зміняться лише параметри, які ви явно задаєте. Також можна
+> додати кілька сабсолверів у портфель, але майте на увазі, що це може
+> «виштовхнути» деякі попередньо визначені сабсолвери, якщо воркерів
+> недостатньо.
 
-### Decision Strategy
+### Стратегія рішень
 
-In the end of this section, a more advanced parameter that looks interesting for
-advanced users as it gives some insights into the search algorithm. It can be
-useful in combination with `solver.parameters.enumerate_all_solutions = True` to
-specify the order in which all solutions are iterated. It can also have some
-impact on the search performance for normal optimization, but this is often hard
-to predict, thus, you should leave the following parameters unless you have a
-good reason to change them.
+Наприкінці цього розділу — параметр, який може бути цікавим для просунутих
+користувачів, бо дає уявлення про алгоритм пошуку. Його можна використовувати
+разом із `solver.parameters.enumerate_all_solutions = True` щоб задати порядок
+перебору рішень. Це може впливати на продуктивність, але передбачити це складно,
+тому не змінюйте параметри без вагомої причини.
 
-We can tell CP-SAT, how to branch (or make a decision) whenever it can no longer
-deduce anything via propagation. For this, we need to provide a list of the
-variables (order may be important for some strategies), define which variable
-should be selected next (fixed variables are automatically skipped), and define
-which value should be probed.
+Ми можемо вказати CP-SAT, як розгалужуватися, коли пропагація більше нічого не
+дедукує. Для цього потрібен список змінних (порядок може бути важливим),
+стратегія вибору змінної (зафіксовані змінні автоматично пропускаються) і
+стратегія вибору значення.
 
-We have the following options for variable selection:
+Варіанти вибору змінної:
 
-- `CHOOSE_FIRST`: the first not-fixed variable in the list.
-- `CHOOSE_LOWEST_MIN`: the variable that could (potentially) take the lowest
-  value.
-- `CHOOSE_HIGHEST_MAX`: the variable that could (potentially) take the highest
-  value.
-- `CHOOSE_MIN_DOMAIN_SIZE`: the variable that has the fewest feasible
-  assignments.
-- `CHOOSE_MAX_DOMAIN_SIZE`: the variable the has the most feasible assignments.
+- `CHOOSE_FIRST`: перша незакріплена змінна у списку.
+- `CHOOSE_LOWEST_MIN`: змінна, що потенційно може мати найменше значення.
+- `CHOOSE_HIGHEST_MAX`: змінна, що потенційно може мати найбільше значення.
+- `CHOOSE_MIN_DOMAIN_SIZE`: змінна з найменшим доменом.
+- `CHOOSE_MAX_DOMAIN_SIZE`: змінна з найбільшим доменом.
 
-For the value/domain strategy, we have the options:
+Варіанти вибору значення/діапазону:
 
-- `SELECT_MIN_VALUE`: try to assign the smallest value.
-- `SELECT_MAX_VALUE`: try to assign the largest value.
-- `SELECT_LOWER_HALF`: branch to the lower half.
-- `SELECT_UPPER_HALF`: branch to the upper half.
-- `SELECT_MEDIAN_VALUE`: try to assign the median value.
+- `SELECT_MIN_VALUE`: пробуємо найменше значення.
+- `SELECT_MAX_VALUE`: пробуємо найбільше значення.
+- `SELECT_LOWER_HALF`: беремо нижню половину.
+- `SELECT_UPPER_HALF`: беремо верхню половину.
+- `SELECT_MEDIAN_VALUE`: пробуємо медіану.
 
 ```python
 model.add_decision_strategy([x], cp_model.CHOOSE_FIRST, cp_model.SELECT_MIN_VALUE)
 
-# your can force CP-SAT to follow this strategy exactly
+# можна змусити CP-SAT слідувати цій стратегії точно
 solver.parameters.search_branching = cp_model.FIXED_SEARCH
 ```
 
-For example for [coloring](https://en.wikipedia.org/wiki/Graph_coloring) (with
-integer representation of the color), we could order the variables by decreasing
-neighborhood size (`CHOOSE_FIRST`) and then always try to assign the lowest
-color (`SELECT_MIN_VALUE`). This strategy should perform an implicit
-kernelization, because if we need at least $k$ colors, the vertices with less
-than $k$ neighbors are trivial (and they would not be relevant for any
-conflict). Thus, by putting them at the end of the list, CP-SAT will only
-consider them once the vertices with higher degree could be colored without any
-conflict (and then the vertices with lower degree will, too). Another strategy
-may be to use `CHOOSE_LOWEST_MIN` to always select the vertex that has the
-lowest color available. Whether this will actually help, has to be evaluated:
-CP-SAT will probably notice by itself which vertices are the critical ones after
-some conflicts.
+Наприклад, для [розфарбування графа](https://en.wikipedia.org/wiki/Graph_coloring)
+(з цілими кольорами) ми можемо впорядкувати змінні за спаданням степеня
+(через `CHOOSE_FIRST`) і завжди пробувати найменший колір (`SELECT_MIN_VALUE`).
+Це дає неявну kernelization: якщо потрібно щонайменше $k$ кольорів, вершини з
+менш ніж $k$ сусідами тривіальні. Розміщуючи їх наприкінці списку, CP-SAT
+розглядатиме їх лише після розфарбування вершин з більшим степенем. Інша
+стратегія — `CHOOSE_LOWEST_MIN`, щоб завжди брати вершину з найменшим доступним
+кольором. Чи допоможе це — треба перевіряти: CP-SAT часто сам знаходить критичні
+вершини через конфлікти.
 
 > [!WARNING]
 >
-> I played around a little with selecting a manual search strategy. But even for
-> the coloring, where this may even seem smart, it only gave an advantage for a
-> bad model and after improving the model by symmetry breaking, it performed
-> worse. Further, I assume that CP-SAT can learn the best strategy (Gurobi does
-> such a thing, too) much better dynamically on its own.
+> Я трохи експериментував із ручними стратегіями. Навіть для розфарбування,
+> де це здається логічним, це дало перевагу лише для поганої моделі. Після
+> покращення моделі через розбиття симетрії результат став гіршим. Я також
+> припускаю, що CP-SAT сам динамічно навчається найкращій стратегії (як це
+> робить Gurobi) краще, ніж статичні ручні налаштування.
 
 ---
 
@@ -4468,246 +4314,212 @@ solution_fingerprint: 0xf10c47f1901c2c16  # Useful to check if two runs result i
 
 <a name="07-under-the-hood"></a>
 
-## How does it work?
+## Як це працює?
 
 
-CP-SAT is a versatile _portfolio_ solver, centered around a _Lazy Clause
-Generation (LCG)_ based Constraint Programming Solver, although it encompasses a
-broader spectrum of technologies.
+CP-SAT — це універсальний _портфельний_ розв’язувач, у центрі якого —
+Constraint Programming Solver на базі _Lazy Clause Generation (LCG)_, хоча він
+включає значно ширший набір технологій.
 
-In its role as a portfolio solver, CP-SAT concurrently executes a multitude of
-diverse algorithms and strategies, each possessing unique strengths and
-weaknesses. These elements operate largely independently but engage in
-information exchange, sharing progress when better solutions emerge or tighter
-bounds become available.
+Як портфельний розв’язувач, CP-SAT одночасно запускає багато різних алгоритмів і
+стратегій, кожна зі своїми сильними й слабкими сторонами. Ці компоненти працюють
+здебільшого незалежно, але обмінюються інформацією, коли з’являються кращі
+розв’язки або більш тісні межі.
 
-While this may initially appear as an inefficient approach due to potential
-redundancy, it proves highly effective in practice. The rationale behind this
-lies in the inherent challenge of predicting which algorithm is best suited to
-solve a given problem (No Free Lunch Theorem). Thus, the pragmatic strategy
-involves running various approaches in parallel, with the hope that one will
-effectively address the problem at hand. Note that you can also specify which
-algorithms should be used if you already know which strategies are promising or
-futile.
+На перший погляд це може здатися неефективним через дублювання, але на практиці
+підхід дуже ефективний. Причина — складність передбачення, який алгоритм найкраще
+підійде для конкретної задачі (теорема «No Free Lunch»). Тому практична стратегія
+— запускати різні підходи паралельно, сподіваючись, що один із них спрацює. Ви
+також можете вказати, які алгоритми використовувати, якщо вже знаєте, які
+перспективні або марні.
 
-In contrast, Branch and Cut-based Mixed Integer Programming solvers like Gurobi
-implement a more efficient partitioning of the search space to reduce
-redundancy. However, they specialize in a particular strategy, which may not
-always be the optimal choice, although it frequently proves to be so.
+На відміну від цього, MIP-розв’язувачі на базі Branch and Cut, як-от Gurobi,
+ефективніше ділять простір пошуку, зменшуючи дублювання. Але вони спеціалізуються
+на конкретній стратегії, яка не завжди найкраща, хоча часто і є такою.
 
-CP-SAT employs Branch and Cut techniques, including linear relaxations and
-cutting planes, as part of its toolkit. Models that can be efficiently addressed
-by a Mixed Integer Programming (MIP) solver are typically a good match for
-CP-SAT as well. Nevertheless, CP-SAT's central focus is the implementation of
-Lazy Clause Generation, harnessing SAT-solvers rather than relying primarily on
-linear relaxations. As a result, CP-SAT may exhibit somewhat reduced performance
-when confronted with MIP problems compared to dedicated MIP solvers. However, it
-gains a distinct advantage when dealing with problems laden with intricate
-logical constraints.
+CP-SAT використовує Branch and Cut техніки, включно з лінійними релаксаціями та
+площинами відсікання, як частину свого арсеналу. Моделі, які добре розв’язуються
+MIP-розв’язувачами, зазвичай добре підходять і для CP-SAT. Проте основний фокус
+CP-SAT — Lazy Clause Generation, яка спирається на SAT-розв’язувачі, а не на
+лінійні релаксації. Через це CP-SAT може бути дещо повільнішим на класичних MIP
+задачах, ніж спеціалізовані MIP-розв’язувачі. Зате він має суттєву перевагу в
+задачах із великою кількістю складних логічних обмежень.
 
-The concept behind Lazy Clause Generation involves the (incremental)
-transformation of the problem into a SAT-formula, subsequently employing a
-SAT-solver to seek a solution (or prove bounds by infeasibility). To mitigate
-the impracticality of a straightforward conversion, Lazy Clause Generation
-leverages an abundance of lazy variables and clauses.
+Ідея Lazy Clause Generation — (інкрементально) перетворювати задачу у SAT-формулу
+і використовувати SAT-розв’язувач для пошуку розв’язку (або доведення меж через
+недопустимість). Щоб уникнути непродуктивної «прямої» конверсії, LCG
+використовує багато лінивих змінних і клауз.
 
-Notably, the
-[Cook-Levin Theorem](https://en.wikipedia.org/wiki/Cook%E2%80%93Levin_theorem)
-attests that any problem within the realm of NP can be translated into a
-SAT-formula. Optimization, in theory, could be achieved through a simple binary
-search. However, this approach, while theoretically sound, lacks efficiency.
-CP-SAT employs a more refined encoding scheme to tackle optimization problems
-more effectively.
+Зокрема, теорема
+[Cook-Levin](https://en.wikipedia.org/wiki/Cook%E2%80%93Levin_theorem)
+показує, що будь-яку NP-задачу можна звести до SAT. Теоретично оптимізацію можна
+реалізувати через двійковий пошук. Але цей підхід хоч і коректний, та
+неефективний. CP-SAT використовує більш витончене кодування для оптимізації.
 
-If you want to understand the inner workings of CP-SAT, you can follow the
-following learning path:
+Якщо хочете зрозуміти внутрішню кухню CP-SAT, можна пройти такий шлях навчання:
 
-1. Learn how to get a feasible solution based on boolean logics with
-   SAT-solvers: Backtracking, DPLL, CDCL, VSIDS, ...
-   - [Historical Overview by Armin Biere](https://youtu.be/DU44Y9Pt504) (video)
+1. Навчитися знаходити допустимий розв’язок на базі булевої логіки з
+   SAT-розв’язувачами: Backtracking, DPLL, CDCL, VSIDS, ...
+   - [Історичний огляд від Armin Biere](https://youtu.be/DU44Y9Pt504) (відео)
    - [Donald Knuth - The Art of Computer Programming, Volume 4, Fascicle 6: Satisfiability](https://www-cs-faculty.stanford.edu/~knuth/taocp.html)
-     (book)
+     (книга)
    - [Carsten Sinz and Tomas Baylo - Practical SAT Solving](https://baldur.iti.kit.edu/sat/#about)
-     (slides)
-2. Learn how to get provably optimal solutions via classical Mixed Integer
-   Programming:
-   - Linear Programming: Simplex, Duality, Dual Simplex, ...
+     (слайди)
+2. Навчитися знаходити доведено оптимальні розв’язки через класичне
+   змішане цілочисельне програмування:
+   - Лінійне програмування: Simplex, Duality, Dual Simplex, ...
      - [Understanding and Using Linear Programming](https://link.springer.com/book/10.1007/978-3-540-30717-4)
-       (book)
+       (книга)
      - [Optimization in Operations Research by Ronald Rardin](https://www.pearson.com/en-us/subject-catalog/p/optimization-in-operations-research/P200000003508/9780137982066)
-       (very long book also containing Mixed Integer Programming, Heuristics,
-       and advanced topics. For those who want to dive deep.)
-     - [Video Series by Gurobi](https://www.youtube.com/playlist?list=PLHiHZENG6W8BeAfJfZ3myo5dsSQjEV5pJ)
-   - Mixed Integer Programming: Branch and Bound, Cutting Planes, Branch and
-     Cut, ...
-     - [Discrete Optimization on Coursera with Pascal Van Hentenryck and Carleton Coffrin](https://www.coursera.org/learn/discrete-optimization)
-       (video course, including also Constraint Programming and Heuristics)
-     - [Gurobi Resources](https://www.gurobi.com/resource/mip-basics/) (website)
-3. Learn the additional concepts of LCG Constraint Programming: Propagation,
+       (дуже велика книга, також про MIP, евристики й просунуті теми)
+     - [Відеосерія від Gurobi](https://www.youtube.com/playlist?list=PLHiHZENG6W8BeAfJfZ3myo5dsSQjEV5pJ)
+   - Змішане цілочисельне програмування: Branch and Bound, Cutting Planes,
+     Branch and Cut, ...
+     - [Discrete Optimization на Coursera з Pascal Van Hentenryck і Carleton Coffrin](https://www.coursera.org/learn/discrete-optimization)
+       (відеокурс, також про CP і евристики)
+     - [Ресурси Gurobi](https://www.gurobi.com/resource/mip-basics/) (сайт)
+3. Вивчити додаткові концепції LCG Constraint Programming: propagation,
    Lazy Clause Generation, ...
-   - [Combinatorial Optimisation and Constraint Programming by Prof. Pierre Flener at Uppsala University in Sweden](https://user.it.uu.se/~pierref/courses/COCP/slides/)
-     (slides)
-   - [Talk by Peter Stuckey](https://www.youtube.com/watch?v=lxiCHRFNgno)
-     (video)
-   - [Paper on Lazy Clause Generation](https://people.eng.unimelb.edu.au/pstuckey/papers/cp09-lc.pdf)
+   - [Combinatorial Optimisation and Constraint Programming від Prof. Pierre Flener (Uppsala University)](https://user.it.uu.se/~pierref/courses/COCP/slides/)
+     (слайди)
+   - [Доповідь Peter Stuckey](https://www.youtube.com/watch?v=lxiCHRFNgno)
+     (відео)
+   - [Стаття про Lazy Clause Generation](https://people.eng.unimelb.edu.au/pstuckey/papers/cp09-lc.pdf)
      (paper)
-4. Learn the details of CP-SAT:
-   - [The proto-file of the parameters](https://github.com/google/or-tools/blob/stable/ortools/sat/sat_parameters.proto)
+4. Вивчити деталі CP-SAT:
+   - [Proto-файл параметрів](https://github.com/google/or-tools/blob/stable/ortools/sat/sat_parameters.proto)
      (source)
-   - [The complete source code](https://github.com/google/or-tools/tree/stable/ortools/sat)
+   - [Повний вихідний код](https://github.com/google/or-tools/tree/stable/ortools/sat)
      (source)
-   - [A recent talk by the developers of CP-SAT](https://www.youtube.com/live/vvUxusrUcpU?si=qVsXMq0xSOsfghTM)
-     (video)
-   - [Another recent talk by the developers of CP-SAT](http://egon.cheme.cmu.edu/ewo/video/CP_SAT_LP_google.mp4)
-     (video)
-   - [A talk by the developers of CP-SAT](https://youtu.be/lmy1ddn4cyw) (video)
+   - [Свіжа доповідь розробників CP-SAT](https://www.youtube.com/live/vvUxusrUcpU?si=qVsXMq0xSOsfghTM)
+     (відео)
+   - [Інша доповідь розробників CP-SAT](http://egon.cheme.cmu.edu/ewo/video/CP_SAT_LP_google.mp4)
+     (відео)
+   - [Доповідь розробників CP-SAT](https://youtu.be/lmy1ddn4cyw) (відео)
 
-If you already have a background in Mixed Integer Programming, you may directly
-jump into the slides of
+Якщо у вас вже є досвід MIP, можна відразу перейти до слайдів
 [Combinatorial Optimisation and Constraint Programming](https://user.it.uu.se/~pierref/courses/COCP/slides/).
-This is a full and detailed course on constraint programming, and will probably
-take you some time to work through. However, it gives you all the knowledge you
-need to understand the constraint programming part of CP-SAT.
+Це повний і детальний курс з constraint programming, і на його проходження
+потрібен час. Але він дає знання, необхідні для розуміння CP-SAT.
 
-> Originally, I wrote a short introduction into each of the topics, but I
-> decided to remove them as the material I linked to is much better than what I
-> could have written. You can find a backup of the old version
-> [here](https://github.com/d-krupke/cpsat-primer/blob/main/old_how_does_it_work.md).
+> Спочатку я написав короткі вступи до кожної теми, але прибрав їх, бо
+> матеріали за посиланнями значно кращі. Стару версію можна знайти
+> [тут](https://github.com/d-krupke/cpsat-primer/blob/main/old_how_does_it_work.md).
 
-### What Happens in CP-SAT During Solve?
+### Що відбувається в CP-SAT під час solve?
 
-What exactly happens when you run `solver.solve(model)`?
+Що саме відбувається при `solver.solve(model)`?
 
-1. **Model Loading and Verification:**
+1. **Завантаження і перевірка моделі:**
 
-   - The model is read from its protobuf representation.
-   - The model is verified for correctness.
+   - Модель читається з protobuf-представлення.
+   - Модель перевіряється на коректність.
 
-2. **Preprocessing (multiple iterations, controlled by
+2. **Попередня обробка (кілька ітерацій, контролюється
    `max_presolve_iterations`):**
 
-   1. **Presolve (domain reduction):**
-      - This step reduces the problem size by simplifying variable domains. For
-        more on this, check out:
-        - [Video on SAT preprocessing](https://www.youtube.com/watch?v=ez9ArInp8w4)
-        - [Video on MaxSAT preprocessing](https://www.youtube.com/watch?v=xLg4hbM8ooM)
-        - [Paper on MIP presolving](https://opus4.kobv.de/opus4-zib/frontdoor/index/index/docId/6037)
-   2. **Expansion of higher-level constraints:**
-      - Higher-level constraints are expanded into lower-level constraints,
-        CP-SAT actually can propagate efficiently, but which are less
-        comfortable for you to write. See
-        [FlatZinc and Flattening](https://www.minizinc.org/doc-2.5.5/en/flattening.html)
-        for a similar process.
-   3. **Detection of equivalent variables and affine relations:**
-      - Affine relations, such as `a * x + b = y`, are identified. Read more
-        about
-        [affine relations here](https://personal.math.ubc.ca/~cass/courses/m309-03a/a1/olafson/affine_fuctions.htm).
-   4. **Substitution with canonical representations:**
-      - Detected affine relations are replaced with canonical representations.
-   5. **Variable probing:**
-      - Some variables are tested to determine if they can be fixed or if
-        further equivalences can be identified.
+   1. **Presolve (зменшення доменів):**
+      - Це зменшує розмір задачі, спрощуючи домени змінних. Див.:
+        - [Відео про SAT preprocessing](https://www.youtube.com/watch?v=ez9ArInp8w4)
+        - [Відео про MaxSAT preprocessing](https://www.youtube.com/watch?v=xLg4hbM8ooM)
+        - [Стаття про MIP presolving](https://opus4.kobv.de/opus4-zib/frontdoor/index/index/docId/6037)
+   2. **Розгортання високорівневих обмежень:**
+      - Високорівневі обмеження перетворюються на нижчорівневі, які CP-SAT може
+        ефективно пропагувати, але які менш зручні для запису. Аналогічний
+        процес — [FlatZinc і Flattening](https://www.minizinc.org/doc-2.5.5/en/flattening.html).
+   3. **Виявлення еквівалентних змінних і афінних зв’язків:**
+      - Ідентифікуються афінні зв’язки на кшталт `a * x + b = y`. Детальніше:
+        [affine relations](https://personal.math.ubc.ca/~cass/courses/m309-03a/a1/olafson/affine_fuctions.htm).
+   4. **Заміна на канонічні представлення:**
+      - Виявлені афінні зв’язки замінюються канонічними представленнями.
+   5. **Пробінг змінних:**
+      - Деякі змінні тестуються, щоб визначити, чи можна їх зафіксувати або
+        виявити інші еквівалентності.
 
-3. **Loading and Relaxation:**
+3. **Завантаження і релаксація:**
 
-   - The preprocessed model is loaded into the underlying solver, and linear
-     relaxations are created.
+   - Попередньо оброблена модель завантажується у внутрішній solver, і
+     створюються лінійні релаксації.
 
-4. **Solution Search:**
+4. **Пошук розв’язку:**
 
-   - The solver searches for solutions and bounds until the lower and upper
-     bounds converge or another stopping criterion is met (e.g., time limit).
-   - Several full subsolvers, each using a unique strategy, are run across
-     different threads. These strategies may include:
-     - More linearized models
-     - Aggressive restarts
-     - Focus on either the lower or upper bound
-   - Each subsolver can theoretically find the optimal solution, but some are
-     faster than others.
+   - Solver шукає розв’язки і межі, доки нижня і верхня межі не збіглися або
+     не спрацював інший критерій зупинки (наприклад, ліміт часу).
+   - Запускаються кілька повних сабсолверів у різних потоках з різними
+     стратегіями:
+     - більш лінеаризовані моделі
+     - агресивні рестарти
+     - фокус на нижній або верхній межі
+   - Теоретично кожен сабсолвер може знайти оптимум, але деякі швидші.
 
-5. **First Solution Search and Local Search:**
+5. **Пошук першого розв’язку і локальний пошук:**
 
-   - Additional "first solution searchers" are launched on remaining threads.
-     These stop once a feasible solution is found.
-   - Once a feasible solution is discovered, incomplete subsolvers take over,
-     applying local search heuristics such as Large Neighborhood Search (LNS).
-     These subsolvers attempt to improve the solution by iterating through
-     various strategies via a Round Robin approach.
-   - During each LNS iteration:
-     1. A copy of the model is made, and a solution is selected from the pool of
-        solutions.
-     2. A subset of variables is removed from the solution (the method for
-        choosing this subset varies between strategies). The neighborhood of
-        these variables is then explored for a better solution.
-     3. The remaining variables are fixed to their current values in the copied
-        model.
-     4. The simplified model is presolved with the fixed variables, which often
-        makes the model much easier to solve.
-     5. The simplified model is then solved using a complete strategy, but with
-        a short time limit and on a single thread.
-     6. If a new solution is found, it’s added to the pool of solutions.
+   - Додаткові «first solution searchers» запускаються на вільних потоках.
+     Вони зупиняються після знаходження допустимого розв’язку.
+   - Після цього активуються неповні сабсолвери, що застосовують локальний
+     пошук, наприклад Large Neighborhood Search (LNS).
+   - Під час кожної ітерації LNS:
+     1. Робиться копія моделі, і обирається розв’язок з пулу.
+     2. Частина змінних «виймається» (спосіб вибору відрізняється за
+        стратегіями). Для цих змінних досліджується околиця.
+     3. Решта змінних фіксується у копії моделі.
+     4. Спрощена модель проходить presolve, що робить її легшою.
+     5. Спрощена модель розв’язується повною стратегією з коротким лімітом
+        часу і одним потоком.
+     6. Якщо знайдено новий розв’язок, він додається у пул.
 
-6. **Solution Transformation:**
-   - The final solution is transformed back into the original model format,
-     allowing you to query the values of the variables as defined in your
-     original model.
+6. **Трансформація розв’язку:**
+   - Фінальний розв’язок трансформується назад у формат початкової моделі,
+     щоб ви могли читати значення змінних у вихідному вигляді.
 
-This is taken from [this talk](https://youtu.be/lmy1ddn4cyw?t=434) and slightly
-extended.
+Це взято з [цієї доповіді](https://youtu.be/lmy1ddn4cyw?t=434) і трохи розширено.
 
-### The use of linear programming techniques
+### Використання лінійного програмування
 
-As already mentioned before, CP-SAT also utilizes the (dual) simplex algorithm
-and linear relaxations. The linear relaxation is implemented as a propagator and
-potentially executed at every node in the search tree but only at lowest
-priority. A significant difference to the application of linear relaxations in
-branch and bound algorithms is that only some pivot iterations are performed (to
-make it faster). However, as there are likely much deeper search trees and the
-warm-starts are utilized, the optimal linear relaxation may still be computed,
-just deeper down the tree (note that for SAT-solving, the search tree is usually
-traversed DFS). At root level, even cutting planes such as Gomory-Cuts are
-applied to improve the linear relaxation.
+Як уже згадувалося, CP-SAT також використовує (dual) simplex і лінійні
+релаксації. Лінійна релаксація реалізована як пропагатор і може виконуватися
+на кожному вузлі дерева пошуку, але з найнижчим пріоритетом. Важлива різниця
+порівняно з Branch and Bound: виконується лише частина pivot-ітерацій (для
+швидкості). Оскільки дерева пошуку можуть бути глибшими і використовується
+warm-start, оптимальна лінійна релаксація все одно може бути обчислена, але
+глибше у дереві (у SAT-розв’язуванні дерево часто обходиться DFS). На корені
+використовуються навіть відсікання на кшталт Gomory-cuts, щоб покращити
+лінійну релаксацію.
 
-The linear relaxation is used for detecting infeasibility (IPs can actually be
-more powerful than simple SAT, at least in theory), finding better bounds for
-the objective and variables, and also for making branching decisions (using the
-linear relaxation's objective and the reduced costs).
+Лінійна релаксація використовується для виявлення недопустимості (IP можуть
+бути потужніші за SAT, принаймні теоретично), для покращення меж цілі і змінних,
+а також для прийняття рішень щодо розгалуження (на основі цілі релаксації та
+reduced costs).
 
-The used Relaxation Induced Neighborhood Search RINS (LNS worker), a very
-successful heuristic, of course also uses linear programming.
+Використаний Relaxation Induced Neighborhood Search RINS (LNS worker), дуже
+успішна евристика, теж використовує лінійне програмування.
 
-### Limitations of CP-SAT
+### Обмеження CP-SAT
 
-While CP-SAT is undeniably a potent solver, it does possess certain limitations
-when juxtaposed with alternative techniques:
+Хоч CP-SAT є дуже потужним solver-ом, він має певні обмеження у порівнянні з
+альтернативами:
 
-1. While proficient, it may not match the speed of a dedicated SAT-solver when
-   tasked with solving SAT-formulas, although its performance remains quite
-   commendable.
-2. Similarly, for classical MIP-problems, CP-SAT may not outpace dedicated
-   MIP-solvers in terms of speed, although it still delivers respectable
-   performance.
-3. Unlike MIP/LP-solvers, CP-SAT lacks support for continuous variables, and the
-   workarounds to incorporate them may not always be highly efficient. In cases
-   where your problem predominantly features continuous variables and linear
-   constraints, opting for an LP-solver is likely to yield significantly
-   improved performance.
-4. CP-SAT does not offer support for lazy constraints or iterative model
-   building, a feature available in MIP/LP-solvers and select SAT-solvers.
-   Consequently, the application of exponential-sized models, which are common
-   and pivotal in Mixed Integer Programming, may be restricted.
-5. CP-SAT is limited to the Simplex algorithm and does not feature interior
-   point methods. This limitation prevents it from employing polynomial time
-   algorithms for certain classes of quadratic constraints, such as Second Order
-   Cone constraints. In contrast, solvers like Gurobi utilize the Barrier
-   algorithm to efficiently tackle these constraints in polynomial time.
+1. Хоч він ефективний, він може бути повільнішим за спеціалізований SAT-solver
+   при розв’язанні SAT-формул, хоча якість все одно дуже висока.
+2. Для класичних MIP-задач CP-SAT може не перевершити спеціалізовані
+   MIP-розв’язувачі, хоча результати часто все одно хороші.
+3. На відміну від MIP/LP-розв’язувачів, CP-SAT не має неперервних змінних, а
+   обхідні шляхи не завжди ефективні. Якщо задача здебільшого має неперервні
+   змінні та лінійні обмеження, LP-розв’язувач, швидше за все, буде значно
+   швидшим.
+4. CP-SAT не підтримує lazy constraints або інкрементальне побудування моделі,
+   що доступно в MIP/LP-розв’язувачах і деяких SAT-розв’язувачах. Тому
+   застосування моделей експоненційного розміру (типових у MIP) може бути
+   обмеженим.
+5. CP-SAT обмежується Simplex і не має interior point методів. Це означає, що
+   він не може використовувати поліноміальні алгоритми для певних класів
+   квадратичних обмежень, як-от Second Order Cone. На відміну від нього,
+   Gurobi застосовує Barrier алгоритм і розв’язує такі обмеження поліноміально.
 
-CP-SAT might also exhibit inefficiency when confronted with certain constraints,
-such as modulo constraints. However, it's noteworthy that I am not aware of any
-alternative solver capable of efficiently addressing these specific constraints.
-At times, NP-hard problems inherently pose formidable challenges, leaving us
-with no alternative but to seek more manageable modeling approaches instead of
-looking for better solvers.
+CP-SAT також може бути неефективним для деяких обмежень, наприклад modulo.
+Втім, мені не відомо жодного альтернативного solver-а, який ефективно працює
+з такими обмеженнями. Іноді NP-складні задачі об’єктивно дуже складні, і
+доводиться шукати більш зручні моделювальні підходи, а не кращі solver-и.
 
 <!-- This file was generated by the `build.py` script. Do not edit it manually. -->
 <!-- ./chapters/03_big_picture.md -->
@@ -4909,114 +4721,102 @@ looking for better solvers.
 <!-- ./chapters/06_coding_patterns.md -->
 <!-- EDIT THIS PART VIA 06_coding_patterns.md -->
 
-# Part 2: Advanced Topics
+# Частина 2: Просунуті теми
 
 <a name="06-coding-patterns"></a>
 
-## Coding Patterns for Optimization Problems
+## Патерни кодування для задач оптимізації
 
 
-In this chapter, we will explore various coding patterns that help you structure
-your implementations for optimization problems using CP-SAT. These patterns
-become especially useful when working on complex problems that need to be solved
-continuously and potentially under changing requirements. While we specifically
-focus on CP-SAT's Python API, many patterns can be adapted to other solvers and
-languages.
+У цьому розділі ми розглянемо різні патерни кодування, які допомагають
+структурувати реалізації оптимізаційних задач із використанням CP-SAT. Ці
+патерни особливо корисні, коли ви працюєте зі складними задачами, які потрібно
+розв’язувати постійно й потенційно за змінних вимог. Хоча ми зосереджуємося на
+Python API CP-SAT, багато патернів можна адаптувати до інших розв’язувачів і
+мов.
 
-In many cases, specifying the model and solving it is sufficient without the
-need for careful structuring. However, there are situations where your models
-are complex and require frequent iteration, either for performance reasons or
-due to changing requirements. In such cases, it is crucial to have a good
-structure in place to ensure that you can easily modify and extend your code
-without breaking it, as well as to facilitate testing and comprehension. Imagine
-you have a complex model and need to adapt a constraint due to new requirements.
-If your code is not modular and your test suite is only able to test the entire
-model, this small change will force you to rewrite all your tests. After a few
-iterations, you might end up skipping the tests altogether, which is a dangerous
-path to follow.
+У багатьох випадках достатньо просто описати модель і розв’язати її без
+особливої структури. Але є ситуації, коли моделі складні й потребують частих
+ітерацій — або через продуктивність, або через зміну вимог. Тоді критично мати
+добру структуру, щоб легко змінювати й розширювати код, не ламаючи його, а також
+щоб полегшити тестування й розуміння. Уявіть, що у вас складна модель і потрібно
+адаптувати обмеження через нові вимоги. Якщо код не модульний, а тестова система
+перевіряє лише всю модель, навіть невелика зміна змусить переписувати всі тести.
+Після кількох ітерацій ви можете взагалі відмовитися від тестів — а це
+небезпечний шлях.
 
-Another common issue in complex optimization models is the risk of forgetting to
-add some trivial constraints to interlink auxiliary variables, which can render
-parts of the model dysfunctional. If the dysfunctional part concerns
-feasibility, you might still notice it if you have separately checked the
-feasibility of the solution. However, if it involves the objective, such as
-penalizing certain combinations, you may not easily notice that your solution is
-suboptimal, as the penalties are not applied. Furthermore, implementing complex
-constraints can be challenging, and a modular structure allows you to test these
-constraints separately to ensure they work as intended. Test-driven development
-(TDD) is an effective approach for implementing complex constraints quickly and
-reliably.
+Ще одна типова проблема в складних моделях — ризик забути додати тривіальні
+обмеження, що з’єднують допоміжні змінні, через що частина моделі перестає
+працювати. Якщо це стосується здійсненності, ви, можливо, помітите проблему
+під час перевірки здійсненності розв’язку. Але якщо це впливає на цільову
+функцію (наприклад, штрафи), ви можете не помітити, що розв’язок субоптимальний,
+бо штрафи не застосовано. Крім того, реалізація складних обмежень часто важка,
+і модульна структура дозволяє тестувати такі обмеження окремо. Розробка через
+тести (TDD) — ефективний підхід для швидкої й надійної реалізації складних
+обмежень.
 
-The field of optimization is highly heterogeneous, and the percentage of
-optimizers with a professional software engineering background seems
-surprisingly low. Much of the optimization work is done by mathematicians,
-physicists, and engineers who have deep expertise in their fields but limited
-experience in software engineering. They are usually highly skilled and can
-create excellent models, but their code is often not very maintainable and does
-not follow software engineering best practices. Many problems are similar enough
-that minimal explanation or structure is deemed sufficient—much like creating
-plots by copying, pasting, and adjusting a familiar template. While this
-approach may not be very readable, it is familiar enough for most people in the
-field to understand. Additionally, it is typical for mathematicians to first
-document the model and then implement it. From a software engineering
-perspective, this workflow resembles the waterfall model, which lacks agility.
+Оптимізація як сфера дуже неоднорідна, і відсоток оптимізаторів із професійним
+бекграундом у програмній інженерії, здається, напрочуд низький. Багато
+оптимізаційної роботи роблять математики, фізики та інженери, які мають глибоку
+експертизу у своїх галузях, але обмежений досвід у софт-інженерії. Вони
+зазвичай дуже кваліфіковані й можуть створювати чудові моделі, але їхній код
+часто непідтримуваний і не відповідає практикам ПЗ. Багато задач подібні між
+собою, тож мінімальних пояснень чи структури часто вважають достатніми —
+подібно до побудови графіків через копіювання шаблонів. Такий підхід може бути
+не надто читабельним, але для багатьох у галузі це звично. Також для
+математиків типово спочатку документувати модель, а потім реалізовувати її.
+З погляду інженерії це нагадує водоспадну модель, яка не є гнучкою.
 
-There appears to be a lack of literature on agile software development in
-optimization, which this chapter seeks to address by presenting some patterns I
-have found useful in my work. I asked a few senior colleagues in the field, and
-unfortunately, they could not provide any useful resources either or did not
-even see the need for such resources. For many use cases, the simple approach is
-indeed sufficient. However, I have found that these patterns make my agile,
-test-driven workflow much easier, faster, and more enjoyable. Note that this
-chapter is largely based on my personal experience due to the limited
-availability of references. I would be happy to hear about your experiences and
-the patterns you have found useful in your work.
+Схоже, що літератури про agile-розробку в оптимізації бракує, і цей розділ
+покликаний заповнити прогалину, описуючи патерни, які я вважаю корисними у
+своїй роботі. Я запитував старших колег, але вони не змогли запропонувати
+ресурси або навіть не бачили потреби в них. Для багатьох кейсів простого
+підходу справді достатньо. Але я виявив, що ці патерни роблять мій agile,
+тест-орієнтований робочий процес значно легшим, швидшим і приємнішим. З огляду
+на брак джерел, цей розділ значною мірою базується на моєму особистому досвіді.
+Буду радий почути ваші історії та патерни, які ви вважаєте корисними.
 
-In the following sections, we will start with the basic function-based pattern
-and then introduce further concepts and patterns that I have found valuable. We
-will work on simple examples where the benefits of these patterns may not be
-immediately apparent, but I hope you will see their potential in more complex
-problems. The alternative would have been to provide complex examples, which
-might have distracted from the patterns themselves.
+Далі ми почнемо з базового патерну на основі функцій, а потім перейдемо до
+інших концепцій і патернів, які я вважаю цінними. Ми працюватимемо на простих
+прикладах, де переваги патернів можуть бути неочевидними, але сподіваюся, ви
+побачите їхній потенціал у складніших задачах. Альтернатива — навести складні
+приклади, що могло б відволікти від самих патернів.
 
 > [!TIP]
 >
-> The following patterns focus on details specific to computational
-> optimization. However, many optimization engineers come from mathematics or
-> physics backgrounds and may not have professional Python or software
-> engineering experience. If you are among them, I recommend familiarizing
-> yourself in especially with
-> [basic data structures and their _comprehensions_](https://docs.python.org/3/tutorial/datastructures.html)
-> and elegant loops using
-> [itertools](https://docs.python.org/3/library/itertools.html). These tools
-> allow you to express your mathematical ideas in Python more elegantly in
-> general, and they are especially useful for optimization problems.
+> Наведені патерни зосереджуються на деталях, специфічних для обчислювальної
+> оптимізації. Проте багато інженерів-оптимізаторів походять із математики чи
+> фізики і можуть не мати професійного досвіду в Python чи софт-інженерії. Якщо
+> це про вас, рекомендую ознайомитися особливо з
+> [базовими структурами даних і їх _comprehensions_](https://docs.python.org/3/tutorial/datastructures.html)
+> та елегантними циклами з
+> [itertools](https://docs.python.org/3/library/itertools.html). Ці інструменти
+> дозволяють елегантніше виражати математичні ідеї у Python і особливо корисні
+> для задач оптимізації.
 >
-> Additionally, there are excellent tools to automatically format, check, and
-> improve your code, such as [ruff](https://docs.astral.sh/ruff/tutorial/).
-> Regularly running `ruff check --fix` and `ruff format` can enhance your code
-> quality with minimal effort. Optimally, you will integrate it via a
+> Також є чудові інструменти для автоматичного форматування, перевірки та
+> покращення коду, наприклад [ruff](https://docs.astral.sh/ruff/tutorial/).
+> Регулярний запуск `ruff check --fix` та `ruff format` підвищує якість коду з
+> мінімальними зусиллями. Оптимально інтегрувати це через
 > [pre-commit hook](https://pre-commit.com/).
 >
-> For getting started with implementing optimization models in general, I highly
-> recommend the blog post
+> Для старту з побудови оптимізаційних моделей загалом дуже рекомендую статтю
 > [The Art Of Not Making It An Art](https://www.gurobi.com/resources/optimization-modeling-the-art-of-not-making-it-an-art/).
-> It excellently summarizes the fundamental principles of successfully managing
-> an optimization project, independent of the concrete language or solver.
+> Вона чудово підсумовує принципи успішного ведення оптимізаційного проєкту
+> незалежно від конкретної мови чи розв’язувача.
 
-### Simple Function
+### Проста функція
 
-For straightforward optimization problems, encapsulating the model creation and
-solving within a single function is a practical approach. This method is best
-suited for simpler cases due to its straightforward nature but lacks flexibility
-for more complex scenarios. Parameters such as the time limit and optimality
-tolerance can be customized via keyword arguments with default values.
+Для простих задач оптимізації практично обгорнути побудову та розв’язання
+моделі в одну функцію. Цей метод підходить для простих випадків, але має меншу
+гнучкість для складних сценаріїв. Параметри на кшталт ліміту часу або допуску
+оптимальності можна задавати через keyword-аргументи з значеннями за
+замовчуванням.
 
-The following Python function demonstrates solving a simple knapsack problem
-using CP-SAT. To recap, in the knapsack problem, we select items - each with a
-specific weight and value - to maximize total value without exceeding a
-predefined weight limit. Given its simplicity, involving only one constraint,
-the knapsack problem serves as an ideal model for introductory examples.
+Нижче приклад функції на Python для задачі рюкзака. Нагадаємо, що в задачі
+рюкзака ми вибираємо предмети (з вагою і цінністю), щоб максимізувати сумарну
+цінність при обмеженні на вагу. Через простоту (лише одне обмеження) ця задача
+ідеальна для вступних прикладів.
 
 ```python
 from ortools.sat.python import cp_model
@@ -5031,31 +4831,29 @@ def solve_knapsack(
     time_limit: int = 900,
     opt_tol: float = 0.01,
 ) -> List[int]:
-    # initialize the model
+    # ініціалізуємо модель
     model = cp_model.CpModel()
-    n = len(weights)  # Number of items
-    # Decision variables for items
+    n = len(weights)  # кількість предметів
+    # Змінні рішень
     x = [model.new_bool_var(f"x_{i}") for i in range(n)]
-    # Capacity constraint
+    # Обмеження місткості
     model.add(sum(weights[i] * x[i] for i in range(n)) <= capacity)
-    # Objective function to maximize value
+    # Цільова функція
     model.maximize(sum(values[i] * x[i] for i in range(n)))
-    # Solve the model
+    # Розв’язання
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = time_limit  # Solver time limit
-    solver.parameters.relative_gap_limit = opt_tol  # Solver optimality tolerance
+    solver.parameters.max_time_in_seconds = time_limit
+    solver.parameters.relative_gap_limit = opt_tol
     status = solver.solve(model)
-    # Extract solution
+    # Витягуємо розв’язок
     return (
-        # Return indices of selected items
         [i for i in range(n) if solver.value(x[i])]
         if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]
         else []
     )
 ```
 
-You can also add some more flexibility by allowing any solver parameters to be
-passed to the solver.
+Можна додати гнучкість, дозволивши передавати будь-які параметри solver-а.
 
 ```python
 def solve_knapsack(
@@ -5067,103 +4865,91 @@ def solve_knapsack(
     opt_tol: float = 0.01,
     **kwargs,
 ) -> List[int]:
-    # initialize the model
+    # ініціалізуємо модель
     model = cp_model.CpModel()
     # ...
-    # Solve the model
+    # Розв’язання
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = time_limit  # Solver time limit
-    solver.parameters.relative_gap_limit = opt_tol  # Solver optimality tolerance
+    solver.parameters.max_time_in_seconds = time_limit
+    solver.parameters.relative_gap_limit = opt_tol
     for key, value in kwargs.items():
         setattr(solver.parameters, key, value)
     # ...
 ```
 
-Add some unit tests in some separate file (e.g., `test_knapsack.py`) to ensure
-that the model works as expected.
+Додайте модульні тести у окремому файлі (наприклад, `test_knapsack.py`), щоб
+переконатися, що модель працює очікувано.
 
 > [!TIP]
 >
-> Write the tests before you write the code. This approach is known as
-> test-driven development (TDD) and can help you to structure your code better
-> and to ensure that your code works as expected. It also helps you to think
-> about the API of your function before you start implementing it.
+> Пишіть тести до написання коду. Це підхід TDD, який допомагає структурувати
+> код і забезпечити його правильність. Він також змушує продумати API функції
+> до реалізації.
 
 ```python
-# Make sure you have a proper project structure and can import your function
+# Переконайтеся, що у вас правильна структура проєкту і ви можете імпортувати функцію
 from myknapsacksolver import solve_knapsack
 
 def test_knapsack_empty():
-    # Always good to have a test for the trivial case. The more trivial the
-    # case, the more likely it is that you forget it.
+    # Тест для тривіального випадку завжди корисний
     assert solve_knapsack([], [], 0) == []
 
 def test_knapsack_nothing_fits():
-    # If nothing fits, we should get an empty solution
+    # Якщо нічого не вміщується, розв’язок має бути порожнім
     assert solve_knapsack([10, 20, 30], [1, 2, 3], 5) == []
 
 def test_knapsack_one_item():
-    # If only one item fits, we should get this item
+    # Якщо вміщується лише один предмет
     assert solve_knapsack([10, 20, 30], [1, 2, 3], 10) == [0]
 
 def test_knapsack_all_items():
-    # If all items fit, we should get all items
+    # Якщо вміщуються всі предмети
     assert solve_knapsack([10, 20, 30], [1, 2, 3], 100) == [0, 1, 2]
 ```
 
-Using pytest, you can run all tests in the project with `pytest .`. Check
-[Real Python](https://realpython.com/pytest-python-testing/) for a good tutorial
-on pytest.
+Запустити всі тести в проєкті можна через `pytest .`. Гарний туторіал —
+[Real Python](https://realpython.com/pytest-python-testing/).
 
-### Logging the Model Building
+### Логування побудови моделі
 
-When working with larger optimization problems, logging the model-building
-process can be essential to find and fix issues. Often, the problem lies not
-within the solver but in the model building itself.
+У великих задачах логування процесу побудови моделі може бути критичним для
+пошуку й виправлення проблем. Часто проблема не в solver-і, а саме в моделі.
 
-In the following example, we add some basic logging to the solver function to
-give us some insights into the model-building process. This logging can be
-easily activated or deactivated by the logging framework, allowing us to use it
-not only during development but also in production, where you usually deactivate
-a lot of logging to save resources.
+У прикладі нижче додаємо базове логування у функцію solver-а, щоб отримати
+інсайти про побудову моделі. Логування легко вмикається/вимикається через
+logging framework, що дозволяє використовувати його і в продакшені.
 
-If you do not know about the logging framework of Python, this is an excellent
-moment to learn about it. I consider it an essential skill for production code
-and this and similar frameworks are used for most production code in any
-language. The official Python documentation contains a
-[good tutorial](https://docs.python.org/3/howto/logging.html). There are people
-that prefer other logging frameworks, but it comes with Python and is good
-enough for most use cases, definitely better than using the badly configurable
-`print` statement.
+Якщо ви не знайомі з logging у Python — це чудова нагода. Я вважаю це
+необхідною навичкою для продакшн-коду, і подібні фреймворки використовуються
+майже всюди. Офіційна документація має
+[гарний туторіал](https://docs.python.org/3/howto/logging.html). Дехто любить
+інші фреймворки, але вбудований logging цілком достатній і кращий за `print`.
 
 ```python
 import logging
 from ortools.sat.python import cp_model
 from typing import List
 
-# Configure the logging framework if it is not already configured.
-# We are setting it to debug level, as we are still developing the code.
+# Налаштовуємо logging, якщо ще не налаштовано
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.DEBUG)
 
-_logger = logging.getLogger(__name__)  # get a logger for the current module
+_logger = logging.getLogger(__name__)
 
 
 def solve_knapsack(
     weights: List[int],
     values: List[int],
     capacity: int,
-    *,  # Make the following arguments keyword-only
+    *,
     time_limit: int = 900,
     opt_tol: float = 0.01,
 ) -> List[int]:
     _logger.debug("Building the knapsack model")
-    # initialize the model
     model = cp_model.CpModel()
-    n = len(weights)  # Number of items
+    n = len(weights)
     _logger.debug("Number of items: %d", n)
     if n > 0:
         if _logger.isEnabledFor(logging.DEBUG):
-            # Only calculate min, mean, and max if we actually log it
             _logger.debug(
                 "Min/Mean/Max weight: %d/%.2f/%d",
                 min(weights),
@@ -5173,23 +4959,17 @@ def solve_knapsack(
             _logger.debug(
                 "Min/Mean/Max value: %d/%.2f/%d", min(values), sum(values) / n, max(values)
             )
-    # Decision variables for items
     x = [model.new_bool_var(f"x_{i}") for i in range(n)]
-    # Capacity constraint
     model.add(sum(weights[i] * x[i] for i in range(n)) <= capacity)
-    # Objective function to maximize value
     model.maximize(sum(values[i] * x[i] for i in range(n)))
-    # Log the model
     _logger.debug("Model created with %d items", n)
-    # Solve the model
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = time_limit  # Solver time limit
-    solver.parameters.relative_gap_limit = opt_tol  # Solver optimality tolerance
+    solver.parameters.max_time_in_seconds = time_limit
+    solver.parameters.relative_gap_limit = opt_tol
     _logger.debug(
         "Starting the solution process with time limit %d seconds", time_limit
     )
     status = solver.solve(model)
-    # Extract solution
     selected_items = (
         [i for i in range(n) if solver.value(x[i])]
         if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]
@@ -5199,37 +4979,32 @@ def solve_knapsack(
     return selected_items
 ```
 
-We will not use logging in the following examples to save space, but you should
-consider adding it to your code.
+У наступних прикладах ми не використовуватимемо логування, щоб зекономити місце,
+але варто подумати про його додавання до коду.
 
 > [!TIP]
 >
-> A great hack you can do with the logging framework is that you can easily hook
-> into your code and do analysis beyond the simple logging. You can simply write
-> a handler that, e.g., waits for the tag `"Selected items: %s"` and then can
-> directly access the selected items, as the actual object is passed to the
-> handler (and not just the string). This can be very useful to gather
-> statistics or to visualize the search process, without having to change the
-> (production) code.
+> Класний хак із logging — можна легко під’єднатися до коду і робити аналіз
+> не лише через тексти логів. Ви можете написати handler, який, наприклад,
+> ловить тег "Selected items: %s" і отримує сам об’єкт (а не лише рядок). Це
+> дуже корисно для збору статистики чи візуалізації процесу пошуку без зміни
+> (продакшн) коду.
 
-### Custom Data Classes for Instances, Configurations, and Solutions
+### Власні data-класи для інстансів, конфігурацій і розв’язків
 
-Incorporating serializable data classes based on strict schema to manage
-instances, configurations, and solutions significantly enhances code readability
-and maintainability. These classes also facilitate documentation, testing, and
-ensure data consistency across larger projects where data exchange among
-different components is necessary.
+Використання серіалізованих data-класів зі строгими схемами для інстансів,
+конфігурацій і розв’язків значно підвищує читабельність і підтримуваність
+коду. Це також полегшує документацію, тестування і забезпечує узгодженість
+даних у великих проєктах.
 
-One popular library for this purpose is
-[Pydantic](https://docs.pydantic.dev/latest/). It is easy to use and provides
-substantial functionality out of the box. The following code introduces data
-classes for the instance, configuration, and solution of the knapsack problem.
-While Python's duck typing is great for rapidly developing internal data flow,
-it can be problematic for interfaces. Users will often misuse the interface in
-unexpected ways, and you will be blamed for it. Pydantic helps mitigate these
-issues by providing a clear interface and validating input data. Additionally,
-you can create an API for your code effortlessly using FastAPI, which is built
-on top of Pydantic.
+Одна з популярних бібліотек для цього —
+[Pydantic](https://docs.pydantic.dev/latest/). Вона проста і дає багато
+функціональності «з коробки». Нижче — класи для інстансу, конфігурації і
+розв’язку задачі рюкзака. Хоча duck typing у Python зручний для швидкої
+внутрішньої розробки, він може створювати проблеми для API. Користувачі часто
+неправильно використовують інтерфейс і звинувачують вас. Pydantic допомагає
+зменшити ці проблеми, даючи чіткий інтерфейс і валідацію. До того ж можна
+легко створити API через FastAPI, який побудований на Pydantic.
 
 ```python
 # pip install pydantic
@@ -5244,7 +5019,7 @@ from pydantic import (
 
 
 class KnapsackInstance(BaseModel):
-    # Defines the knapsack instance to be solved.
+    # Інстанс задачі
     weights: list[PositiveInt] = Field(..., description="The weight of each item.")
     values: list[PositiveInt] = Field(..., description="The value of each item.")
     capacity: PositiveInt = Field(..., description="The capacity of the knapsack.")
@@ -5257,7 +5032,7 @@ class KnapsackInstance(BaseModel):
 
 
 class KnapsackSolverConfig(BaseModel):
-    # Defines the configuration for the knapsack solver.
+    # Конфігурація solver-а
     time_limit: PositiveFloat = Field(
         default=900.0, description="Time limit in seconds."
     )
@@ -5270,7 +5045,7 @@ class KnapsackSolverConfig(BaseModel):
 
 
 class KnapsackSolution(BaseModel):
-    # Defines the solution of the knapsack problem.
+    # Розв’язок задачі
     selected_items: list[int] = Field(..., description="Indices of selected items.")
     objective: float = Field(..., description="Objective value of the solution.")
     upper_bound: float = Field(
@@ -5280,14 +5055,12 @@ class KnapsackSolution(BaseModel):
 
 > [!WARNING]
 >
-> Your data schema should be fully prepared for the optimization process,
-> requiring no further preprocessing. Data preparation and optimization are both
-> complex tasks, and combining them can significantly increase complexity,
-> making your code difficult to maintain. Ideally, your optimization code should
-> simply iterate over the data and add the corresponding constraints and
-> objectives to the model.
+> Схема даних має бути повністю підготовлена для оптимізації без додаткової
+> передобробки. Підготовка даних і оптимізація — обидві складні задачі, і їхнє
+> змішування значно ускладнює код. Ідеально, щоб оптимізаційний код просто
+> проходив по даних і додавав відповідні обмеження та цілі до моделі.
 
-The original code needs to be adapted to use these data classes.
+Початковий код потрібно адаптувати під ці data-класи.
 
 ```python
 from ortools.sat.python import cp_model
@@ -5302,11 +5075,9 @@ def solve_knapsack(
     model.add(sum(instance.weights[i] * x[i] for i in range(n)) <= instance.capacity)
     model.maximize(sum(instance.values[i] * x[i] for i in range(n)))
     solver = cp_model.CpSolver()
-    # Set solver parameters from the configuration
     solver.parameters.max_time_in_seconds = config.time_limit
     solver.parameters.relative_gap_limit = config.opt_tol
     solver.parameters.log_search_progress = config.log_search_progress
-    # Solve the model and return the solution
     status = solver.solve(model)
     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
         return KnapsackSolution(
@@ -5317,11 +5088,9 @@ def solve_knapsack(
     return KnapsackSolution(selected_items=[], objective=0, upper_bound=0)
 ```
 
-You can use the serialization and deserialization capabilities of Pydantic to
-quickly generate test cases based on real data. While you cannot be certain that
-your code is correct with such tests, they will at least notify you if the logic
-changes unexpectedly. If you refactor your code, you will immediately see if its
-behavior changes accidentally.
+Можна використовувати можливості серіалізації Pydantic для швидкого створення
+тест-кейсів на основі реальних даних. Хоча такі тести не гарантують коректність,
+вони принаймні сигналізують про неочікувані зміни логіки після рефакторингу.
 
 ```python
 from datetime import datetime
@@ -5331,7 +5100,7 @@ from pathlib import Path
 
 def add_test_case(instance: KnapsackInstance, config: KnapsackSolverConfig):
     """
-    Quickly generate a test case based on the instance and configuration.
+    Швидко генеруємо тест-кейс на основі інстансу і конфігурації.
     """
     test_folder = Path(__file__).parent / "test_data"
     unique_id = (
@@ -5368,64 +5137,56 @@ def test_saved_test_cases():
         assert (
             solution.objective <= new_solution.upper_bound
         ), "Old solution is better than the new upper bound: One has to be wrong."
-        # Do not test for the selected items, as the solver might return a different solution of the same quality
+        # Не тестуємо selected_items, бо solver може знайти інший розв’язок тієї ж якості
 ```
 
-You can now easily generate test cases and validate them with the following
-code. Ideally, you should use real instances for this, potentially by
-automatically saving 1% of the instances used in production.
+Тепер можна легко генерувати тест-кейси і перевіряти їх таким кодом. Ідеально,
+якщо ви використовуєте реальні інстанси, наприклад автоматично зберігаючи 1%
+інстансів з продакшену.
 
 ```python
-# Define a knapsack instance
+# Інстанс задачі рюкзака
 instance = KnapsackInstance(
     weights=[23, 31, 29, 44, 53, 38, 63, 85, 89, 82],
     values=[92, 57, 49, 68, 60, 43, 67, 84, 87, 72],
     capacity=165,
 )
-# Define a solver configuration
+# Конфігурація solver-а
 config = KnapsackSolverConfig(
     time_limit=10.0, opt_tol=0.01, log_search_progress=False
 )
-# Solve the knapsack problem
+# Розв’язання
 solution = solve_knapsack(instance, config)
-# Add the test case to the test data folder
+# Додаємо тест-кейс у папку
 add_test_case(instance, config)
 ```
 
-You can also maintain backward compatibility easily by adding default values to
-any new fields you add to the data classes.
+Також легко підтримувати зворотну сумісність, якщо додавати значення за
+замовчуванням для нових полів.
 
 > [!TIP]
 >
-> One challenge I often face is designing data classes to be as generic as
-> possible so that they can be used with multiple solvers and remain compatible
-> throughout various stages of the optimization process. For instance, a graph
-> might be represented as an edge list, an adjacency matrix, or an adjacency
-> list, each with its own pros and cons, complicating the decision of which
-> format is optimal for all stages. However, converting between different data
-> class formats is typically straightforward, often requiring only a few lines
-> of code and having a negligible impact compared to the optimization process
-> itself. Therefore, I recommend focusing on functionality with your current
-> solver without overcomplicating this aspect. There is little harm in having to
-> call a few conversion functions because you created separate specialized data
-> classes.
+> Часто доводиться проектувати data-класи максимально загальними, щоб вони
+> підходили для кількох solver-ів і залишалися сумісними на різних етапах
+> оптимізації. Наприклад, граф можна подати як список ребер, матрицю
+> суміжності або список суміжності — і вибір формату залежить від задачі. Але
+> конвертація між форматами зазвичай проста, потребує лише кількох рядків і має
+> незначний вплив порівняно з оптимізацією. Тому я рекомендую фокусуватися на
+> функціональності для вашого поточного solver-а і не ускладнювати цю частину.
 
-### Solver Class
+### Клас розв’язувача
 
-In many real-world optimization scenarios, problems may require iterative
-refinement of the model and solution. For instance, new constraints might only
-become apparent after presenting an initial solution to a user or another
-algorithm (like a physics simulation, which is to complex to optimize directly
-on). In such cases, flexibility is crucial, making it beneficial to encapsulate
-both the model and the solver within a single class. This setup facilitates the
-dynamic addition of constraints and subsequent re-solving without needing to
-rebuild the entire model, potentially even utilizing warm-starting techniques to
-improve performance.
+У багатьох реальних сценаріях оптимізації потрібно ітеративно уточнювати модель
+і розв’язок. Наприклад, нові обмеження можуть з’явитися після показу первинного
+розв’язку користувачу або іншому алгоритму (наприклад, фізичній симуляції, яку
+занадто складно оптимізувати напряму). У таких випадках важлива гнучкість, тому
+корисно інкапсулювати модель і solver в одному класі. Це дозволяє динамічно
+додавати обмеження і повторно розв’язувати задачу без повної перебудови моделі,
+а також потенційно використовувати warm-start.
 
-We introduce the `KnapsackSolver` class, which encapsulates the entire setup and
-solving process of the knapsack problem. We also use the opportunity to directly
-split the model-building into smaller methods, which can be useful for more
-complex models.
+Нижче — `KnapsackSolver`, який інкапсулює побудову та розв’язання задачі. Ми
+також розбиваємо побудову моделі на менші методи, що корисно для складних
+моделей.
 
 ```python
 class KnapsackSolver:
@@ -5472,17 +5233,17 @@ class KnapsackSolver:
 
     def prohibit_combination(self, item_a: int, item_b: int):
         """
-        Prohibit the combination of two items in the solution.
-        This can be useful if, after presenting the solution to the user, they decide that these two items should not be packed together. After calling this method, you can simply call `solve` again to get a new solution obeying this constraint.
+        Забороняє комбінацію двох предметів у розв’язку.
+        Це корисно, якщо після показу розв’язку з’ясувалося, що ці предмети
+        не можна пакувати разом. Після цього просто викликаємо `solve` знову.
         """
         self.model.add(self.x[item_a] + self.x[item_b] <= 1)
 ```
 
-At first glance, this may look like a cumbersome interface, as we first have to
-create a solver object for a specific instance and then call the `solve` method.
-However, this structure accommodates many use cases, and I use variations of it
-for most of my projects. Additionally, I sometimes add a simple function that
-wraps the solver class to make it easier to use for simple cases.
+На перший погляд це може здаватися громіздким — треба створити solver-об’єкт, а
+потім викликати `solve`. Але така структура підходить для багатьох кейсів, і я
+використовую її варіанти у більшості проєктів. Для простих випадків можна додати
+обгортку-функцію.
 
 ```python
 instance = KnapsackInstance(weights=[1, 2, 3], values=[4, 5, 6], capacity=3)
@@ -5491,59 +5252,48 @@ solver = KnapsackSolver(instance, config)
 solution = solver.solve()
 
 print(solution)
-# Check the solution in a more realistic simulation.
-# Assume that the simulation now notices that for some more complex reason,
-# we could not express in the optimization model, the first two items should
-# not be packed together. We can now prohibit this combination and solve again.
+# Припустимо, симуляція показала, що перші два предмети не можна пакувати разом.
 solver.prohibit_combination(0, 1)
 
-# Solve the problem again with the new constraint, but this time
-# only allow 5 seconds for the solver.
+# Розв’язуємо знову, але лише 5 секунд.
 solution = solver.solve(time_limit=5)
 print(solution)
 ```
 
-Although reusing the solver class primarily spares us from rebuilding the model,
-each call to `solve` still initiates a new search from scratch. However,
-iteratively refining the model within the same solver instance is more intuitive
-to code than treating each iteration as an entirely new problem. Moreover, as we
-will demonstrate next, this pattern allows us to improve performance by
-leveraging features like warm-starting — offering advantages over stateless
-optimization functions.
+Хоча повторне використання класу здебільшого економить на повторній побудові
+моделі, кожен `solve` все одно стартує новий пошук. Проте інкрементальне
+уточнення моделі в межах одного екземпляра solver-а більш інтуїтивне для коду,
+ніж повністю нова постановка на кожній ітерації. Ба більше, як ми побачимо
+далі, це дозволяє покращити продуктивність через warm-start.
 
-### Improving Performance with Warm-Starts
+### Покращення продуктивності через warm-start
 
-As the solver class retains a state and can remember the previous iterations, we
-can easily add optimizations that would be cumbersome to implement in a
-stateless function. One such optimization is warm-starting, where the solver
-uses the previous solution as a starting point or "hint" for the next iteration.
-This technique can significantly speed up the solving process, as the solver can
-often use the previous solution as a good starting point for repair, even if the
-previous solution becomes infeasible due to a newly added constraint. This will
-of course only have an advantage if the added constraint does not change the
-problem fundamentally but only requires a part of the solution to be changed.
+Оскільки solver-клас зберігає стан і пам’ятає попередні ітерації, можна легко
+додавати оптимізації, які було б складно реалізувати у статичній функції. Одна
+з них — warm-start, коли solver використовує попередній розв’язок як підказку
+для наступного запуску. Це може суттєво пришвидшити розв’язання, бо solver може
+використати попередній розв’язок як хороший старт для «ремонту», навіть якщо
+він став недопустимим через нові обмеження. Це працює лише тоді, коли нові
+обмеження не змінюють задачу кардинально.
 
-Because repairing an infeasible hint can be computationally expensive, CP-SAT
-handles this process carefully. You can instruct CP-SAT to attempt repairing the
-hint by setting `solver.parameters.repair_hint = True`. Additionally, you can
-adjust the limit on how much effort CP-SAT should spend repairing the hint using
-`solver.parameters.hint_conflict_limit`. For example, setting
-`solver.parameters.hint_conflict_limit = 10` controls how many conflicts CP-SAT
-will resolve before giving up.
+Оскільки ремонт недопустимої підказки може бути дорогим, CP-SAT обережно до
+цього ставиться. Ви можете наказати CP-SAT ремонтувати підказку через
+`solver.parameters.repair_hint = True`, а також керувати лімітом конфліктів через
+`solver.parameters.hint_conflict_limit`.
 
-Here is an example of how to implement this in code:
+Приклад:
 
 ```python
 class KnapsackSolver:
     # ...
 
     def _set_solution_as_hint(self):
-        """Use the current solution as a hint for the next solve."""
+        """Використати поточний розв’язок як підказку для наступного solve."""
         for i, v in enumerate(self.model.proto.variables):
             v_ = self.model.get_int_var_from_proto_index(i)
             assert v.name == v_.name, "Variable names should match"
             self.model.add_hint(v_, self.solver.value(v_))
-        # Tell CP-SAT to repair the hint if it is infeasible
+        # Сказати CP-SAT ремонтувати підказку
         self.solver.parameters.repair_hint = True
         self.solver.parameters.hint_conflict_limit = 20
 
@@ -5553,7 +5303,7 @@ class KnapsackSolver:
         self.solver.parameters.log_search_progress = self.config.log_search_progress
         status = self.solver.solve(self.model)
         if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
-            # There is a solution, set it as a hint for the next solve
+            # Є розв’язок — використовуємо його як підказку
             self._set_solution_as_hint()
             return KnapsackSolution(
                 selected_items=[
@@ -5569,67 +5319,55 @@ class KnapsackSolver:
     # ...
 ```
 
-To further improve this approach, you could add a heuristic to repair the hint.
-A feasible hint is much more valuable than one that needs significant repair.
-For instance, if the hint is infeasible due to a prohibited combination of
-items, you could simply drop the least valuable item to make the hint valid.
+Щоб ще покращити підхід, можна додати евристику для ремонту підказки. Допустима
+підказка набагато корисніша, ніж та, яку треба сильно ремонтувати. Наприклад,
+якщо підказка недопустима через заборонену комбінацію предметів, можна просто
+викинути найменш цінний предмет.
 
 > [!WARNING]
 >
-> A common mistake when trying to improve the performance of iterative
-> optimization is adding the previous bound as a constraint. Although this
-> approach might let CP-SAT resume directly from the previous bound, it often
-> limits CP-SAT's ability to find better solutions. This happens because it adds
-> a strong constraint unrelated to the problem's feasibility, which can
-> interfere with various internal algorithms (such as reducing the effectiveness
-> of linear relaxation).
+> Часта помилка при ітеративній оптимізації — додавати попередню межу як
+> обмеження. Це може дозволити CP-SAT «продовжити» з попередньої межі, але часто
+> обмежує його здатність знаходити кращі розв’язки, бо додає сильне обмеження,
+> не пов’язане зі здійсненністю. Це може заважати внутрішнім алгоритмам,
+> наприклад зменшувати ефективність лінійної релаксації.
 >
-> If bounds significantly affect performance, consider using a callback to check
-> if the current objective is sufficiently close to the previous bound and stop
-> the search if it is. This approach avoids interfering with CP-SAT's
-> optimization capabilities, though callbacks do introduce some overhead.
+> Якщо межі сильно впливають на продуктивність, краще використовувати callback,
+> який перевіряє, чи поточна ціль достатньо близька до попередньої межі, і
+> зупиняє пошук. Це менш агресивно, хоча callbacks додають накладні витрати.
 
 |                                                                                                                                                                                                                                                                                                                                                                         ![Impact of Lower Bound Constraint on Relaxation](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/impact_lb_constraint_tsp.png)                                                                                                                                                                                                                                                                                                                                                                          |
 | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| This image illustrates the detrimental impact of introducing a lower bound constraint into the model on the example of the TSP. The linear relaxation visibly deteriorates: while the original relaxation coincided with the optimal solution on 44 of 50 edges, the relaxation incorporating the lower bound constraint (set to the optimal value) coincides on only 38 edges and exhibits significantly more fractional values. Branching on certain edges may also cease to provide meaningful guidance; unless one branches on a poorly chosen edge, the objective value often remains unchanged as it is dominated by the lower bound constraint. In addition to the reduced informational value of the relaxation, such constraints are also notorious for introducing numerical instabilities (however, CP-SAT is likely unaffected by this issue due to its reliance on integer arithmetic). |
+| Це зображення показує негативний вплив додавання обмеження нижньої межі в моделі TSP. Лінійна релаксація явно погіршується: якщо початкова релаксація збігалася з оптимальним розв’язком на 44 з 50 ребер, то релаксація з обмеженням нижньої межі (рівною оптимуму) збігається лише на 38 ребрах і має більше дробових значень. Розгалуження на певних ребрах може перестати бути корисним; якщо не розгалужуватися по «правильному» ребру, значення цілі часто не змінюється через домінування нижньої межі. Крім втрати інформативності релаксації, такі обмеження відомі як джерело числових нестабільностей (хоча CP-SAT, ймовірно, не страждає від цього через цілочисельну арифметику). |
 
-### Exchangeable Objective / Multi-Objective Optimization
+### Змінна ціль / багатокритеріальна оптимізація
 
-In real-world scenarios, objectives are often not clearly defined. Typically,
-there are multiple objectives with different priorities, making it challenging
-to combine them. Consider the Knapsack problem, representing a logistics issue
-where we aim to transport the maximum value of goods in a single trip. Given the
-values and weights of the goods, our primary objective is to maximize the packed
-goods' value. However, after computing and presenting the solution, we might be
-asked to find an alternative solution that does not fill the truck as much, even
-if it means accepting up to a 5% decrease in value.
+У реальних задачах цілі часто нечіткі. Зазвичай є кілька цілей із різним
+пріоритетом, і їх складно об’єднати. Розгляньмо задачу рюкзака як логістичну
+ситуацію: ми хочемо перевезти максимальну цінність за одну поїздку. Основна
+ціль — максимізувати цінність. Але після того, як показали розв’язок, нас
+можуть попросити знайти альтернативу, що заповнює машину меншою мірою, навіть
+якщо це означає падіння цінності до 5%.
 
 |                              [![xkcd grapfruit](https://imgs.xkcd.com/comics/fuck_grapefruit.png)](https://xkcd.com/388/)                              |
 | :----------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Which fruit is the best one? Many problems are multi-objective and there is no clear single objective. By [xkcd](https://xkcd.com/388/) (CC BY-NC 2.5) |
+| Який фрукт найкращий? Багато задач багатокритеріальні й не мають однозначної мети. Автор [xkcd](https://xkcd.com/388/) (CC BY-NC 2.5) |
 
-To handle this, we can optimize in two phases. First, we maximize the value
-under the weight constraint. Next, we add a constraint that the value must be at
-least 95% of the initial solution's value and change the objective to minimize
-the weight. This iterative process can continue through multiple phases,
-exploring the Pareto front of the two objectives. More complex problems can be
-tackled using similar approaches.
+Щоб впоратися, можна оптимізувати у два етапи. Спочатку максимізуємо цінність
+за обмеженням ваги. Потім додаємо обмеження, що цінність має бути не менше 95%
+від початкового розв’язку, і змінюємо ціль на мінімізацію ваги. Цей процес можна
+повторювати, досліджуючи фронт Парето. Більш складні задачі можна розв’язувати
+схожими підходами.
 
-A challenge with this method is avoiding the creation of multiple models and
-restarting from scratch in each phase. Since we have a solution close to the new
-one and changing the objective does not influence feasibility, it is an
-excellent opportunity to use the current solution as a hint for the next solve.
+Проблема такого методу — уникнути створення кількох моделей і старту з нуля
+кожного разу. Оскільки у нас уже є розв’язок близький до нового, а зміна цілі
+не впливає на здійсненність, це чудова можливість використовувати поточний
+розв’язок як підказку.
 
-The following code demonstrates how to extend a solver class to support
-exchangeable objectives. It includes fixing the current objective value to
-prevent degeneration and using the current solution as a hint.
-
-We created a member `_objective` to store the current objective function and
-added methods to set the objective to maximize value or minimize weight. We also
-introduced methods to set the solution as a hint for the next solve which will
-automatically be called if the `solve` found a feasible solution. To not
-degenerate on previous objectives, we added a method to fix the current
-objective value based on some ratio.
+Нижче — приклад розширення solver-класу для змінної цілі. Ми зберігаємо поточну
+ціль у `_objective` і додаємо методи для максимізації цінності або мінімізації
+ваги. Також додаємо метод для фіксації поточної цілі, щоб уникнути деградації,
+і автоматично ставимо підказку при успішному розв’язанні.
 
 ```python
 class MultiObjectiveKnapsackSolver:
@@ -5644,28 +5382,28 @@ class MultiObjectiveKnapsackSolver:
         self.solver = cp_model.CpSolver()
 
     def set_maximize_value_objective(self):
-        """Set the objective to maximize the value of the packed goods."""
+        """Максимізувати цінність."""
         self._objective = sum(
             value * x_i for value, x_i in zip(self.instance.values, self.x)
         )
         self.model.maximize(self._objective)
 
     def set_minimize_weight_objective(self):
-        """Set the objective to minimize the weight of the packed goods."""
+        """Мінімізувати вагу."""
         self._objective = sum(
             weight * x_i for weight, x_i in zip(self.instance.weights, self.x)
         )
         self.model.minimize(self._objective)
 
     def _set_solution_as_hint(self):
-        """Use the current solution as a hint for the next solve."""
+        """Використати поточний розв’язок як підказку для наступного solve."""
         for i, v in enumerate(self.model.proto.variables):
             v_ = self.model.get_int_var_from_proto_index(i)
             assert v.name == v_.name, "Variable names should match"
             self.model.add_hint(v_, self.solver.value(v_))
 
     def fix_current_objective(self, ratio: float = 1.0):
-        """Fix the current objective value to prevent degeneration."""
+        """Зафіксувати поточну ціль, щоб уникнути деградації."""
         if ratio == 1.0:
             self.model.add(self._objective == self.solver.objective_value)
         elif ratio > 1.0:
@@ -5676,19 +5414,19 @@ class MultiObjectiveKnapsackSolver:
             )
 
     def _add_constraints(self):
-        """Add the weight constraint to the model."""
+        """Додаємо обмеження ваги."""
         used_weight = sum(
             weight * x_i for weight, x_i in zip(self.instance.weights, self.x)
         )
         self.model.add(used_weight <= self.instance.capacity)
 
     def _build_model(self):
-        """Build the initial model with constraints and objective."""
+        """Будуємо модель з обмеженнями та ціллю."""
         self._add_constraints()
         self.set_maximize_value_objective()
 
     def solve(self, time_limit: float | None = None) -> KnapsackSolution:
-        """Solve the knapsack problem and return the solution."""
+        """Розв’язуємо задачу рюкзака та повертаємо розв’язок."""
         self.solver.parameters.max_time_in_seconds = time_limit if time_limit else self.config.time_limit
         self.solver.parameters.relative_gap_limit = self.config.opt_tol
         self.solver.parameters.log_search_progress = self.config.log_search_progress
@@ -5702,67 +5440,60 @@ class MultiObjectiveKnapsackSolver:
                 objective=self.solver.objective_value,
                 upper_bound=self.solver.best_objective_bound,
             )
+            )
         return KnapsackSolution(
             selected_items=[], objective=0, upper_bound=float("inf")
         )
 ```
 
-We can use the `MultiObjectiveKnapsackSolver` class as follows:
+Можна використовувати `MultiObjectiveKnapsackSolver` так:
 
 ```python
 config = KnapsackSolverConfig(time_limit=15, opt_tol=0.01, log_search_progress=True)
 solver = MultiObjectiveKnapsackSolver(instance, config)
 solution_1 = solver.solve()
 
-# maintain at least 95% of the current objective value
+# зберігаємо щонайменше 95% поточного значення цілі
 solver.fix_current_objective(0.95)
-# change the objective to minimize the weight
+# змінюємо ціль на мінімізацію ваги
 solver.set_minimize_weight_objective()
 solution_2 = solver.solve(time_limit=10)
 ```
 
-There are more advanced and precise methods for computing the
-[Pareto front](https://en.wikipedia.org/wiki/Pareto_front), but
-[multi-objective optimization](https://en.wikipedia.org/wiki/Multi-objective_optimization)
-is a complex field of research in its own right. If your problem is already
-challenging with a single objective, adding more objectives will only increase
-the difficulty.
+Існують більш просунуті й точні методи обчислення
+[фронту Парето](https://en.wikipedia.org/wiki/Pareto_front), але
+[багатокритеріальна оптимізація](https://en.wikipedia.org/wiki/Multi-objective_optimization)
+— окрема складна сфера досліджень. Якщо ваша задача вже складна з однією
+ціллю, додаткові цілі лише підвищать складність.
 
-Using the shown approach of lexicographic optimization (with relaxation) or
-combining multiple objectives into a single one, for example by adding them with
-different weights, is often a reasonable compromise. You could also use
-heuristics to explore the solution space around an initial solution obtained
-with CP-SAT.
+Підхід лексикографічної оптимізації (з послабленням) або об’єднання кількох
+цілей в одну, наприклад через ваги, часто є розумним компромісом. Також можна
+використовувати евристики, щоб досліджувати простір розв’язків навколо
+початкового розв’язку з CP-SAT.
 
-However, multi-objective optimization remains a challenging topic, and even
-experts rely on significant trial and error to achieve satisfactory results, as
-compromises are often unavoidable.
+Втім, багатокритеріальна оптимізація залишається складною темою, і навіть
+експерти покладаються на суттєвий trial-and-error, бо компроміси часто
+неминучі.
 
-### Variable Containers
+### Контейнери змінних
 
-In complex models, variables play a crucial role and can span the entire model.
-While managing variables as a list or dictionary may suffice for simple models,
-this approach becomes cumbersome and error-prone as the model's complexity
-increases. A single mistake in indexing can introduce subtle errors, potentially
-leading to incorrect results that are difficult to trace.
+У складних моделях змінні відіграють ключову роль і можуть охоплювати всю
+модель. Для простих моделей достатньо списку або словника, але у складних це
+стає громіздким і схильним до помилок. Один неправильний індекс може
+спричинити тонкі помилки, які складно відстежити.
 
-As variables form the foundation of the model, refactoring them becomes more
-challenging as the model grows. Therefore, it is crucial to establish a robust
-management system early on. Encapsulating variables in a dedicated class ensures
-that they are always accessed correctly. This approach also allows for the easy
-addition of new variables or modifications in their management without altering
-the entire model.
+Оскільки змінні — основа моделі, їх рефакторинг стає складнішим із ростом
+моделі. Тому важливо рано налагодити надійну систему керування. Інкапсуляція
+змінних у класі забезпечує правильний доступ до них. Це також дозволяє легко
+додавати нові змінні або змінювати логіку без переписування всієї моделі.
 
-Furthermore, incorporating clear query methods helps maintain the readability
-and manageability of constraints. Readable constraints, free from complex
-variable access patterns, ensure that the constraints accurately reflect the
-intended model.
+Крім того, зрозумілі методи-запити допомагають підтримувати читабельність
+обмежень. Читабельні обмеження без складних схем доступу гарантують, що вони
+відповідають задуму.
 
-In the following code, we introduce the `_ItemSelectionVars` class to the
-`KnapsackSolver`, which acts as a container for the decision variables
-associated with the knapsack items. This class not only creates these variables
-but also offers several utility methods to interact with them, improving the
-clarity and maintainability of the code.
+Нижче ми вводимо `_ItemSelectionVars` як контейнер для змінних вибору. Цей
+клас створює змінні і має допоміжні методи для взаємодії з ними, що підвищує
+читабельність і підтримуваність.
 
 ```python
 from typing import Generator, Tuple, List
@@ -5796,8 +5527,7 @@ class _ItemSelectionVars:
         value_ub: float = float("inf"),
     ) -> Generator[Tuple[int, cp_model.IntVar], None, None]:
         """
-        An example for a more complex query method, which would allow use to
-        iterate over all items that fulfill certain conditions.
+        Приклад складнішого методу-запиту для фільтрації предметів.
         """
         for i, (weight, x_i) in enumerate(zip(self.instance.weights, self.x)):
             if (
@@ -5808,9 +5538,8 @@ class _ItemSelectionVars:
 
 ```
 
-This class can be used in the `KnapsackSolver` that handles the higher level
-logic, i.e., the high level specification of what the model should do, while
-details can be hidden in the container class.
+Цей клас можна використовувати в `KnapsackSolver`, який відповідає за високий
+рівень логіки (що має робити модель), а деталі сховати в контейнері.
 
 ```python
 class KnapsackSolver:
@@ -5852,17 +5581,14 @@ class KnapsackSolver:
         self._item_vars.packs_item(item_b))
 ```
 
-For example,
-`self.model.add(self._item_vars.used_weight() <= self.instance.capacity)` now
-directly expresses what the constraint does, making the code more readable and
-less error-prone. You can actually hide additional optimizations in the
-container class, without influencing the higher-level code in the actual solver.
-For example, the container class could decide to automatically replace all item
-variables that cannot fit into the knapsack due to their weight with a constant.
+Наприклад, `self.model.add(self._item_vars.used_weight() <= self.instance.capacity)`
+тепер прямо виражає зміст обмеження, що підвищує читабельність і зменшує
+ймовірність помилок. У контейнері можна також приховати оптимізації, не змінюючи
+високорівневий код solver-а. Наприклад, контейнер може автоматично замінювати
+змінні предметів, які не можуть вміститися в рюкзак, на константи.
 
-You can also reuse the variable type, e.g., if you suddenly have two knapsacks
-to fill. The following code demonstrates how to quickly extend the solver to
-handle two knapsacks, without sacrificing readability or maintainability.
+Можна повторно використовувати тип контейнера, якщо з’явиться два рюкзаки. Код
+нижче показує, як розширити solver на два рюкзаки без втрати читабельності.
 
 ```python
 class KnapsackSolver:
@@ -5877,7 +5603,7 @@ class KnapsackSolver:
         self.model.add(self._knapsack_a.used_weight() <= self.instance.capacity_1)
         self.model.add(self._knapsack_b.used_weight() <= self.instance.capacity_2)
         self.model.add(self._knapsack_a.used_weight() + self._knapsack_b.used_weight() <= self.instance.capacity_total)
-        # Add a constraint that items cannot be packed in both knapsacks
+        # Забороняємо пакувати предмет у два рюкзаки
         for i in range(len(instance.weights)):
             self.model.add_at_most_one(self._knapsack_a.packs_item(i), self._knapsack_b.packs_item(i))
 
@@ -5887,32 +5613,25 @@ class KnapsackSolver:
 
 > [!WARNING]
 >
-> Do not create such a container class for simple models where the container
-> would only wrap a list or a dictionary without adding any additional
-> functionality. In such cases, directly using the list or dictionary is
-> preferable, as it is more concise and easier to understand. The same is true
-> for individual variables that do not need a container at all.
+> Не створюйте контейнерний клас для простих моделей, якщо він лише обгортає
+> список або словник без додаткової логіки. У таких випадках простий список або
+> словник читається легше й коротше. Те саме стосується окремих змінних, яким
+> не потрібен контейнер.
 
-### Lazy Variable Construction
+### Ліниве створення змінних
 
-In models with numerous auxiliary variables, often only a subset is actually
-used by the constraints. Attempting to create only the variables that are needed
-can require complex code to ensure that exactly the right variables are
-generated. If the model is extended later, this process becomes even more
-complicated, as you may not know upfront which variables will be needed. This is
-where lazy variable construction comes into play. By creating variables only
-when they are accessed, we ensure that only necessary variables are generated,
-reducing memory usage and computational overhead. While this approach might be
-more expensive if most variables end up being used anyway, it can save
-significant resources when only a small subset is actually needed.
+У моделях з великою кількістю допоміжних змінних часто реально використовується
+лише невелика підмножина. Спроба створювати лише потрібні змінні заздалегідь
+може ускладнити код і при подальших розширеннях ще більше ускладнюється. Тут
+допомагає ліниве створення змінних: вони створюються лише при доступі до них.
+Це гарантує, що створюються лише потрібні змінні, економлячи пам’ять та час.
+Якщо зрештою використовується більшість змінних, це може бути дорожчим, але коли
+потрібні лише кілька — економія суттєва.
 
-To illustrate this concept, we introduce the `_CombiVariables` class. This class
-manages auxiliary variables that indicate when a pair of items is packed
-together, allowing us to assign additional bonuses for packing certain items
-together. Theoretically, the number of possible item combinations is quadratic
-in the number of items, but in practice, only a few may be relevant. By creating
-these variables lazily—only when they are accessed—we reduce memory usage and
-computational overhead.
+Для ілюстрації введемо `_CombiVariables`. Він управляє допоміжними змінними для
+пар предметів, щоб задавати бонус за пакування разом. Теоретично кількість пар
+квадратична, але на практиці релевантні лише деякі. Ліниве створення економить
+ресурси.
 
 ```python
 class _CombiVariables:
@@ -5938,12 +5657,10 @@ class _CombiVariables:
         return self.bonus_vars[(i, j)]
 ```
 
-In the `KnapsackSolver`, we can now treat these variables as if they were all
-pre-created, without worrying about the underlying optimization. Note that we
-have moved the creation of the objective function into the `solve` method, as
-adding bonuses for item combinations will modify the objective function. Also,
-by encapsulating item variables into a separate class (`_ItemSelectionVars`), we
-can easily pass them around and use them in other components.
+У `KnapsackSolver` можна поводитися так, ніби всі змінні існують, не турбуючись
+про оптимізацію. Зверніть увагу: ціль ми будуємо у `solve`, бо бонуси змінюють
+ціль. Також, інкапсулювавши змінні у `_ItemSelectionVars`, ми можемо легко
+передавати їх іншим компонентам.
 
 ```python
 class KnapsackSolver:
@@ -5953,7 +5670,7 @@ class KnapsackSolver:
         self.model = cp_model.CpModel()
         self._item_vars = _ItemSelectionVars(instance, self.model)
         self._bonus_vars = _CombiVariables(instance, self.model, self._item_vars)
-        self._objective_terms = [self._item_vars.packed_value()]  # Initial objective terms
+        self._objective_terms = [self._item_vars.packed_value()]
         self.solver = cp_model.CpSolver()
 
     def solve(self) -> KnapsackSolution:
@@ -5979,33 +5696,25 @@ class KnapsackSolver:
 
 > [!TIP]
 >
-> If we are sure to only call `add_bonus` for a pair of items once, we could
-> also save us the trouble of storing the bonus variables and just create and
-> add them to the objective function directly in the `add_bonus` method. There
-> is no need to store the variable handle if we do not need it later, as CP-SAT
-> will take care of the variable's lifecycle.
+> Якщо ми точно знаємо, що `add_bonus` викликається для пари лише один раз,
+> можна не зберігати bonus_vars, а створювати змінну і додавати в ціль одразу.
+> Немає потреби зберігати handle, якщо він не потрібен пізніше.
 
-### Submodels
+### Підмоделі
 
-We can further enhance our modeling approach by encapsulating entire sections of
-the model—not just individual variables—into separate submodels. This technique
-is particularly useful for complex models where different components are loosely
-connected. By partitioning the model into smaller, more manageable submodels, we
-improve modularity and maintainability. Submodels communicate with the main
-model through shared variables, effectively hiding internal details like
-auxiliary variables. If requirements change, we can often reconfigure or replace
-specific submodels without affecting the rest of the model. In larger contexts,
-it is also common for logic to repeat in different optimization problems of the
-system, so building a collection of submodels allows us to quickly assemble new
-models using reusable components.
+Ми можемо покращити підхід, інкапсулюючи цілі секції моделі в окремі підмоделі.
+Це корисно для складних моделей, де компоненти слабо пов’язані. Розбиття на
+підмоделі підвищує модульність і підтримуваність. Підмоделі комунікують із
+головною моделлю через спільні змінні, приховуючи деталі, як-от допоміжні
+змінні. Якщо вимоги зміняться, можна переписати одну підмодель без впливу на
+інші. Також часто логіка повторюється у різних оптимізаційних задачах, тому
+бібліотека підмоделей дозволяє швидко збирати нові моделі з компонентів.
 
-For instance, piecewise linear functions can be modeled as submodels, as
-demonstrated with the `PiecewiseLinearConstraint` class in
+Наприклад, кусково-лінійні функції можна оформити як підмодель, як у класі
+`PiecewiseLinearConstraint` у
 [piecewise_linear_function.py](https://github.com/d-krupke/cpsat-primer/blob/main/utils/piecewise_functions/piecewise_linear_function.py).
-Each submodel handles a piecewise linear function independently, interfacing
-with the main model through shared `x` and `y` variables. By encapsulating the
-logic for each piecewise function in a dedicated class, we make it reusable and
-testable in isolation.
+Кожна підмодель керує однією функцією, взаємодіючи з моделлю через `x` та `y`.
+Інкапсуляція робить логіку повторно використовуваною і тестованою окремо.
 
 ```python
 from ortools.sat.python import cp_model
@@ -6025,10 +5734,10 @@ model.add(produce_1 * requirements_1[0] + produce_2 * requirements_2[0] <= buy_1
 model.add(produce_1 * requirements_1[1] + produce_2 * requirements_2[1] <= buy_2)
 model.add(produce_1 * requirements_1[2] + produce_2 * requirements_2[2] <= buy_3)
 
-# You can find the PiecewiseLinearFunction and PiecewiseLinearConstraint classes in the utils directory
+# PiecewiseLinearFunction і PiecewiseLinearConstraint — у utils
 from piecewise_functions import PiecewiseLinearFunction, PiecewiseLinearConstraint
 
-# Define the functions for the costs
+# Функції витрат
 costs_1 = [(0, 0), (1000, 400), (1500, 1300)]
 costs_2 = [(0, 0), (300, 300), (700, 500), (1200, 600), (1500, 1100)]
 costs_3 = [(0, 0), (200, 400), (500, 700), (1000, 900), (1500, 1500)]
@@ -6043,7 +5752,7 @@ f_costs_3 = PiecewiseLinearFunction(
     xs=[x for x, y in costs_3], ys=[y for x, y in costs_3]
 )
 
-# Define the functions for the gains
+# Функції доходу
 gain_1 = [(0, 0), (100, 800), (200, 1600), (300, 2000)]
 gain_2 = [(0, 0), (80, 1000), (150, 1300), (200, 1400), (300, 1500)]
 
@@ -6054,27 +5763,26 @@ f_gain_2 = PiecewiseLinearFunction(
     xs=[x for x, y in gain_2], ys=[y for x, y in gain_2]
 )
 
-# Create y >= f(x) constraints for the costs
+# y >= f(x) для витрат
 x_costs_1 = PiecewiseLinearConstraint(model, buy_1, f_costs_1, upper_bound=False)
 x_costs_2 = PiecewiseLinearConstraint(model, buy_2, f_costs_2, upper_bound=False)
 x_costs_3 = PiecewiseLinearConstraint(model, buy_3, f_costs_3, upper_bound=False)
 
-# Create y <= f(x) constraints for the gains
+# y <= f(x) для доходу
 x_gain_1 = PiecewiseLinearConstraint(model, produce_1, f_gain_1, upper_bound=True)
 x_gain_2 = PiecewiseLinearConstraint(model, produce_2, f_gain_2, upper_bound=True)
 
-# Maximize the gains minus the costs
+# Максимізуємо дохід мінус витрати
 model.maximize(x_gain_1.y + x_gain_2.y - (x_costs_1.y + x_costs_2.y + x_costs_3.y))
 ```
 
-Testing complex optimization models is often challenging because outputs can be
-sensitive to small changes in the model. Even with a good test case, detected
-errors may be difficult to trace. By extracting elements into submodels, you can
-test these submodels independently, ensuring they work correctly before
-integrating them into the main model.
+Тестування складних оптимізаційних моделей часто складне, бо результати можуть
+змінюватися навіть через дрібні зміни. Навіть якщо тест знаходить помилку,
+виявити джерело складно. Винесення елементів у підмоделі дозволяє тестувати їх
+окремо, забезпечуючи коректність перед інтеграцією.
 
-Submodels are usually much simpler than the overall problem, making them easy to
-optimize and, thus, fast to test their optimal solution.
+Підмоделі зазвичай значно простіші за основну задачу, тож оптимізуються швидко,
+а отже тести працюють швидко.
 
 ```python
 from ortools.sat.python import cp_model
@@ -6084,11 +5792,11 @@ def test_piecewise_linear_upper_bound_constraint():
     x = model.new_int_var(0, 20, "x")
     f = PiecewiseLinearFunction(xs=[0, 10, 20], ys=[0, 10, 5])
 
-    # Using the submodel
+    # Використовуємо підмодель
     c = PiecewiseLinearConstraint(model, x, f, upper_bound=True)
     model.maximize(c.y)
 
-    # Checking its behavior
+    # Перевіряємо поведінку
     solver = cp_model.CpSolver()
     status = solver.solve(model)
     assert status == cp_model.OPTIMAL
@@ -6096,9 +5804,8 @@ def test_piecewise_linear_upper_bound_constraint():
     assert solver.value(x) == 10
 ```
 
-Alternatively, testing for feasibility or infeasibility can be a good choice,
-especially if the submodel does not directly correspond to an optimization
-problem on its own.
+Альтернативно можна тестувати здійсненність/недопустимість, особливо якщо
+підмодель не є оптимізаційною задачею сама по собі.
 
 ```python
 from ortools.sat.python import cp_model
@@ -6109,13 +5816,13 @@ def test_piecewise_linear_upper_bound_constraint_via_fixation():
     f = PiecewiseLinearFunction(xs=[0, 10, 20], ys=[0, 10, 5])
     c = PiecewiseLinearConstraint(model, x, f, upper_bound=True)
 
-    # Fix the variables to specific values
+    # Фіксуємо змінні на конкретних значеннях
     model.add(x == 10)
     model.add(c.y == 10)
 
     solver = cp_model.CpSolver()
     status = solver.solve(model)
-    assert status == cp_model.OPTIMAL, "The model should be feasible"
+    assert status == cp_model.OPTIMAL, "Модель має бути допустимою"
 
 def test_piecewise_linear_upper_bound_constraint_via_fixation_infeasible():
     model = cp_model.CpModel()
@@ -6123,42 +5830,38 @@ def test_piecewise_linear_upper_bound_constraint_via_fixation_infeasible():
     f = PiecewiseLinearFunction(xs=[0, 10, 20], ys=[0, 10, 5])
     c = PiecewiseLinearConstraint(model, x, f, upper_bound=True)
 
-    # Fix the variables to specific values that violate the constraint
+    # Фіксуємо значення, що порушують обмеження
     model.add(x == 10)
     model.add(c.y == 11)
 
     solver = cp_model.CpSolver()
     status = solver.solve(model)
-    assert status == cp_model.INFEASIBLE, "The model should be infeasible"
+    assert status == cp_model.INFEASIBLE, "Модель має бути недопустимою"
 ```
 
-### Embedding CP-SAT in an Application via multiprocessing
+### Вбудовування CP-SAT у застосунок через multiprocessing
 
-If you want to embed CP-SAT in your application for potentially long-running
-optimization tasks, you can utilize callbacks to provide users with progress
-updates and potentially interrupt the process early. However, one issue is that
-the application can only react during the callback. Since the callback is not
-always called frequently, this may lead to problematic delays, making it
-unsuitable for graphical user interfaces (GUIs) or application programming
-interfaces (APIs).
+Якщо ви хочете вбудувати CP-SAT у застосунок для потенційно довгих
+оптимізаційних задач, можна використати callbacks, щоб показувати прогрес і
+дозволяти раннє припинення. Проте застосунок може реагувати лише в момент
+callback, а вони не завжди викликаються часто. Це може спричинити затримки і
+погано підходить для GUI чи API.
 
-An alternative is to let the solver run in a separate process and communicate
-with it using a pipe. This approach allows the solver to be interrupted at any
-time, enabling the application to react immediately. Python's multiprocessing
-module provides reasonably simple ways to achieve this.
-[This example](https://github.com/d-krupke/cpsat-primer/blob/main/examples/embedding_cpsat/)
-showcases such an approach. However, for scaling this approach up, you will
-actually have to build a task queues where the solver is run by workers. Using
-multiprocessing can still be useful for the worker to remain responsive for stop
-signals while the solver is running.
+Альтернатива — запускати solver в окремому процесі й спілкуватися з ним через
+pipe. Це дозволяє перервати solver у будь-який момент і дає миттєву реакцію.
+Python multiprocessing пропонує досить прості інструменти для цього.
+[Цей приклад](https://github.com/d-krupke/cpsat-primer/blob/main/examples/embedding_cpsat/)
+показує такий підхід. Щоб масштабувати його, зазвичай потрібна черга задач, де
+solver запускається воркерами. Multiprocessing все одно корисний, бо дозволяє
+воркеру залишатися чутливим до сигналів зупинки, поки solver працює.
 
 | ![Interactive Solver with Streamlit using multiprocessing](https://github.com/d-krupke/cpsat-primer/blob/main/images/streamlit_solver.gif) |
 | :----------------------------------------------------------------------------------------------------------------------------------------: |
-|                                _Using multiprocessing, one can build a responsive interface for a solver._                                 |
+|                                _Використовуючи multiprocessing, можна створити чутливий інтерфейс для solver-а._                                 |
 
-[@oulianov](https://github.com/oulianov) deployed it
-[here](https://cpsat-embeddings-demo.streamlit.app/) for you to try out in your
-browser.
+[@oulianov](https://github.com/oulianov) розгорнув це
+[тут](https://cpsat-embeddings-demo.streamlit.app/), щоб можна було спробувати
+у браузері.
 
 ---
 

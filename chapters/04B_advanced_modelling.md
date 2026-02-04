@@ -1,208 +1,196 @@
 <a name="04B-advanced-modelling"></a>
 
-## Advanced Modeling
+## Просунуте моделювання
 
 <!-- START_SKIP_FOR_README -->
 
-![Cover Image Modelling](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/logo_complex_assembly.webp)
+![Обкладинка «Моделювання»](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/logo_complex_assembly.webp)
 
 <!-- STOP_SKIP_FOR_README -->
 
-After having seen the basic elements of CP-SAT, this chapter will introduce you
-to the more complex constraints. These constraints are already focused on
-specific problems, such as routing or scheduling, but very generic and powerful
-within their domain. However, they also need more explanation on the correct
-usage.
+Після знайомства з базовими елементами CP-SAT у цьому розділі ми перейдемо до
+складніших обмежень. Вони вже орієнтовані на конкретні задачі — наприклад,
+маршрутизацію чи планування — але всередині свого домену дуже універсальні й
+потужні. Водночас вони потребують більш детального пояснення щодо правильного
+використання.
 
-- [Tour Constraints](#04-modelling-circuit): `add_circuit`,
+- [Обмеження турів](#04-modelling-circuit): `add_circuit`,
   `add_multiple_circuit`, `add_reservoir_constraint_with_active`
-- [Intervals](#04-modelling-intervals): `new_interval_var`,
+- [Інтервали](#04-modelling-intervals): `new_interval_var`,
   `new_interval_var_series`, `new_fixed_size_interval_var`,
   `new_optional_interval_var`, `new_optional_interval_var_series`,
   `new_optional_fixed_size_interval_var`,
   `new_optional_fixed_size_interval_var_series`,
   `add_no_overlap`,`add_no_overlap_2d`, `add_cumulative`
-- [Automaton Constraints](#04-modelling-automaton): `add_automaton`
-- [Reservoir Constraints](#04-modelling-reservoir): `add_reservoir_constraint`,
-- [Piecewise Linear Constraints](#04-modelling-pwl): Not officially part of
-  CP-SAT, but we provide some free copy&pasted code to do it.
+- [Обмеження автомата](#04-modelling-automaton): `add_automaton`
+- [Обмеження резервуара](#04-modelling-reservoir): `add_reservoir_constraint`
+- [Кусково-лінійні обмеження](#04-modelling-pwl): офіційно не частина CP-SAT,
+  але ми надаємо безкоштовний код для копіювання.
 
 <a name="04-modelling-circuit"></a>
 
-### Circuit/Tour-Constraints
+### Обмеження circuit/турів
 
-Routes and tours are essential in addressing optimization challenges across
-various fields, far beyond traditional routing issues. For example, in DNA
-sequencing, optimizing the sequence in which DNA fragments are assembled is
-crucial, while in scientific research, methodically ordering the reconfiguration
-of experiments can greatly reduce operational costs and downtime. The
-`add_circuit` and `add_multiple_circuit` constraints in CP-SAT allow you to
-easily model various scenarios. These constraints extend beyond the classical
-[Traveling Salesman Problem (TSP)](https://en.wikipedia.org/wiki/Travelling_salesman_problem),
-allowing for solutions where not every node needs to be visited and
-accommodating scenarios that require multiple disjoint sub-tours. This
-adaptability makes them invaluable for a broad spectrum of practical problems
-where the sequence and arrangement of operations critically impact efficiency
-and outcomes.
+Маршрути й тури важливі для розв’язання оптимізаційних задач у багатьох сферах,
+далеко за межами класичної маршрутизації. Наприклад, у секвенуванні ДНК
+оптимізація порядку збирання фрагментів критична, а в наукових дослідженнях
+методичне впорядкування переналаштувань експериментів може суттєво зменшити
+операційні витрати та простої. Обмеження `add_circuit` і `add_multiple_circuit`
+в CP-SAT дозволяють легко моделювати різні сценарії. Вони виходять за межі
+класичної
+[задачі комівояжера (TSP)](https://en.wikipedia.org/wiki/Travelling_salesman_problem),
+дозволяючи розв’язки, де не потрібно відвідувати всі вершини, а також
+підтримуючи кілька неперетинних підтурів. Така адаптивність робить їх
+неоціненними для широкого кола практичних задач, де порядок і організація
+операцій критично впливають на ефективність і результат.
 
 |                         ![TSP Example](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/optimal_tsp.png)                         |
 | :-------------------------------------------------------------------------------------------------------------------------------------------------: |
-| The Traveling Salesman Problem (TSP) asks for the shortest possible route that visits every vertex exactly once and returns to the starting vertex. |
+| Задача комівояжера (TSP) шукає найкоротший маршрут, який відвідує кожну вершину рівно один раз і повертається до стартової вершини. |
 
-The Traveling Salesman Problem is one of the most famous and well-studied
-combinatorial optimization problems. It is a classic example of a problem that
-is easy to understand, common in practice, but hard to solve. It also has a
-special place in the history of optimization, as many techniques that are now
-used generally were first developed for the TSP. If you have not done so yet, I
-recommend watching
-[this talk by Bill Cook](https://www.youtube.com/watch?v=5VjphFYQKj8), or even
-reading the book
+Задача комівояжера — одна з найвідоміших і найкраще досліджених комбінаторних
+оптимізаційних задач. Це класичний приклад задачі, яку легко зрозуміти,
+поширеної на практиці, але складної для розв’язання. Вона також займає особливе
+місце в історії оптимізації, адже багато загальних технік спершу були розроблені
+саме для TSP. Якщо ще не робили цього, рекомендую переглянути
+[цю доповідь Bill Cook](https://www.youtube.com/watch?v=5VjphFYQKj8) або навіть
+прочитати книгу
 [In Pursuit of the Traveling Salesman](https://press.princeton.edu/books/paperback/9780691163529/in-pursuit-of-the-traveling-salesman).
 
 > [!TIP]
 >
-> If your problem is specifically the Traveling Salesperson Problem (TSP), you
-> might find the
-> [Concorde solver](https://www.math.uwaterloo.ca/tsp/concorde.html)
-> particularly effective. For problems closely related to the TSP, a Mixed
-> Integer Programming (MIP) solver may be more suitable, as many TSP variants
-> yield strong linear programming relaxations that MIP solvers can efficiently
-> exploit. Additionally, consider
-> [OR-Tools Routing](https://developers.google.com/optimization/routing) if
-> routing constitutes a significant aspect of your problem. However, for
-> scenarios where variants of the TSP are merely a component of a larger
-> problem, utilizing CP-SAT with the `add_circuit` or `add_multiple_circuit`
-> constraints can be very beneficial.
+> Якщо ваша задача — саме TSP, можливо, вам буде корисним
+> [розв’язувач Concorde](https://www.math.uwaterloo.ca/tsp/concorde.html).
+> Для задач, близьких до TSP, більш відповідним може бути MIP-розв’язувач,
+> оскільки багато варіантів TSP дають сильні лінійні релаксації, які MIP
+> ефективно використовують. Також зверніть увагу на
+> [OR-Tools Routing](https://developers.google.com/optimization/routing), якщо
+> маршрутизація — значна частина вашої задачі. Але коли варіанти TSP — лише
+> компонент більшої задачі, CP-SAT із `add_circuit` або `add_multiple_circuit`
+> може бути дуже корисним.
 
 |                                                                                                                                                        ![TSP BnB Example](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/tsp_bnb_improved.png)                                                                                                                                                         |
 | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| This example shows why Mixed Integer Programming solvers are so good in solving the TSP. The linear relaxation (at the top) is already very close to the optimal solution. By branching, i.e., trying 0 and 1, on just two fractional variables, we not only find the optimal solution but can also prove optimality. The example was generated with the [DIY TSP Solver](https://www.math.uwaterloo.ca/tsp/D3/bootQ.html). |
+| Цей приклад показує, чому MIP-розв’язувачі такі сильні для TSP. Лінійна релаксація (вгорі) вже дуже близька до оптимального розв’язку. Розгалужуючись, тобто пробуючи 0 і 1, лише для двох дробових змінних, ми не лише знаходимо оптимальний розв’язок, а й доводимо оптимальність. Приклад згенеровано за допомогою [DIY TSP Solver](https://www.math.uwaterloo.ca/tsp/D3/bootQ.html). |
 
 #### `add_circuit`
 
-The `add_circuit` constraint is utilized to solve circuit problems within
-directed graphs, even allowing loops. It operates by taking a list of triples
-`(u,v,var)`, where `u` and `v` denote the source and target vertices,
-respectively, and `var` is a Boolean variable that indicates if an edge is
-included in the solution. The constraint ensures that the edges marked as `True`
-form a single circuit visiting each vertex exactly once, aside from vertices
-with a loop set as `True`. Vertex indices should start at 0 and must not be
-skipped to avoid isolation and infeasibility in the circuit.
+Обмеження `add_circuit` використовується для розв’язання задач про цикли у
+орієнтованих графах і навіть дозволяє петлі. Воно приймає список трійок
+`(u,v,var)`, де `u` і `v` — початкова і кінцева вершини, а `var` — булева
+змінна, яка показує, чи включене ребро в розв’язок. Обмеження гарантує, що
+ребра з `True` формують один цикл, який відвідує кожну вершину рівно один раз,
+за винятком вершин із петлею, встановленою в `True`. Індекси вершин мають
+починатися з 0 і не можуть мати пропусків, інакше це призведе до ізоляції та
+недопустимості циклу.
 
-Here is an example using the CP-SAT solver to address a directed Traveling
-Salesperson Problem (TSP):
+Ось приклад використання CP-SAT для орієнтованої задачі комівояжера:
 
 ```python
 from ortools.sat.python import cp_model
 
-# Directed graph with weighted edges
+# Орієнтований граф із вагами ребер
 dgraph = {(0, 1): 13, (1, 0): 17, ...(2, 3): 27}
 
-# Initialize CP-SAT model
+# Ініціалізуємо модель CP-SAT
 model = cp_model.CpModel()
 
-# Boolean variables for each edge
+# Булеві змінні для кожного ребра
 edge_vars = {(u, v): model.new_bool_var(f"e_{u}_{v}") for (u, v) in dgraph.keys()}
 
-# Circuit constraint for a single tour
+# Обмеження circuit для одного туру
 model.add_circuit([(u, v, var) for (u, v), var in edge_vars.items()])
 
-# Objective function to minimize total cost
+# Цільова функція — мінімізувати сумарну вартість
 model.minimize(sum(dgraph[(u, v)] * x for (u, v), x in edge_vars.items()))
 
-# Solve model
+# Розв’язуємо модель
 solver = cp_model.CpSolver()
 status = solver.solve(model)
 if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
     tour = [(u, v) for (u, v), x in edge_vars.items() if solver.value(x)]
     print("Tour:", tour)
 
-# Output: [(0, 1), (2, 0), (3, 2), (1, 3)], i.e., 0 -> 1 -> 3 -> 2 -> 0
+# Output: [(0, 1), (2, 0), (3, 2), (1, 3)], тобто 0 -> 1 -> 3 -> 2 -> 0
 ```
 
-This constraint can be adapted for paths by adding a virtual enforced edge that
-closes the path into a circuit, such as `(3, 0, 1)` for a path from vertex 0 to
-vertex 3.
+Це обмеження можна адаптувати для шляхів, додавши віртуальне ребро, яке
+замикає шлях у цикл, наприклад `(3, 0, 1)` для шляху від вершини 0 до вершини 3.
 
-#### Creative usage of `add_circuit`
+#### Креативне використання `add_circuit`
 
-The `add_circuit` constraint can be creatively adapted to solve various related
-problems. While there are more efficient algorithms for solving the Shortest
-Path Problem, let us demonstrate how to adapt the `add_circuit` constraint for
-educational purposes.
+`add_circuit` можна творчо адаптувати для різних споріднених задач. Хоча для
+задачі найкоротшого шляху існують ефективніші алгоритми, покажімо, як
+адаптувати `add_circuit` в освітніх цілях.
 
 ```python
 from ortools.sat.python import cp_model
 
-# Define a weighted, directed graph with edge costs
+# Задаємо зважений орієнтований граф із вартістю ребер
 dgraph = {(0, 1): 13, (1, 0): 17, ...(2, 3): 27}
 
 source_vertex = 0
 target_vertex = 3
 
-# Add zero-cost loops for vertices not being the source or target
+# Додаємо нульові петлі для вершин, які не є джерелом або ціллю
 for v in [1, 2]:
     dgraph[(v, v)] = 0
 
-# Initialize CP-SAT model and variables
+# Ініціалізуємо модель CP-SAT і змінні
 model = cp_model.CpModel()
 edge_vars = {(u, v): model.new_bool_var(f"e_{u}_{v}") for (u, v) in dgraph}
 
-# Define the circuit including a pseudo-edge from target to source
+# Визначаємо цикл із псевдоребром від цілі до джерела
 circuit = [(u, v, var) for (u, v), var in edge_vars.items()] + [
     (target_vertex, source_vertex, 1)
 ]
 model.add_circuit(circuit)
 
-# Minimize total cost
+# Мінімізуємо сумарну вартість
 model.minimize(sum(dgraph[(u, v)] * x for (u, v), x in edge_vars.items()))
 
-# Solve and extract the path
+# Розв’язуємо та отримуємо шлях
 solver = cp_model.CpSolver()
 status = solver.solve(model)
 if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
     path = [(u, v) for (u, v), x in edge_vars.items() if solver.value(x) and u != v]
     print("Path:", path)
 
-# Output: [(0, 1), (1, 3)], i.e., 0 -> 1 -> 3
+# Output: [(0, 1), (1, 3)], тобто 0 -> 1 -> 3
 ```
 
-This approach showcases the flexibility of the `add_circuit` constraint for
-various tour and path problems. Explore further examples:
+Цей підхід демонструє гнучкість `add_circuit` для різних задач турів і шляхів.
+Ось ще приклад:
 
 - [Budget constrained tours](https://github.com/d-krupke/cpsat-primer/blob/main/examples/add_circuit_budget.py):
-  Optimize the largest possible tour within a specified budget.
+  оптимізація найбільшого можливого туру в межах заданого бюджету.
 
 #### `add_multiple_circuit`
 
-When solving problems involving multiple trips starting from a depot, we can use
-the `add_multiple_circuit` constraint. This constraint is similar to
-`add_circuit` but explicitly allows the depot to be visited multiple times. Like
-`add_circuit`, the `add_multiple_circuit` constraint supports optional vertices
-through self-loops.
+Для задач із кількома поїздками з депо можна використати `add_multiple_circuit`.
+Це обмеження схоже на `add_circuit`, але явно дозволяє відвідувати депо кілька
+разів. Як і `add_circuit`, `add_multiple_circuit` підтримує опційні вершини
+через петлі.
 
-This feature is particularly useful for modeling Vehicle Routing Problems (VRP),
-where multiple tours originate from a single depot. Usually, VRP includes
-additional constraints since, otherwise, returning to the depot unnecessarily is
-suboptimal. While duplicating the graph and applying `add_circuit` on each copy
-is an alternative, using `add_multiple_circuit` avoids the need for multiple
-graph copies and corresponding variable sets, allowing a single set of variables
-and edges.
+Це особливо корисно для задач маршрутизації транспорту (VRP), де кілька турів
+починаються з одного депо. Зазвичай VRP має додаткові обмеження, бо інакше
+повернення в депо без потреби є неоптимальним. Альтернативою є дублювання графа
+та застосування `add_circuit` на кожній копії, але `add_multiple_circuit`
+дозволяє уникнути копіювання графа і створення кількох наборів змінних, залишаючи
+єдиний набір змінних та ребер.
 
-A disadvantage of this method is that expressing certain constraints, such as
-prohibiting two nodes from being visited during the same trip, becomes more
-complex since all trips share variables. Nevertheless, many constraints can
-still be modeled effectively, such as vehicle capacity in the Capacitated
-Vehicle Routing Problem (CVRP). The CVRP is a classical optimization problem in
-operations research and logistics, which involves determining the shortest
-possible set of routes for a fleet of identical vehicles starting and ending at
-a single depot (this can also be the same vehicle doing multiple trips). Each
-customer must be visited exactly once, with the constraint that the total demand
-serviced on each trip does not exceed the vehicle capacity.
+Недоліком методу є те, що деякі обмеження, наприклад заборона відвідувати дві
+вершини в одному турі, стають складнішими, адже всі тури спільно використовують
+змінні. Водночас багато обмежень усе ще можна ефективно моделювати, наприклад
+обмеження місткості в задачі CVRP. CVRP — класична задача в операційному
+дослідженні та логістиці: потрібно знайти найкоротший набір маршрутів для
+флоту однакових транспортів, що стартують і завершують у єдиному депо (це може
+бути і той самий транспорт, що робить кілька поїздок). Кожного клієнта треба
+відвідати рівно один раз, з обмеженням, що сумарний попит на кожному турі не
+перевищує місткість транспортного засобу.
 
-The following code illustrates implementing the CVRP using the
-`add_multiple_circuit` constraint by introducing an additional variable to track
-vehicle capacity at each vertex.
+Нижче наведено приклад реалізації CVRP із `add_multiple_circuit` і додатковою
+змінною для відстеження місткості на кожній вершині.
 
 ```python
 from typing import Hashable
@@ -211,7 +199,7 @@ from ortools.sat.python import cp_model
 
 
 class CvrpMultiCircuit:
-    """CVRP via CP-SAT multi-circuit constraint."""
+    """CVRP через multi-circuit обмеження CP-SAT."""
 
     def __init__(
         self,
@@ -226,11 +214,11 @@ class CvrpMultiCircuit:
         self.capacity = capacity
         self.demand_label = demand_label
 
-        # Vertex list with depot first
+        # Список вершин з депо на початку
         self.vertices = [depot] + [v for v in graph.nodes() if v != depot]
         self.index = {v: i for i, v in enumerate(self.vertices)}
 
-        # Boolean arc variables for both directions
+        # Булеві змінні дуг для обох напрямків
         self.arc_vars = {
             (i, j): self.model.new_bool_var(f"arc_{i}_{j}")
             for u, v in graph.edges
@@ -238,10 +226,10 @@ class CvrpMultiCircuit:
         }
         arcs = [(i, j, var) for (i, j), var in self.arc_vars.items()]
 
-        # Multi-circuit constraint
+        # Обмеження multi-circuit
         self.model.add_multiple_circuit(arcs)
 
-        # Capacity variables and constraints
+        # Змінні місткості та обмеження
         self.cap_vars = [
             self.model.new_int_var(0, capacity, f"cap_{i}")
             for i in range(len(self.vertices))
@@ -267,7 +255,7 @@ class CvrpMultiCircuit:
         self.model.minimize(self.weight(label=label))
 
     def extract_tours(self, solver: cp_model.CpSolver) -> list[list]:
-        # Build directed graph of selected arcs
+        # Будуємо орієнтований граф обраних дуг
         dg = nx.DiGraph(
             [
                 (self.vertices[i], self.vertices[j])
@@ -276,7 +264,7 @@ class CvrpMultiCircuit:
             ]
         )
 
-        # Eulerian circuit and split at depot
+        # Ейлерів цикл і розбиття за депо
         euler = nx.eulerian_circuit(dg, source=self.depot)
         tours, curr = [], [self.depot]
         for u, v in euler:
@@ -291,23 +279,21 @@ class CvrpMultiCircuit:
 
 |                                                                                                                 ![CVRP Example](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/cvrp_example.png)                                                                                                                  |
 | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| The Capacitated Vehicle Routing Problem (CVRP) seeks the shortest possible routes that visit every vertex exactly once and return to the starting vertex. The depot acts as the starting and ending point of each tour. The example graph is weighted by roughly its geometric distance, with a vehicle capacity constraint set to 15. |
+| Задача CVRP шукає найкоротші маршрути, що відвідують кожну вершину рівно один раз і повертаються до стартової вершини. Депо є початком і кінцем кожного туру. Граф у прикладі зважений приблизною геометричною відстанню, а місткість транспортного засобу встановлена на 15. |
 
 > [!WARNING]
 >
-> Although the `add_multiple_circuit` constraint enables additional LNS
-> strategies and may improve lower bounds, using the standard
-> Miller-Tucker-Zemlin (MTZ) formulation can sometimes be more efficient for the
-> CVRP. Both methods outperform the use of `add_circuit` on multiple graph
-> copies. Implementations for all three CVRP modeling strategies can be found
-> [here](https://github.com/d-krupke/cpsat-primer/blob/main/examples/cvrp/).
+> Хоча `add_multiple_circuit` дозволяє додаткові LNS-стратегії та може
+> покращувати нижні межі, стандартна формулювання Miller-Tucker-Zemlin (MTZ)
+> іноді ефективніша для CVRP. Обидва підходи кращі за використання `add_circuit`
+> на кількох копіях графа. Реалізації всіх трьох підходів моделювання CVRP є
+> [тут](https://github.com/d-krupke/cpsat-primer/blob/main/examples/cvrp/).
 
-#### Performance of `add_circuit` for the TSP
+#### Продуктивність `add_circuit` для TSP
 
-The table below displays the performance of the CP-SAT solver on various
-instances of the TSPLIB, using the `add_circuit` constraint, under a 90-second
-time limit. The performance can be considered reasonable, but can be easily
-beaten by a Mixed Integer Programming solver.
+Таблиця нижче показує продуктивність CP-SAT на різних інстансах TSPLIB із
+використанням `add_circuit` та лімітом 90 секунд. Продуктивність можна вважати
+достатньою, але MIP-розв’язувач легко її перевершує.
 
 | Instance | # vertices | runtime | lower bound | objective | opt. gap |
 | :------- | ---------: | ------: | ----------: | --------: | -------: |
@@ -340,48 +326,41 @@ beaten by a Mixed Integer Programming solver.
 | lin318   |        318 |   92.43 |       41915 |     52025 |      19% |
 | pr439    |        439 |   94.22 |      105610 |    163452 |      35% |
 
-There are two prominent formulations to model the Traveling Salesman Problem
-(TSP) without an `add_circuit` constraint: the
-[Dantzig-Fulkerson-Johnson (DFJ) formulation](https://en.wikipedia.org/wiki/Travelling_salesman_problem#Dantzig%E2%80%93Fulkerson%E2%80%93Johnson_formulation)
-and the
-[Miller-Tucker-Zemlin (MTZ) formulation](https://en.wikipedia.org/wiki/Travelling_salesman_problem#Miller%E2%80%93Tucker%E2%80%93Zemlin_formulation[21]).
-The DFJ formulation is generally regarded as more efficient due to its stronger
-linear relaxation. However, it requires lazy constraints, which are not
-supported by the CP-SAT solver. When implemented without lazy constraints, the
-performance of the DFJ formulation is comparable to that of the MTZ formulation
-in CP-SAT. Nevertheless, both formulations perform significantly worse than the
-`add_circuit` constraint. This indicates the superiority of using the
-`add_circuit` constraint for handling tours and paths in such problems. Unlike
-end users, the `add_circuit` constraint can utilize lazy constraints internally,
-offering a substantial advantage in solving the TSP.
+Існують дві основні формулювання для моделювання TSP без `add_circuit`:
+[формулювання Данцига—Фалкерсона—Джонсона (DFJ)](https://en.wikipedia.org/wiki/Travelling_salesman_problem#Dantzig%E2%80%93Fulkerson%E2%80%93Johnson_formulation)
+та
+[формулювання Міллера—Такера—Земліна (MTZ)](https://en.wikipedia.org/wiki/Travelling_salesman_problem#Miller%E2%80%93Tucker%E2%80%93Zemlin_formulation[21]).
+DFJ загалом ефективніше через сильнішу лінійну релаксацію. Однак воно потребує
+«ледачих» обмежень, які CP-SAT не підтримує. Без них продуктивність DFJ у CP-SAT
+порівнянна з MTZ. Попри це, обидва формулювання значно гірші за `add_circuit`.
+Це підкреслює перевагу `add_circuit` для турів і шляхів. На відміну від
+користувача, `add_circuit` може використовувати lazy constraints всередині,
+що дає суттєву перевагу.
 
 <a name="04-modelling-intervals"></a>
 
-### Scheduling and Packing with Intervals
+### Планування і пакування з інтервалами
 
-A special case of variables are the interval variables, that allow to model
-intervals, i.e., a span of some length with a start and an end. There are fixed
-length intervals, flexible length intervals, and optional intervals to model
-various use cases. These intervals become interesting in combination with the
-no-overlap constraints for 1D and 2D. We can use this for geometric packing
-problems, scheduling problems, and many other problems, where we have to prevent
-overlaps between intervals. These variables are special because they are
-actually not a variable, but a container that bounds separately defined start,
-length, and end variables.
+Особливий тип змінних — інтервальні змінні, що дозволяють моделювати інтервали,
+тобто відрізок певної довжини зі стартом і кінцем. Існують інтервали фіксованої
+довжини, змінної довжини та опційні інтервали для різних сценаріїв. Вони
+особливо корисні в поєднанні з обмеженнями відсутності перекриття у 1D та 2D.
+Це підходить для задач геометричного пакування, планування й інших задач, де
+потрібно уникати накладень інтервалів. Ці змінні особливі тим, що фактично це
+не змінна, а контейнер, який обмежує окремо задані змінні старту, довжини й
+кінця.
 
-There are four types of interval variables: `new_interval_var`,
-`new_fixed_size_interval_var`, `new_optional_interval_var`, and
-`new_optional_fixed_size_interval_var`. The `new_optional_interval_var` is the
-most expressive but also the most expensive, while `new_fixed_size_interval_var`
-is the least expressive and the easiest to optimize. All four types take a
-`start=` variable. Intervals with `fixed_size` in their name require a constant
-`size=` argument defining the interval length. Otherwise, the `size=` argument
-can be a variable in combination with an `end=` variable, which complicates the
-solution. Intervals with `optional` in their name include an `is_present=`
-argument, a boolean indicating if the interval is present. The no-overlap
-constraints, discussed later, apply only to intervals that are present, allowing
-for modeling problems with multiple resources or optional tasks. Instead of a
-pure integer variable, all arguments also accept an affine expression, e.g.,
+Є чотири типи інтервальних змінних: `new_interval_var`,
+`new_fixed_size_interval_var`, `new_optional_interval_var` та
+`new_optional_fixed_size_interval_var`. `new_optional_interval_var` є
+найвиразнішим, але й найдорожчим, тоді як `new_fixed_size_interval_var` —
+найпростішим і найефективнішим. Усі типи приймають `start=` змінну. Інтервали
+з `fixed_size` вимагають константний `size=`, що задає довжину. Інакше `size=`
+може бути змінною в парі з `end=`, що ускладнює розв’язання. Інтервали з
+`optional` мають аргумент `is_present=`, булеву змінну, що показує, чи інтервал
+присутній. Обмеження no-overlap застосовуються лише до присутніх інтервалів,
+що дозволяє моделювати задачі з кількома ресурсами чи опційними задачами. Замість
+цілочисельної змінної всі аргументи можуть приймати афінні вирази, наприклад
 `start=5*start_var+3`.
 
 ```python
@@ -392,19 +371,19 @@ length_var = model.new_int_var(10, 20, "length")
 end_var = model.new_int_var(0, 100, "end")
 is_present_var = model.new_bool_var("is_present")
 
-# creating an interval whose length can be influenced by a variable (more expensive)
+# інтервал із довжиною, яку можна змінювати (дорожчий)
 flexible_interval = model.new_interval_var(
     start=start_var, size=length_var, end=end_var, name="flexible_interval"
 )
 
-# creating an interval of fixed length
+# інтервал фіксованої довжини
 fixed_interval = model.new_fixed_size_interval_var(
     start=start_var,
-    size=10,  # needs to be a constant
+    size=10,  # має бути константою
     name="fixed_interval",
 )
 
-# creating an interval that can be present or not and whose length can be influenced by a variable (most expensive)
+# опційний інтервал зі змінною довжиною (найдорожчий)
 optional_interval = model.new_optional_interval_var(
     start=start_var,
     size=length_var,
@@ -413,30 +392,28 @@ optional_interval = model.new_optional_interval_var(
     name="optional_interval",
 )
 
-# creating an interval that can be present or not
+# опційний інтервал фіксованої довжини
 optional_fixed_interval = model.new_optional_fixed_size_interval_var(
     start=start_var,
-    size=10,  # needs to be a constant
+    size=10,  # має бути константою
     is_present=is_present_var,
     name="optional_fixed_interval",
 )
 ```
 
-These interval variables are not useful on their own, as we could have easily
-achieved the same with a simple linear constraint. However, CP-SAT provides
-special constraints for these interval variables, that would actually be much
-harder to model by hand and are also much more efficient.
+Ці інтервальні змінні самі по собі не корисні, адже те саме можна зробити
+простими лінійними обмеженнями. Проте CP-SAT має спеціальні обмеження для
+інтервалів, які важко моделювати вручну і які значно ефективніші.
 
-CP-SAT offers the following three constraints for intervals:
-`add_no_overlap`,`add_no_overlap_2d`, `add_cumulative`. `add_no_overlap` is used
-to prevent overlaps between intervals on a single dimension, e.g., time.
-`add_no_overlap_2d` is used to prevent overlaps between intervals on two
-dimensions, e.g., for packing rectangles. `add_cumulative` is used to model a
-resource constraint, where the sum of the demands of the overlapping intervals
-must not exceed the capacity of the resource.
+CP-SAT пропонує три обмеження для інтервалів:
+`add_no_overlap`, `add_no_overlap_2d`, `add_cumulative`. `add_no_overlap`
+забороняє перекриття в одному вимірі (наприклад, час). `add_no_overlap_2d`
+забороняє перекриття у двох вимірах (наприклад, пакування прямокутників).
+`add_cumulative` моделює ресурсне обмеження, де сума попитів перекривних
+інтервалів не перевищує місткість ресурсу.
 
-The `add_no_overlap` constraints takes a list of (optional) interval variables
-and ensures that no two present intervals overlap.
+`add_no_overlap` приймає список (опційних) інтервалів і гарантує, що жодні два
+присутні інтервали не перекриваються.
 
 ```python
 model.add_no_overlap(
@@ -450,12 +427,11 @@ model.add_no_overlap(
 )
 ```
 
-The `add_no_overlap_2d` constraints takes two lists of (optional) interval and
-ensures that for every `i` and `j` either `x_intervals[i]` and `x_intervals[j]`
-or `y_intervals[i]` and `y_intervals[j]` do not overlap. Thus, both lists must
-have the same length as `x_intervals[i]` and `y_intervals[i]` are considered
-belonging together. If either `x_intervals[i]` or `y_intervals[i]` are optional,
-the whole object is optional.
+`add_no_overlap_2d` приймає два списки (опційних) інтервалів і забезпечує, що для
+кожної пари `i` та `j` інтервали `x_intervals[i]` і `x_intervals[j]` або
+`y_intervals[i]` і `y_intervals[j]` не перекриваються. Отже, обидва списки мають
+мати однакову довжину, а `x_intervals[i]` і `y_intervals[i]` вважаються парою.
+Якщо `x_intervals[i]` або `y_intervals[i]` опційні, то весь об’єкт є опційним.
 
 ```python
 model.add_no_overlap_2d(
@@ -476,15 +452,13 @@ model.add_no_overlap_2d(
 )
 ```
 
-The `add_cumulative` constraint is used to model a resource constraint, where
-the sum of the demands of the overlapping intervals must not exceed the capacity
-of the resource. An example could be scheduling the usage of certain energy
-intensive machines, where the sum of the energy demands must not exceed the
-capacity of the power grid. It takes a list of intervals, a list of demands, and
-a capacity variable. The list of demands must have the same length as the list
-of intervals, as the demands of the intervals are matched by index. As capacity
-and demands can be variables (or affine expressions), quite complex resource
-constraints can be modeled.
+`add_cumulative` використовується для ресурсних обмежень, де сума попитів
+перекривних інтервалів не може перевищувати місткість ресурсу. Наприклад,
+планування енергоємних машин, коли сумарне споживання не повинно перевищувати
+потужність мережі. Обмеження приймає список інтервалів, список попитів і змінну
+місткості. Попити мають ту саму довжину, що й інтервали, бо попит зіставляється
+за індексом. Оскільки місткість і попити можуть бути змінними (або афінними
+виразами), можна моделювати досить складні ресурсні обмеження.
 
 ```python
 demand_vars = [model.new_int_var(1, 10, f"demand_{i}") for i in range(4)]
@@ -503,34 +477,31 @@ model.add_cumulative(
 
 > [!WARNING]
 >
-> Do not directly jump to intervals when you have a scheduling problem.
-> Intervals are great if you actually have a somewhat continuous time or space
-> that you need to schedule. If you have a more discrete problem, such as a
-> scheduling problem with a fixed number of slots, you can often model this
-> problem much more efficiently using simple Boolean variables and constraints.
-> Especially if you can use domain knowledge to find clusters of meetings that
-> cannot overlap, this can be much more efficient. If the scheduling is
-> dominated by the transitions, your scheduling problem may actually be a
-> routing problems, for which the `add_circuit` constraint is more suitable.
+> Не переходьте одразу до інтервалів у задачах планування. Інтервали корисні,
+> коли у вас є більш-менш неперервний час чи простір. Якщо задача більш
+> дискретна, наприклад має фіксовану кількість слотів, часто ефективніше
+> змоделювати її простими булевими змінними та обмеженнями. Особливо якщо можна
+> використати доменні знання, щоб знайти кластери зустрічей, які не можуть
+> перекриватися, це може бути значно ефективніше. Якщо планування домінують
+> переходи, ваша задача може бути радше маршрутизаційною, і тоді більше підходить
+> `add_circuit`.
 
-Let us examine a few examples of how to use these constraints effectively.
+Розгляньмо кілька прикладів використання цих обмежень.
 
-#### Scheduling for a Conference Room with Intervals
+#### Планування конференц-залу з інтервалами
 
-Assume we have a conference room and need to schedule several meetings. Each
-meeting has a fixed length and a range of possible start times. The time slots
-are in 5-minute intervals starting at 8:00 AM and ending at 6:00 PM. Thus, there
-are $10 \times 12 = 120$ time slots, and we can use a simple integer variable to
-model the start time. With fixed meeting lengths, we can use the
-`new_fixed_size_interval_var` to model the intervals. The `add_no_overlap`
-constraint ensures no two meetings overlap, and domains for the start time can
-model the range of possible start times.
+Припустимо, у нас є конференц-зал і треба запланувати кілька зустрічей. Кожна
+зустріч має фіксовану тривалість і діапазон можливих стартів. Слоти — по 5
+хвилин від 8:00 до 18:00. Отже, є $10 \times 12 = 120$ слотів, і ми можемо
+використовувати просту цілочисельну змінну для старту. Для фіксованих тривалостей
+зручно використовувати `new_fixed_size_interval_var`. `add_no_overlap` гарантує
+відсутність перекриття, а домени стартових змінних задають можливі часові вікна.
 
-To handle input data, let us define a `namedtuple` to store the meeting and two
-functions to convert between time and index.
+Для обробки даних введемо `namedtuple` для зустрічей і дві функції для
+перетворення часу в індекс і назад.
 
 ```python
-# Convert time to index and back
+# Конвертуємо час у індекс і назад
 def t_to_idx(hour, minute):
     return (hour - 8) * 12 + minute // 5
 
@@ -541,51 +512,51 @@ def idx_to_t(time_idx):
     return f"{hour}:{minute:02d}"
 
 
-# Define meeting information using namedtuples
+# Опис зустрічі
 MeetingInfo = namedtuple("MeetingInfo", ["start_times", "duration"])
 ```
 
-Then let us create a few meetings we want to schedule.
+Створімо кілька зустрічей.
 
 ```python
-# Meeting definitions
+# Опис зустрічей
 meetings = {
     "meeting_a": MeetingInfo(
         start_times=[
             [t_to_idx(8, 0), t_to_idx(12, 0)],
             [t_to_idx(16, 0), t_to_idx(17, 0)],
         ],
-        duration=120 // 5,  # 2 hours
+        duration=120 // 5,  # 2 години
     ),
     "meeting_b": MeetingInfo(
         start_times=[
             [t_to_idx(10, 0), t_to_idx(12, 0)],
         ],
-        duration=30 // 5,  # 30 minutes
+        duration=30 // 5,  # 30 хвилин
     ),
     "meeting_c": MeetingInfo(
         start_times=[
             [t_to_idx(16, 0), t_to_idx(17, 0)],
         ],
-        duration=15 // 5,  # 15 minutes
+        duration=15 // 5,  # 15 хвилин
     ),
     "meeting_d": MeetingInfo(
         start_times=[
             [t_to_idx(8, 0), t_to_idx(10, 0)],
             [t_to_idx(12, 0), t_to_idx(14, 0)],
         ],
-        duration=60 // 5,  # 1 hour
+        duration=60 // 5,  # 1 година
     ),
 }
 ```
 
-Now we can create the CP-SAT model and add the intervals and constraints.
+Тепер створимо модель CP-SAT і додамо інтервали та обмеження.
 
 ```python
-# Create a new CP-SAT model
+# Створюємо модель CP-SAT
 model = cp_model.CpModel()
 
-# Create start time variables for each meeting
+# Створюємо змінні старту для кожної зустрічі
 start_time_vars = {
     meeting_name: model.new_int_var_from_domain(
         cp_model.Domain.from_intervals(meeting_info.start_times),
@@ -594,7 +565,7 @@ start_time_vars = {
     for meeting_name, meeting_info in meetings.items()
 }
 
-# Create interval variables for each meeting
+# Створюємо інтервали для кожної зустрічі
 interval_vars = {
     meeting_name: model.new_fixed_size_interval_var(
         start=start_time_vars[meeting_name],
@@ -604,18 +575,18 @@ interval_vars = {
     for meeting_name, meeting_info in meetings.items()
 }
 
-# Ensure that now two meetings overlap
+# Гарантуємо, що зустрічі не перекриваються
 model.add_no_overlap(list(interval_vars.values()))
 ```
 
-And finally, we can solve the model and extract the solution.
+І нарешті, розв’яжемо модель і витягнемо розклад.
 
 ```python
-# Solve the model
+# Розв’язуємо модель
 solver = cp_model.CpSolver()
 status = solver.solve(model)
 
-# Extract and print the solution
+# Витягуємо та друкуємо розклад
 scheduled_times = {}
 if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
     for meeting_name in meetings:
@@ -626,26 +597,25 @@ else:
     print("No feasible solution found.")
 ```
 
-Doing some quick magic with matplotlib, we can visualize the schedule.
+Трохи магії з matplotlib — і можемо візуалізувати розклад.
 
 |                ![Schedule](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/scheduling_example.png)                |
 | :-----------------------------------------------------------------------------------------------------------------------------------: |
-| A possible non-overlapping schedule for the above example. The instance is quite simple, but you could try adding some more meetings. |
+| Можливий неперекривний розклад для цього прикладу. Інстанс простий, але можна спробувати додати ще зустрічей. |
 
-#### Scheduling for Multiple Resources with Optional Intervals
+#### Планування для кількох ресурсів з опційними інтервалами
 
-Now, imagine we have multiple resources, such as multiple conference rooms, and
-we need to schedule the meetings such that no two meetings overlap in the same
-room. This can be modeled with optional intervals, where the intervals exist
-only if the meeting is scheduled in the room. The `add_no_overlap` constraint
-ensures that no two meetings overlap in the same room.
+Тепер уявімо, що у нас кілька ресурсів, наприклад кілька конференц-залів, і ми
+потрібно запланувати зустрічі так, щоб у межах одного залу вони не перекривалися.
+Це можна змоделювати опційними інтервалами, які існують лише якщо зустріч
+призначено в конкретний зал. `add_no_overlap` гарантує відсутність перекриття
+зустрічей у кожному залі.
 
-Because we now have two rooms, we need to create a more challenging instance
-first. Otherwise, the solver may not need to use both rooms. We do this by
-simply adding more and longer meetings.
+Оскільки у нас два зали, зробимо задачу складнішою — інакше розв’язувач міг би
+обійтися одним залом. Для цього просто додамо більше і довших зустрічей.
 
 ```python
-# Meeting definitions
+# Опис зустрічей
 meetings = {
     "meeting_a": MeetingInfo(
         start_times=[
@@ -679,16 +649,15 @@ meetings = {
 }
 ```
 
-This time, we need to create an interval variable for each room and meeting, as
-well as a Boolean variable indicating if the meeting is scheduled in the room.
-We cannot use the same interval variable for multiple rooms, as otherwise the
-interval would be present in both rooms.
+Тепер треба створити інтервал для кожного залу та зустрічі, а також булеву
+змінну, яка показує, чи зустріч призначена в зал. Не можна використовувати
+один інтервал для двох залів, інакше він буде присутній одночасно в обох.
 
 ```python
-# Create the model
+# Створюємо модель
 model = cp_model.CpModel()
 
-# Create start time and room variables
+# Створюємо змінні старту та кімнат
 start_time_vars = {
     name: model.new_int_var_from_domain(
         cp_model.Domain.from_intervals(info.start_times), f"start_{name}"
@@ -702,10 +671,10 @@ room_vars = {
     for name in meetings
 }
 
-# Create interval variables and add no-overlap constraint
+# Створюємо інтервали та додаємо no-overlap
 interval_vars = {
     name: {
-        # We need a separate interval for each room
+        # Окремий інтервал для кожної кімнати
         room: model.new_optional_fixed_size_interval_var(
             start=start_time_vars[name],
             size=info.duration,
@@ -718,11 +687,11 @@ interval_vars = {
 }
 ```
 
-Now we can enforce that each meeting is assigned to exactly one room and that
-there is no overlap between meetings in the same room.
+Тепер гарантуємо, що кожна зустріч призначена рівно в один зал і що у кожному
+залі немає перекриття.
 
 ```python
-# Ensure each meeting is assigned to exactly one room
+# Кожну зустріч призначаємо рівно в один зал
 for name, room_dict in room_vars.items():
     model.add_exactly_one(room_dict.values())
 
@@ -730,47 +699,44 @@ for room in rooms:
     model.add_no_overlap([interval_vars[name][room] for name in meetings])
 ```
 
-Again, doing some quick magic with matplotlib, we get the following schedule.
+І знову візуалізуємо розклад.
 
 | ![Schedule multiple rooms](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/scheduling_multiple_resources.png) |
 | :-------------------------------------------------------------------------------------------------------------------------------: |
-|                          A possible non-overlapping schedule for the above example with multiple rooms.                           |
+| Можливий неперекривний розклад для наведеного прикладу з кількома залами. |
 
 > [!TIP]
 >
-> You could easily extend this model to schedule as many meetings as possible
-> using an objective function. You could also maximize the distance between two
-> meetings by using a variable size interval. This would be a good exercise to
-> try.
+> Цю модель легко розширити, щоб максимізувати кількість зустрічей через
+> цільову функцію. Також можна максимізувати відстань між двома зустрічами,
+> використавши інтервал зі змінною довжиною. Це хороша вправа.
 
-#### Packing rectangles without overlaps
+#### Пакування прямокутників без перекриття
 
-Let us examine how to check if a set of rectangles can be packed into a
-container without overlaps. This is a common problem in logistics, where boxes
-must be packed into a container, or in cutting stock problems, where pieces are
-cut from a larger material.
+Розгляньмо, як перевірити, чи можна упакувати набір прямокутників у контейнер
+без перекриття. Це поширена задача в логістиці або задачах розкрою.
 
-First, we define namedtuples for the rectangles and the container.
+Спочатку визначимо `namedtuple` для прямокутників і контейнера.
 
 ```python
 from collections import namedtuple
 
-# Define namedtuples for rectangles and container
+# Визначаємо namedtuple для прямокутників і контейнера
 Rectangle = namedtuple("Rectangle", ["width", "height"])
 Container = namedtuple("Container", ["width", "height"])
 
-# Example usage
+# Приклад
 rectangles = [Rectangle(width=2, height=3), Rectangle(width=4, height=5)]
 container = Container(width=10, height=10)
 ```
 
-Next, we create variables for the bottom-left corners of the rectangles. These
-variables are constrained to ensure the rectangles remain within the container.
+Далі створимо змінні для нижніх лівих кутів прямокутників і обмежимо їх, щоб
+прямокутники залишалися в межах контейнера.
 
 ```python
 model = cp_model.CpModel()
 
-# Create variables for the bottom-left corners of the rectangles
+# Змінні для нижніх лівих кутів
 x_vars = [
     model.new_int_var(0, container.width - box.width, name=f"x1_{i}")
     for i, box in enumerate(rectangles)
@@ -781,13 +747,11 @@ y_vars = [
 ]
 ```
 
-Next, we create interval variables for each rectangle. The start of these
-intervals corresponds to the bottom-left corner, and the size is the width or
-height of the rectangle. We use the `add_no_overlap_2d` constraint to ensure
-that no two rectangles overlap.
+Створимо інтервали для кожного прямокутника. Початок — нижній лівий кут, розмір
+— ширина або висота. Використаємо `add_no_overlap_2d`, щоб уникнути перекриттів.
 
 ```python
-# Create interval variables representing the width and height of the rectangles
+# Інтервали для ширини та висоти прямокутників
 x_interval_vars = [
     model.new_fixed_size_interval_var(
         start=x_vars[i], size=box.width, name=f"x_interval_{i}"
@@ -801,25 +765,25 @@ y_interval_vars = [
     for i, box in enumerate(rectangles)
 ]
 
-# Ensure no two rectangles overlap
+# Забороняємо перекриття
 model.add_no_overlap_2d(x_interval_vars, y_interval_vars)
 ```
 
-The optional intervals with flexible length allow us to model rotations and find
-the largest possible packing. The code may appear complex, but it remains
-straightforward considering the problem's complexity.
+Опційні інтервали зі змінною довжиною дозволяють моделювати повороти та
+знаходити найбільше можливе пакування. Код здається складним, але є досить
+прямолінійним з огляду на складність задачі.
 
-First, we define namedtuples for the rectangles and the container.
+Спочатку визначимо `namedtuple` для прямокутників і контейнера.
 
 ```python
 from collections import namedtuple
 from ortools.sat.python import cp_model
 
-# Define namedtuples for rectangles and container
+# Визначаємо namedtuple для прямокутників і контейнера
 Rectangle = namedtuple("Rectangle", ["width", "height", "value"])
 Container = namedtuple("Container", ["width", "height"])
 
-# Example usage
+# Приклад
 rectangles = [
     Rectangle(width=2, height=3, value=1),
     Rectangle(width=4, height=5, value=1),
@@ -827,14 +791,14 @@ rectangles = [
 container = Container(width=10, height=10)
 ```
 
-Next, we create variables for the coordinates of the rectangles. This includes
-variables for the bottom-left and top-right corners, as well as a boolean
-variable to indicate if a rectangle is rotated.
+Далі створимо змінні для координат прямокутників, включно з нижніми лівими та
+верхніми правими кутами, а також булевою змінною, що показує, чи прямокутник
+повернутий.
 
 ```python
 model = cp_model.CpModel()
 
-# Create variables for the bottom-left and top-right corners of the rectangles
+# Змінні для нижніх лівих і верхніх правих кутів
 bottom_left_x_vars = [
     model.new_int_var(0, container.width, name=f"x1_{i}")
     for i, box in enumerate(rectangles)
@@ -852,38 +816,36 @@ upper_right_y_vars = [
     for i, box in enumerate(rectangles)
 ]
 
-# Create variables to indicate if a rectangle is rotated
+# Змінні, що показують поворот
 rotated_vars = [model.new_bool_var(f"rotated_{i}") for i in range(len(rectangles))]
 ```
 
-We then create variables for the width and height of each rectangle, adjusting
-for rotation. Constraints ensure these variables are set correctly based on
-whether the rectangle is rotated.
+Тепер створимо змінні ширини та висоти з урахуванням повороту, і обмеження, що
+зв’язують їх із поворотом.
 
 ```python
-# Create variables for the width and height, adjusted for rotation
+# Змінні ширини та висоти з урахуванням повороту
 width_vars = []
 height_vars = []
 for i, box in enumerate(rectangles):
     domain = cp_model.Domain.from_values([box.width, box.height])
     width_vars.append(model.new_int_var_from_domain(domain, name=f"width_{i}"))
     height_vars.append(model.new_int_var_from_domain(domain, name=f"height_{i}"))
-    # There are two possible assignments for width and height
+    # Два можливі варіанти присвоєння ширини/висоти
     model.add_allowed_assignments(
         [width_vars[i], height_vars[i], rotated_vars[i]],
         [(box.width, box.height, 0), (box.height, box.width, 1)],
     )
 ```
 
-Next, we create a boolean variable indicating if a rectangle is packed or not,
-and then interval variables representing its occupied space in the container.
-These intervals are used to enforce the no-overlap constraint.
+Далі створимо булеву змінну, що означає, чи прямокутник упакований, і інтервали,
+що представляють його займаний простір. Їх використовуємо для `add_no_overlap_2d`.
 
 ```python
-# Create variables indicating if a rectangle is packed
+# Змінні, що вказують, чи прямокутник упакований
 packed_vars = [model.new_bool_var(f"packed_{i}") for i in range(len(rectangles))]
 
-# Create interval variables representing the width and height of the rectangles
+# Інтервали для ширини та висоти
 x_interval_vars = [
     model.new_optional_interval_var(
         start=bottom_left_x_vars[i],
@@ -905,52 +867,50 @@ y_interval_vars = [
     for i, box in enumerate(rectangles)
 ]
 
-# Ensure no two rectangles overlap
+# Забороняємо перекриття
 model.add_no_overlap_2d(x_interval_vars, y_interval_vars)
 ```
 
-Finally, we maximize the number of packed rectangles by defining an objective
-function.
+Нарешті, максимізуємо кількість упакованих прямокутників через цільову функцію.
 
 ```python
-# Maximize the number of packed rectangles
+# Максимізуємо кількість упакованих прямокутників
 model.maximize(sum(box.value * x for x, box in zip(packed_vars, rectangles)))
 ```
 
 |                       ![./images/dense_packing.png](https://github.com/d-krupke/cpsat-primer/blob/main/images/dense_packing.png)                       |
 | :----------------------------------------------------------------------------------------------------------------------------------------------------: |
-| This dense packing was found by CP-SAT in less than 0.3s, which is quite impressive and seems to be more efficient than a naive Gurobi implementation. |
+| Це щільне пакування CP-SAT знайшов менш ніж за 0.3 с, що вражає і виглядає ефективнішим за наївну реалізацію в Gurobi. |
 
-You can find the full code here:
+Повний код можна знайти тут:
 
-|                           Problem Variant                            |                                                                                Code                                                                                 |
+|                           Варіант задачі                           |                                                                                Код                                                                                 |
 | :------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-|     Deciding feasibility of packing rectangles without rotations     |    [./evaluations/packing/solver/packing_wo_rotations.py](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/packing/solver/packing_wo_rotations.py)    |
-| Finding the largest possible packing of rectangles without rotations |   [./evaluations/packing/solver/knapsack_wo_rotations.py](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/packing/solver/knapsack_wo_rotations.py)   |
-|      Deciding feasibility of packing rectangles with rotations       |  [./evaluations/packing/solver/packing_with_rotations.py](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/packing/solver/packing_with_rotations.py)  |
-|  Finding the largest possible packing of rectangles with rotations   | [./evaluations/packing/solver/knapsack_with_rotations.py](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/packing/solver/knapsack_with_rotations.py) |
+|     Перевірка здійсненності пакування без поворотів     |    [./evaluations/packing/solver/packing_wo_rotations.py](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/packing/solver/packing_wo_rotations.py)    |
+| Пошук найбільшого пакування без поворотів |   [./evaluations/packing/solver/knapsack_wo_rotations.py](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/packing/solver/knapsack_wo_rotations.py)   |
+|      Перевірка здійсненності пакування з поворотами       |  [./evaluations/packing/solver/packing_with_rotations.py](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/packing/solver/packing_with_rotations.py)  |
+|  Пошук найбільшого пакування з поворотами   | [./evaluations/packing/solver/knapsack_with_rotations.py](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/packing/solver/knapsack_with_rotations.py) |
 
-CP-SAT is good at finding a feasible packing, but incapable of proving
-infeasibility in most cases. When using the knapsack variant, it can still pack
-most of the rectangles even for the larger instances.
+CP-SAT добре знаходить здійсненне пакування, але майже не здатен довести
+недопустимість. У варіанті «рюкзака» він усе одно пакує більшість прямокутників
+навіть для великих інстансів.
 
 |                           ![./images/packing_plot_solved.png](https://github.com/d-krupke/cpsat-primer/blob/main/images/packing_plot_solved.png)                           |
 | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| The number of solved instances for the packing problem (90s time limit). Rotations make things slightly more difficult. None of the used instances were proved infeasible. |
+| Кількість розв’язаних інстансів для задачі пакування (ліміт 90 с). Повороти трохи ускладнюють задачу. Жоден з використаних інстансів не було доведено як недопустимий. |
 |                            ![./images/packing_percentage.png](https://github.com/d-krupke/cpsat-primer/blob/main/images/packing_percentage.png)                            |
-|                                           However, CP-SAT is able to pack nearly all rectangles even for the largest instances.                                            |
+|                                           Однак CP-SAT здатен упакувати майже всі прямокутники навіть для найбільших інстансів.                                            |
 
-#### Resolution and Parameters
+#### Роздільна здатність і параметри
 
-In earlier versions of CP-SAT, the performance of no-overlap constraints was
-greatly influenced by the resolution. This impact has evolved, yet it remains
-somewhat inconsistent. In a notebook example, I explored how resolution affects
-the execution time of the no-overlap constraint in versions 9.3 and 9.8 of
-CP-SAT. For version 9.3, there is a noticeable increase in execution time as the
-resolution grows. Conversely, in version 9.8, execution time actually reduces
-when the resolution is higher, a finding supported by repeated tests. This
-unexpected behavior suggests that the performance of CP-SAT regarding no-overlap
-constraints has not stabilized and may continue to vary in upcoming versions.
+У ранніх версіях CP-SAT продуктивність обмежень no-overlap сильно залежала від
+роздільної здатності. З часом це змінилося, але вплив залишається непослідовним.
+У прикладі в ноутбуці я дослідив, як роздільна здатність впливає на час
+виконання `add_no_overlap` у версіях 9.3 і 9.8. Для 9.3 час виконання
+помітно зростає зі збільшенням роздільної здатності. Натомість у 9.8 час
+виконання зменшується при більшій роздільній здатності, що підтвердили повторні
+тести. Це несподіване спостереження свідчить, що продуктивність CP-SAT щодо
+no-overlap ще не стабілізувалася і може змінюватися в майбутніх версіях.
 
 | Resolution | Runtime (CP-SAT 9.3) | Runtime (CP-SAT 9.8) |
 | ---------- | -------------------- | -------------------- |
@@ -960,12 +920,11 @@ constraints has not stabilized and may continue to vary in upcoming versions.
 | 1000x      | 75s                  | 40.3s                |
 | 10_000x    | >15min               | 0.4s                 |
 
-[This notebook](https://github.com/d-krupke/cpsat-primer/blob/main/examples/add_no_overlap_2d.ipynb)
-was used to create the table above.
+[Цей ноутбук](https://github.com/d-krupke/cpsat-primer/blob/main/examples/add_no_overlap_2d.ipynb)
+використано для створення таблиці.
 
-However, while playing around with less documented features, I noticed that the
-performance for the older version can be improved drastically with the following
-parameters:
+Втім, експериментуючи з менш документованими можливостями, я помітив, що
+продуктивність у старішій версії можна суттєво покращити такими параметрами:
 
 ```python
 solver.parameters.use_energetic_reasoning_in_no_overlap_2d = True
@@ -973,47 +932,43 @@ solver.parameters.use_timetabling_in_no_overlap_2d = True
 solver.parameters.use_pairwise_reasoning_in_no_overlap_2d = True
 ```
 
-With the latest version of CP-SAT, I did not notice a significant difference in
-performance when using these parameters.
+У найновішій версії CP-SAT суттєвого приросту я не помітив.
 
 <a name="04-modelling-automaton"></a>
 
-### Automaton Constraints
+### Обмеження автомата
 
-Automaton constraints model finite state machines, enabling the representation
-of feasible transitions between states. This is particularly useful in software
-verification, where it is essential to ensure that a program follows a specified
-sequence of states. Given the critical importance of verification in research,
-there is likely a dedicated audience that appreciates this constraint. However,
-others may prefer to proceed to the next section.
+Обмеження автомата моделюють скінченні автомати, тобто допустимі переходи між
+станами. Це особливо корисно у верифікації ПЗ, де важливо, щоб програма
+дотримувалася заданої послідовності станів. З огляду на важливість верифікації
+в дослідженнях, ці обмеження мають свою аудиторію, але інші можуть перейти до
+наступного розділу.
 
 |                  ![Automaton Example](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/automaton.png)                   |
 | :----------------------------------------------------------------------------------------------------------------------------------------: |
-| An example of a finite state machine with four states and seven transitions. State 0 is the initial state, and state 3 is the final state. |
+| Приклад скінченного автомата з чотирма станами і сімома переходами. Стан 0 — початковий, стан 3 — кінцевий. |
 
-The automaton operates as follows: We have a list of integer variables
-`transition_variables` that represent the transition values. Starting from the
-`starting_state`, the next state is determined by the transition triple
-`(state, transition_value, next_state)` matching the first transition variable.
-If no such triple is found, the model is infeasible. This process repeats for
-each subsequent transition variable. It is crucial that the final transition
-leads to a final state (possibly via a loop); otherwise, the model remains
-infeasible.
+Автомат працює так: маємо список цілочисельних змінних `transition_variables`,
+які представляють значення переходів. Починаючи зі `starting_state`, наступний
+стан визначається трійкою `(state, transition_value, next_state)`, яка відповідає
+першій змінній переходу. Якщо такої трійки немає — модель недопустима. Процес
+повторюється для кожної наступної змінної. Важливо, щоб останній перехід вів у
+кінцевий стан (можливо, через петлю); інакше модель недопустима.
 
-The state machine from the example can be modeled as follows:
+Автомат із прикладу можна змоделювати так:
 
 ```python
 model = cp_model.CpModel()
 
 transition_variables = [model.new_int_var(0, 2, f"transition_{i}") for i in range(4)]
 transition_triples = [
-    (0, 0, 1),  # If in state 0 and the transition value is 0, go to state 1
-    (1, 0, 1),  # If in state 1 and the transition value is 0, stay in state 1
-    (1, 1, 2),  # If in state 1 and the transition value is 1, go to state 2
-    (2, 0, 0),  # If in state 2 and the transition value is 0, go to state 0
-    (2, 1, 1),  # If in state 2 and the transition value is 1, go to state 1
-    (2, 2, 3),  # If in state 2 and the transition value is 2, go to state 3
-    (3, 0, 3),  # If in state 3 and the transition value is 0, stay in state 3
+    (0, 0, 1),  # Якщо стан 0 і значення 0, переходимо в стан 1
+    (1, 0, 1),  # Якщо стан 1 і значення 0, залишаємося в стані 1
+    (1, 1, 2),  # Якщо стан 1 і значення 1, переходимо в стан 2
+    (2, 0, 0),  # Якщо стан 2 і значення 0, переходимо в стан 0
+    (2, 1, 1),  # Якщо стан 2 і значення 1, переходимо в стан 1
+    (2, 2, 3),  # Якщо стан 2 і значення 2, переходимо в стан 3
+    (3, 0, 3),  # Якщо стан 3 і значення 0, залишаємося в стані 3
 ]
 
 model.add_automaton(
@@ -1024,42 +979,37 @@ model.add_automaton(
 )
 ```
 
-The assignment `[0, 1, 2, 0]` would be a feasible solution for this model,
-whereas the assignment `[1, 0, 1, 2]` would be infeasible because state 0 has no
-transition for value 1. Similarly, the assignment `[0, 0, 1, 1]` would be
-infeasible as it does not end in a final state.
+Присвоєння `[0, 1, 2, 0]` є допустимим, тоді як `[1, 0, 1, 2]` недопустиме, бо зі
+стану 0 немає переходу для значення 1. Так само `[0, 0, 1, 1]` недопустиме, бо
+не закінчується у кінцевому стані.
 
 > :reference:
 >
-> The automaton constraint is for example used in this
-> [paper](https://arxiv.org/pdf/2410.11981) to model Parallel Batch Scheduling
-> With Incompatible Job Families.
+> Обмеження автомата, наприклад, використано в цій
+> [статті](https://arxiv.org/pdf/2410.11981) для моделювання Parallel Batch
+> Scheduling With Incompatible Job Families.
 
 <a name="04-modelling-reservoir"></a>
 
-### Reservoir Constraints
+### Обмеження резервуара
 
-Sometimes, we need to keep the balance between inflows and outflows of a
-reservoir. The name giving example is a water reservoir, where we need to keep
-the water level between a minimum and a maximum level. The reservoir constraint
-takes a list of time variables, a list of integer level changes, and the minimum
-and maximum level of the reservoir. If the affine expression `times[i]` is
-assigned a value `t`, then the current level changes by `level_changes[i]`. Note
-that at the moment, variable level changes are not supported, which means level
-changes are constant at time `t`. The constraint ensures that the level stays
-between the minimum and maximum level at all time, i.e.
+Інколи потрібно підтримувати баланс між притоками та відтоками резервуара.
+Найочевидніший приклад — водосховище, де рівень води має бути між мінімумом і
+максимумом. Обмеження резервуара приймає список часових змінних, список зміни
+рівня та мінімальний/максимальний рівень. Якщо афінний вираз `times[i]`
+набуває значення `t`, тоді поточний рівень змінюється на `level_changes[i]`.
+Зауважте, що змінні зміни рівня наразі не підтримуються — зміни сталі у момент
+`t`. Обмеження гарантує, що рівень завжди між мінімумом і максимумом:
 `sum(level_changes[i] if times[i] <= t) in [min_level, max_level]`.
 
-There are many other examples apart from water reservoirs, where you need to
-balance demands and supplies, such as maintaining a certain stock level in a
-warehouse, or ensuring a certain staffing level in a clinic. The
-`add_reservoir_constraint` constraint in CP-SAT allows you to model such
-problems easily.
+Є багато прикладів, окрім водосховища, де потрібно балансувати попит і
+пропозицію: підтримка запасів на складі або забезпечення рівня персоналу в
+клініці. `add_reservoir_constraint` у CP-SAT дозволяє легко моделювати такі
+задачі.
 
-In the following example, `times[i]` represents the time at which the change
-`level_changes[i]` will be applied, thus both lists needs to be of the same
-length. The reservoir level starts at 0, and the minimum level has to be
-$\leq 0$ and the maximum level has to be $\geq 0$.
+У наведеному прикладі `times[i]` — час застосування зміни `level_changes[i]`,
+тому обидва списки мають однакову довжину. Рівень резервуара стартує з 0, і
+мінімальний рівень має бути $\leq 0$, а максимальний — $\geq 0$.
 
 ```python
 times = [model.new_int_var(0, 10, f"time_{i}") for i in range(10)]
@@ -1073,13 +1023,12 @@ model.add_reservoir_constraint(
 )
 ```
 
-Additionally, the `add_reservoir_constraint_with_active` constraint allows you
-to model a reservoir with _optional_ changes. Here, we additionally have a list
-of Boolean variables `actives`, where `actives[i]` indicates if the change
-`level_changes[i]` takes place, i.e. if
-`sum(level_changes[i] * actives[i] if times[i] <= t) in [min_level, max_level]`
-If a change is not active, it is as if it does not exist, and the reservoir
-level remains the same, independent of the time and change values.
+Додатково, `add_reservoir_constraint_with_active` дозволяє моделювати резервуар
+з _опційними_ змінами. Тут маємо список булевих змінних `actives`, де
+`actives[i]` означає, чи відбувається зміна `level_changes[i]`, тобто
+`sum(level_changes[i] * actives[i] if times[i] <= t) in [min_level, max_level]`.
+Якщо зміна не активна, це як якщо б її не існувало, і рівень залишається
+незмінним незалежно від часу й значення зміни.
 
 ```python
 times = [model.new_int_var(0, 10, f"time_{i}") for i in range(10)]
@@ -1095,27 +1044,25 @@ model.add_reservoir_constraint_with_active(
 )
 ```
 
-To illustrate the usage of the reservoir constraint, we look at an example for
-scheduling nurses in a clinic. For the full example, take a look at the
-[notebook](https://github.com/d-krupke/cpsat-primer/blob/main/examples/add_reservoir.ipynb).
+Щоб проілюструвати використання, розгляньмо приклад планування медсестер у
+клініці. Повний приклад — у
+[ноутбуці](https://github.com/d-krupke/cpsat-primer/blob/main/examples/add_reservoir.ipynb).
 
-The clinic needs to ensure that there are always enough nurses available without
-over-staffing too much. For a 12-hour work day, we model the demands for nurses
-as integers for each hour of the day.
+Клініці потрібно, щоб завжди було достатньо медсестер без надлишку. Для 12-годинного
+робочого дня змоделюємо попит як ціле число для кожної години.
 
 ```python
-# a positive number means we need more nurses, a negative number means we need fewer nurses.
+# додатне число означає, що потрібно більше медсестер, від’ємне — менше.
 demand_change_at_t = [3, 0, 0, 0, 2, 0, 0, 0, -1, 0, -1, 0, -3]
 demand_change_times = list(range(len(demand_change_at_t)))  # [0, 1, ..., 12]
 ```
 
-We have a list of nurses, each with an individual availability as well as a
-maximum shift length.
+Є список медсестер, кожна має власну доступність та максимальну тривалість зміни.
 
 ```python
 max_shift_length = 5
 
-# begin and end of the availability of each nurse
+# початок і кінець доступності кожної медсестри
 nurse_availabilities = 2 * [
     (0, 7),
     (0, 4),
@@ -1129,17 +1076,16 @@ nurse_availabilities = 2 * [
 ]
 ```
 
-We now initialize all relevant variables of the model. Each nurse is assigned a
-start and end time of their shift as well as a Boolean variable indicating if
-they are working at all.
+Ініціалізуємо змінні моделі: старт і кінець зміни кожної медсестри та булеву
+змінну, що показує, чи вона працює.
 
 ```python
-# boolean variable to indicate if a nurse is scheduled
+# булева змінна, що показує, чи медсестру заплановано
 nurse_scheduled = [
     model.new_bool_var(f"nurse_{i}_scheduled") for i in range(len(nurse_availabilities))
 ]
 
-# model the begin and end of each shift
+# моделюємо початок і кінець кожної зміни
 shifts_begin = [
     model.new_int_var(begin, end, f"begin_nurse_{i}")
     for i, (begin, end) in enumerate(nurse_availabilities)
@@ -1151,43 +1097,39 @@ shifts_end = [
 ]
 ```
 
-We now add some basic constraints to ensure that the shifts are valid.
+Додаємо базові обмеження, щоб зміни були валідними.
 
 ```python
 for begin, end in zip(shifts_begin, shifts_end):
-    model.add(end >= begin)  # make sure the end is after the begin
-    model.add(end - begin <= max_shift_length)  # make sure, the shifts are not too long
+    model.add(end >= begin)  # кінець після початку
+    model.add(end - begin <= max_shift_length)  # зміна не надто довга
 ```
 
-Our reservoir level is the number of nurses scheduled at any time minus the
-demand for nurses up until that point. We can now add the reservoir constraint
-to ensure that we have enough nurses available at all times while not having too
-many nurses scheduled (i.e., the reservoir level is between 0 and 2). We have
-three types of changes in the reservoir:
+Рівень резервуара — це кількість запланованих медсестер у будь-який момент
+мінус попит до цього моменту. Додаємо обмеження резервуара, щоб завжди вистачало
+персоналу, але не було надлишку (рівень між 0 і 2). Маємо три типи змін:
 
-1. The demand for nurses changes at the beginning of each hour. For these we use
-   fixed integer times and activate all changes. Note that the demand changes
-   are negated, as an increase in demand lowers the reservoir level.
-2. If a nurse begins a shift, we increase the reservoir level by 1. We use the
-   `shifts_begin` variables as times and change the reservoir level only if the
-   nurse is scheduled.
-3. Once a nurse ends a shift, we decrease the reservoir level by 1. We use the
-   `shifts_end` variables as times and change the reservoir level only if the
-   nurse is scheduled.
+1. Попит змінюється на початку кожної години. Для цього використовуємо фіксовані
+   моменти часу і активуємо всі зміни. Попит зі знаком мінус, бо зростання попиту
+   знижує рівень резервуара.
+2. Початок зміни медсестри підвищує рівень на 1. Час — `shifts_begin`, зміна
+   активна лише якщо медсестра запланована.
+3. Завершення зміни знижує рівень на 1. Час — `shifts_end`, зміна активна лише
+   якщо медсестра запланована.
 
 ```python
 times = demand_change_times
 demands = [
     -demand for demand in demand_change_at_t
-]  # an increase in demand lowers the reservoir
+]  # зростання попиту знижує резервуар
 actives = [1] * len(demand_change_times)
 
 times += list(shifts_begin)
-demands += [1] * len(shifts_begin)  # a nurse begins a shift
+demands += [1] * len(shifts_begin)  # медсестра починає зміну
 actives += list(nurse_scheduled)
 
 times += list(shifts_end)
-demands += [-1] * len(shifts_end)  # a nurse ends a shift
+demands += [-1] * len(shifts_end)  # медсестра завершує зміну
 actives += list(nurse_scheduled)
 
 model.add_reservoir_constraint_with_active(
@@ -1201,131 +1143,118 @@ model.add_reservoir_constraint_with_active(
 
 > [!NOTE]
 >
-> The reservoir constraints can express conditions that are difficult to model
-> "by hand". However, while I do not have much experience with them, I would not
-> expect them to be particularly easy to optimize. Let me know if you have
-> either good or bad experiences with them in practice and for which problem
-> scales they work well.
+> Обмеження резервуара дозволяють описувати умови, які важко змоделювати
+> «вручну». Проте, хоча в мене небагато практики з ними, я не очікував би, що їх
+> легко оптимізувати. Напишіть, якщо у вас є позитивний або негативний досвід
+> використання та для яких масштабів задач вони працюють добре.
 
 <a name="04-modelling-pwl"></a>
 
-### Non-Linear Constraints/Piecewise Linear Functions
+### Нелінійні обмеження / кусково-лінійні функції
 
-In practice, you often have cost functions that are not linear. For example,
-consider a production problem where you have three different items you produce.
-Each item has different components, you have to buy. The cost of the components
-will first decrease with the amount you buy, then at some point increase again
-as your supplier will be out of stock and you have to buy from a more expensive
-supplier. Additionally, you only have a certain amount of customers willing to
-pay a certain price for your product. If you want to sell more, you will have to
-lower the price, which will decrease your profit.
+На практиці часто трапляються функції витрат, які не є лінійними. Наприклад,
+виробнича задача, де ви виробляєте три різні вироби. Кожен виріб має різні
+компоненти, які потрібно купувати. Вартість компонентів спочатку зменшується зі
+збільшенням обсягу, а потім зростає, коли постачальник вичерпує запаси і
+доводиться купувати у дорожчого. Крім того, кількість клієнтів, готових платити
+певну ціну, обмежена. Якщо хочете продавати більше, доведеться знижувати ціну,
+що зменшить прибуток.
 
-Let us assume such a function looks like $y=f(x)$ in the following figure.
-Unfortunately, it is a rather complex function that we cannot directly express
-in CP-SAT. However, we can approximate it with a piecewise linear function as
-shown in red. Such piecewise linear approximations are very common, and some
-solvers can even do them automatically, e.g., Gurobi. The resolution can be
-arbitrarily high, but the more segments you have, the more complex the model
-becomes. Thus, it is usually only chosen to be as high as necessary.
+Припустімо, така функція має вигляд $y=f(x)$ на рисунку нижче. На жаль, це
+досить складна функція, яку не можна напряму виразити в CP-SAT. Проте можна
+наблизити її кусково-лінійною функцією (червона лінія). Такі апроксимації дуже
+поширені, а деякі розв’язувачі навіть роблять це автоматично, наприклад Gurobi.
+Роздільну здатність можна збільшувати довільно, але чим більше сегментів, тим
+складніша модель. Тому зазвичай її роблять лише настільки високою, наскільки
+потрібно.
 
 |                                                                                                                     ![./images/pwla.png](https://github.com/d-krupke/cpsat-primer/blob/main/images/pwla.png)                                                                                                                      |
 | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| We can model an arbitrary continuous function with a piecewise linear function. Here, we split the original function into a number of straight segments. The accuracy can be adapted to the requirements. The linear segments can then be expressed in CP-SAT. The fewer such segments, the easier it remains to model and solve. |
+| Ми можемо змоделювати довільну неперервну функцію кусково-лінійною. Тут ми розбиваємо оригінал на кілька лінійних сегментів. Точність можна адаптувати під вимоги. Лінійні сегменти далі можна виразити в CP-SAT. Чим менше сегментів, тим простіше моделювати і розв’язувати. |
 
-Using linear constraints (`model.add`) and reification (`.only_enforce_if`), we
-can model such a piecewise linear function in CP-SAT. For this we simply use
-boolean variables to decide for a segment, and then activate the corresponding
-linear constraint via reification. However, this has two problems in CP-SAT, as
-shown in the next figure.
+Використовуючи лінійні обмеження (`model.add`) та реїфікацію (`.only_enforce_if`),
+можна змоделювати кусково-лінійну функцію в CP-SAT. Для цього використовуємо
+булеві змінні, що вибирають сегмент, і активуємо відповідне лінійне обмеження
+через реїфікацію. Однак у CP-SAT виникають дві проблеми, показані на рисунку.
 
 |                                                                                                             ![./images/pwla_problems.png](https://github.com/d-krupke/cpsat-primer/blob/main/images/pwla_problems.png)                                                                                                              |
 | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Even if the function f(x) now consists of linear segments, we cannot simply implement $y=f(x)$ in CP-SAT. First, for many $x$-values, $f(x)$ will be not integral and, thus, infeasible. Second, the canonical representation of many linear segments will require non-integral coefficients, which are also not allowed in CP-SAT. |
+| Навіть якщо f(x) складається з лінійних сегментів, ми не можемо просто реалізувати $y=f(x)$ в CP-SAT. По-перше, для багатьох значень $x$ функція дає нецілі значення, отже модель стає недопустимою. По-друге, канонічне представлення лінійних сегментів часто потребує нецілих коефіцієнтів, що також заборонено в CP-SAT. |
 
-- **Problem A:** Even if we can express a segment as a linear function, the
-  result of the function may not be integral. In the example, $f(5)$ would be
-  $3.5$ and, thus, if we enforce $y=f(x)$, $x$ would be prohibited to be $5$,
-  which is not what we want. There are two options now. Either, we use a more
-  complex piecewise linear approximation that ensures that the function will
-  always yield integral solutions or we use inequalities instead. The first
-  solution has the issue that this can require too many segments, making it far
-  too expensive to optimize. The second solution will be a weaker constraint as
-  now we can only enforce $y<=f(x)$ or $y>=f(x)$, but not $y=f(x)$. If you try
-  to enforce it by $y<=f(x)$ and $y>=f(x)$, you will end with the same
-  infeasibility as before. However, often an inequality will be enough. If the
-  problem is to prevent $y$ from becoming too large, you use $y<=f(x)$, if the
-  problem is to prevent $y$ from becoming too small, you use $y>=f(x)$. If we
-  want to represent the costs by $f(x)$, we would use $y>=f(x)$ to minimize the
-  costs.
+- **Проблема A:** навіть якщо сегмент — лінійна функція, результат може бути
+  нецілим. У прикладі $f(5)=3{,}5$, і якщо ми задаємо $y=f(x)$, то значення
+  $x=5$ стає забороненим, що не є бажаним. Є два варіанти: або використовувати
+  складнішу апроксимацію, яка гарантує цілі значення, або застосувати
+  нерівності. Перший варіант може вимагати занадто багато сегментів і бути
+  надто дорогим. Другий дає слабше обмеження, адже ми можемо задати лише
+  $y<=f(x)$ або $y>=f(x)$, але не $y=f(x)$. Якщо спробувати обидві нерівності,
+  отримаємо ту саму недопустимість. Але часто достатньо однієї нерівності.
+  Якщо потрібно обмежити $y$ зверху — використовуємо $y<=f(x)$, якщо знизу —
+  $y>=f(x)$. Якщо $f(x)$ представляє витрати, то використовуємо $y>=f(x)$ і
+  мінімізуємо $y$.
 
-- **Problem B:** The canonical representation of a linear function is $y=ax+b$.
-  However, this will often require non-integral coefficients. Luckily, we can
-  automatically scale them up to integral values by adding a scaling factor. The
-  inequality $y=0.5x+0.5$ in the example can also be represented as $2y=x+1$. I
-  will spare you the math, but it just requires a simple trick with the least
-  common multiple. Of course, the required scaling factor can become large, and
-  at some point lead to overflows.
+- **Проблема B:** канонічна форма лінійної функції — $y=ax+b$. Часто потрібні
+  нецілі коефіцієнти. Їх можна масштабувати до цілих, додаючи масштабний
+  множник. Наприклад, нерівність $y=0.5x+0.5$ можна переписати як $2y=x+1$.
+  Це робиться через НСК, але масштаб може стати великим і привести до
+  переповнень.
 
-An implementation could now look as follows:
+Можлива реалізація:
 
 ```python
-# We want to enforce y=f(x)
+# Ми хочемо задати y=f(x)
 x = model.new_int_var(0, 7, "x")
 y = model.new_int_var(0, 5, "y")
 
-# use boolean variables to decide for a segment
+# Булеві змінні для вибору сегмента
 segment_active = [model.new_bool_var("segment_1"), model.new_bool_var("segment_2")]
-model.add_at_most_one(segment_active)  # enforce one segment to be active
+model.add_at_most_one(segment_active)  # активний лише один сегмент
 
-# Segment 1
-# if 0<=x<=3, then y >= 0.5*x + 0.5
+# Сегмент 1
+# якщо 0<=x<=3, тоді y >= 0.5*x + 0.5
 model.add(2 * y >= x + 1).only_enforce_if(segment_active[0])
 model.add(x >= 0).only_enforce_if(segment_active[0])
 model.add(x <= 3).only_enforce_if(segment_active[0])
 
-# Segment 2
+# Сегмент 2
 model.add(_SLIGHTLY_MORE_COMPLEX_INEQUALITY_).only_enforce_if(segment_active[1])
 model.add(x >= 3).only_enforce_if(segment_active[1])
 model.add(x <= 7).only_enforce_if(segment_active[1])
 
 model.minimize(y)
-# if we were to maximize y, we would have used <= instead of >=
+# якщо б ми максимізували y, використовували б <= замість >=
 ```
 
-This can be quite tedious, but luckily, I wrote a small helper class that will
-do this automatically for you. You can find it in
+Це може бути доволі громіздко, але я написав невеликий helper-клас, який робить
+це автоматично. Він знаходиться в
 [./utils/piecewise_functions](https://github.com/d-krupke/cpsat-primer/blob/main/utils/piecewise_functions/).
-Simply copy it into your code.
+Просто скопіюйте у свій код.
 
-This code does some further optimizations:
+Цей код робить додаткові оптимізації:
 
-1. Considering every segment as a separate case can be quite expensive and
-   inefficient. Thus, it can make a serious difference if you can combine
-   multiple segments into a single case. This can be achieved by detecting
-   convex ranges, as the constraints of convex areas do not interfere with each
-   other.
-2. Adding the convex hull of the segments as a redundant constraint that does
-   not depend on any `only_enforce_if` can in some cases help the solver to find
-   better bounds. `only_enforce_if`-constraints are often not very good for the
-   linear relaxation, and having the convex hull as independent constraint can
-   directly limit the solution space, without having to do any branching on the
-   cases.
+1. Розгляд кожного сегмента як окремого випадку може бути дорогим і
+   неефективним. Тому суттєво допомагає, якщо ви можете об’єднати кілька
+   сегментів в один випадок. Це можна зробити, виявляючи опуклі ділянки, адже
+   обмеження опуклих областей не заважають одне одному.
+2. Додавання опуклої оболонки сегментів як надлишкового обмеження, що не
+   залежить від `only_enforce_if`, іноді допомагає розв’язувачу краще обмежити
+   область. Обмеження з `only_enforce_if` зазвичай погано працюють для лінійної
+   релаксації, а незалежна опукла оболонка одразу обмежує простір розв’язків без
+   гілкування по випадках.
 
-Let us use this code to solve an instance of the problem above.
+Застосуймо цей код до задачі вище.
 
-We have two products that each require three components. The first product
-requires 3 of component 1, 5 of component 2, and 2 of component 3. The second
-product requires 2 of component 1, 1 of component 2, and 3 of component 3. We
-can buy up to 1500 of each component for the price given in the figure below. We
-can produce up to 300 of each product and sell them for the price given in the
-figure below.
+У нас є два продукти, кожен вимагає три компоненти. Перший продукт потребує 3
+компоненти 1, 5 компоненти 2 і 2 компоненти 3. Другий продукт потребує 2
+компоненти 1, 1 компоненту 2 і 3 компоненти 3. Ми можемо купити до 1500 кожного
+компонента за цінами з рисунка нижче. Виробляти можна до 300 одиниць кожного
+продукту і продавати їх за цінами з рисунка.
 
 | ![./images/production_example_cost_components.png](https://github.com/d-krupke/cpsat-primer/blob/main/images/production_example_cost_components.png) | ![./images/production_example_selling_price.png](https://github.com/d-krupke/cpsat-primer/blob/main/images/production_example_selling_price.png) |
 | :--------------------------------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------------------------: |
-|                                                Costs for buying components necessary for production.                                                 |                                                         Selling price for the products.                                                          |
+| Витрати на закупівлю компонентів для виробництва. | Ціни продажу продукції. |
 
-We want to maximize the profit, i.e., the selling price minus the costs for
-buying the components. We can model this as follows:
+Хочемо максимізувати прибуток, тобто дохід мінус витрати на компоненти. Модель:
 
 ```python
 requirements_1 = (3, 5, 2)
@@ -1345,14 +1274,14 @@ model.add(produce_1 * requirements_1[0] + produce_2 * requirements_2[0] <= buy_1
 model.add(produce_1 * requirements_1[1] + produce_2 * requirements_2[1] <= buy_2)
 model.add(produce_1 * requirements_1[2] + produce_2 * requirements_2[2] <= buy_3)
 
-# You can find this code it ./utils!
+# Код із ./utils!
 from piecewise_functions import PiecewiseLinearFunction, PiecewiseLinearConstraint
 
-# Define the functions for the costs
+# Функції витрат
 costs_1 = [(0, 0), (1000, 400), (1500, 1300)]
 costs_2 = [(0, 0), (300, 300), (700, 500), (1200, 600), (1500, 1100)]
 costs_3 = [(0, 0), (200, 400), (500, 700), (1000, 900), (1500, 1500)]
-# PiecewiseLinearFunction is a pydantic model and can be serialized easily!
+# PiecewiseLinearFunction — pydantic модель і легко серіалізується
 f_costs_1 = PiecewiseLinearFunction(
     xs=[x for x, y in costs_1], ys=[y for x, y in costs_1]
 )
@@ -1363,22 +1292,22 @@ f_costs_3 = PiecewiseLinearFunction(
     xs=[x for x, y in costs_3], ys=[y for x, y in costs_3]
 )
 
-# Define the functions for the gain
+# Функції доходу
 gain_1 = [(0, 0), (100, 800), (200, 1600), (300, 2_000)]
 gain_2 = [(0, 0), (80, 1_000), (150, 1_300), (200, 1_400), (300, 1_500)]
 f_gain_1 = PiecewiseLinearFunction(xs=[x for x, y in gain_1], ys=[y for x, y in gain_1])
 f_gain_2 = PiecewiseLinearFunction(xs=[x for x, y in gain_2], ys=[y for x, y in gain_2])
 
-# Create y>=f(x) constraints for the costs
+# Обмеження y>=f(x) для витрат
 x_costs_1 = PiecewiseLinearConstraint(model, buy_1, f_costs_1, upper_bound=False)
 x_costs_2 = PiecewiseLinearConstraint(model, buy_2, f_costs_2, upper_bound=False)
 x_costs_3 = PiecewiseLinearConstraint(model, buy_3, f_costs_3, upper_bound=False)
 
-# Create y<=f(x) constraints for the gain
+# Обмеження y<=f(x) для доходу
 x_gain_1 = PiecewiseLinearConstraint(model, produce_1, f_gain_1, upper_bound=True)
 x_gain_2 = PiecewiseLinearConstraint(model, produce_2, f_gain_2, upper_bound=True)
 
-# Maximize the gain minus the costs
+# Максимізуємо дохід мінус витрати
 model.Maximize(x_gain_1.y + x_gain_2.y - (x_costs_1.y + x_costs_2.y + x_costs_3.y))
 
 solver = cp_model.CpSolver()
@@ -1392,7 +1321,7 @@ print(f"Produce {solver.value(produce_2)} of product 2")
 print(f"Overall gain: {solver.objective_value}")
 ```
 
-This will give you the following output:
+Отримаємо такий результат:
 
 ```
 Buy 930 of component 1
@@ -1403,7 +1332,6 @@ Produce 150 of product 2
 Overall gain: 1120.0
 ```
 
-Unfortunately, these problems quickly get very complicated to model and solve.
-This is just a proof that, theoretically, you can model such problems in CP-SAT.
-Practically, you can lose a lot of time and sanity with this if you are not an
-expert.
+На жаль, такі задачі швидко стають дуже складними для моделювання і розв’язання.
+Це лише доказ того, що теоретично такі задачі можна моделювати в CP-SAT. На
+практиці без експертності можна втратити багато часу й нервів.

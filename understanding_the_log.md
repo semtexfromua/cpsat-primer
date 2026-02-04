@@ -1,40 +1,38 @@
 <a name="understanding-the-log"></a>
 
-## Understanding the CP-SAT Log
+## Розуміння логу CP-SAT
 
 <!-- START_SKIP_FOR_README -->
 
-![Cover Image Log](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/logo_logs.webp)
+![Обкладинка «Лог»](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/logo_logs.webp)
 
 <!-- STOP_SKIP_FOR_README -->
 
-If you want to master CP-SAT, understanding the log is crucial. The log is the
-output of the solver that shows you what the solver is doing and how it is
-progressing.
+Якщо ви хочете опанувати CP-SAT, розуміння логу критично важливе. Лог — це
+вивід solver-а, який показує, що він робить і як просувається.
 
-The log consists of different parts. Let us go through them step by step.
+Лог складається з різних частин. Розгляньмо їх крок за кроком.
 
 > [!TIP]
 >
-> Use the [Log Analyzer](https://cpsat-log-analyzer.streamlit.app/) to get your
-> own logs explained to you.
+> Використовуйте [Log Analyzer](https://cpsat-log-analyzer.streamlit.app/), щоб
+> отримувати пояснення ваших логів.
 >
 > [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://cpsat-log-analyzer.streamlit.app/)
 >
 > [![d-krupke - CP-SAT Log Analyzer](https://img.shields.io/badge/d--krupke-CP--SAT%20Log%20Analyzer-blue?style=for-the-badge&logo=github)](https://github.com/d-krupke/CP-SAT-Log-Analyzer)
 
-As a reminder, you activate logging with
+Нагадаємо, логування вмикається так:
 
 ```python
 solver.parameters.log_search_progress = True  # Enable logging
 ```
 
-### Initialization
+### Ініціалізація
 
-The log starts with the version of CP-SAT, the parameters you set, and how many
-workers it has been using. For example, we have set a time limit via
-`max_time_in_seconds` to 30 seconds. If you are given a log, you can directly
-see under which conditions the solver was running.
+Лог починається з версії CP-SAT, встановлених параметрів і кількості воркерів.
+Наприклад, ми встановили ліміт часу `max_time_in_seconds` на 30 секунд. Якщо ви
+отримуєте лог, ви одразу бачите умови, за яких працював solver.
 
 ```
 Starting CP-SAT solver v9.10.4067
@@ -42,10 +40,10 @@ Parameters: max_time_in_seconds: 30 log_search_progress: true relative_gap_limit
 Setting number of workers to 16
 ```
 
-### Initial Model Description
+### Початковий опис моделі
 
-The next block provides an overview of the model before presolve, detailing the
-number of variables and constraints, as well as their coefficients and domains.
+Наступний блок дає огляд моделі до presolve: кількість змінних і обмежень, їхні
+коефіцієнти та домени.
 
 ```
 Initial optimization model '': (model_fingerprint: 0x1d316fc2ae4c02b1)
@@ -70,37 +68,34 @@ Initial optimization model '': (model_fingerprint: 0x1d316fc2ae4c02b1)
 #kLinearN: 94 (#terms: 1'392)
 ```
 
-For example, `- 12 in [22,57]` indicates that there are 12 variables with a
-domain of `[22,57]`, meaning their values can range between 22 and 57.
+Наприклад, `- 12 in [22,57]` означає 12 змінних з доменом `[22,57]`, тобто
+значення від 22 до 57.
 
-Similarly, `#kLinearN: 94 (#terms: 1'392)` indicates the presence of 94 linear
-constraints with 1,392 coefficients.
+Так само `#kLinearN: 94 (#terms: 1'392)` означає 94 лінійні обмеження з 1'392
+коефіцієнтами.
 
-Comparing this data to the model after presolve (coming up soon) is useful to
-ensure it aligns with your expectations. The presolve phase often reformulates
-your model extensively to enhance efficiency.
+Корисно порівняти ці дані з моделлю після presolve (далі), щоб переконатися, що
+все відповідає очікуванням. Presolve часто суттєво переформульовує модель для
+покращення ефективності.
 
-Since most optimization models are created dynamically in code, reviewing this
-section can help identify bugs or inefficiencies. Take the time to verify that
-the numbers match your expectations and ensure you do not have too many or too
-few variables or constraints of a certain type. This step is crucial as it also
-provides insight into the number of auxiliary variables in your model, helping
-you better understand its structure and complexity.
+Оскільки більшість оптимізаційних моделей створюється динамічно в коді,
+перегляд цього розділу допомагає виявити баги або неефективності. Приділіть час
+перевірці чисел: чи немає занадто багато або занадто мало змінних чи обмежень
+певного типу. Це також дає розуміння кількості допоміжних змінних у моделі та її
+складності.
 
-### Presolve Log
+### Presolve лог
 
-The next block represents the presolve phase, an essential component of CP-SAT.
-During this phase, the solver reformulates your model for greater efficiency.
-For instance, it may detect an affine relationship between variables, such as
-`x=2y-1`, and replace `x` with `2y-1` in all constraints. It can also identify
-and remove redundant constraints or unnecessary variables. For example, the log
-entry `rule 'presolve: 33 unused variables removed.' was applied 1 time` may
-indicate that some variables created by your code were unnecessary or became
-redundant due to the reformulation. Multiple rounds of applying various rules
-for domain reduction, expansion, equivalence checking, substitution, and probing
-are performed during presolve. These rules can significantly enhance the
-efficiency of your model, though they may take some time to run. However, this
-time investment usually pays off during the search phase.
+Наступний блок — фаза presolve, важливий компонент CP-SAT. На цьому етапі
+solver переформульовує модель для підвищення ефективності. Наприклад, він може
+виявити афінний зв’язок `x=2y-1` і замінити `x` на `2y-1` в усіх обмеженнях. Він
+також може знайти й видалити зайві обмеження або змінні. Наприклад,
+`rule 'presolve: 33 unused variables removed.' was applied 1 time` може
+означати, що деякі змінні були зайвими або стали зайвими після перетворень.
+Під час presolve виконується кілька раундів правил: зменшення доменів,
+розгортання, перевірка еквівалентностей, підстановки і probing. Ці правила
+можуть суттєво підвищити ефективність, хоча інколи займають час. Зазвичай це
+окупається під час пошуку.
 
 ```
 Starting presolve at 0.00s
@@ -144,31 +139,26 @@ Presolve summary:
   - rule 'variables: detect half reified value encoding' was applied 54 times.
 ```
 
-The presolve log can be challenging to read, but it provides vital information
-on the simplifications and optimizations made by CP-SAT. Reviewing this log can
-help you understand the transformations applied to your model, allowing you to
-identify and address any unnecessary variables or constraints in your code.
+Presolve лог складно читати, але він містить важливу інформацію про спрощення
+і оптимізації. Перегляд логу допомагає зрозуміти трансформації і виявити зайві
+змінні чи обмеження у коді.
 
-### Presolved Model
+### Модель після presolve
 
-This is the most important block of the presolve phase and gives an overview of
-the model after presolve. It contains the number of variables and constraints,
-as well as coefficients and domains.
+Це найважливіший блок presolve-фази і дає огляд моделі після presolve. Він містить
+кількість змінних та обмежень, коефіцієнти й домени.
 
-`- 200 in [0,199]` will indicate that there are 200 variables with domain
-`[0,199]`, i.e., values between 0 and 199. `- 6 in [0,1][34][67][100]` will
-indicate that there are 6 variables with domain `[0,1][34][67][100]`, i.e.,
-values 0, 1, 34, 67, and 100. `#kLinearN: 3'000 (#terms: 980'948)` indicates
-that there are 3000 linear constraints with 980'948 coefficients.
+`- 200 in [0,199]` означає 200 змінних у домені `[0,199]`, тобто від 0 до 199.
+`- 6 in [0,1][34][67][100]` означає 6 змінних, які можуть набувати значень
+0, 1, 34, 67 і 100. `#kLinearN: 3'000 (#terms: 980'948)` означає 3000 лінійних
+обмежень із 980'948 коефіцієнтами.
 
-It is useful to compare this to the initial model, to see if your model was
-simplified by presolve, which indicates that you can simplify your model
-yourself, saving presolve time. If you notice that a lot of time is spent in
-presolve but it does not simplify your model, you can try to disable/reduce
-presolve.
+Корисно порівнювати це з початковою моделлю, щоб побачити, чи presolve її
+спростив. Якщо presolve значно змінює модель, ви, можливо, можете зробити це
+вручну і зекономити час presolve. Якщо ж presolve довго працює, але нічого не
+спрощує, можна спробувати його зменшити/вимкнути.
 
-It is also interesting to see if the presolve replaced some of your constraints
-with more efficient ones.
+Також цікаво подивитися, чи presolve замінив деякі обмеження на більш ефективні.
 
 ```
 Presolved optimization model '': (model_fingerprint: 0xb4e599720afb8c14)
@@ -196,17 +186,14 @@ Presolved optimization model '': (model_fingerprint: 0xb4e599720afb8c14)
 
 > [!NOTE]
 >
-> This is the same model as in the initial model description. Take some time to
-> compare the two and see how much the presolve-phase has reformulated the
-> model.
+> Це та сама модель, що й у початковому описі. Порівняйте їх і оцініть, наскільки
+> presolve її переформулював.
 
-### Preloading Model
+### Preloading model
 
-This block serves as a prelude to the search phase and provides an overview of
-the model at the beginning of the search. Typically, this information is not
-very interesting unless the presolve phase was highly effective, essentially
-solving the model before the search phase begins. This can lead to entries that
-look very similar to that of the actual search phase, which comes next.
+Цей блок — вступ до фази пошуку і дає огляд моделі на старті пошуку. Зазвичай
+він не дуже цікавий, хіба що presolve майже повністю розв’язав модель. У такому
+разі записи можуть виглядати дуже схоже на фазу пошуку.
 
 ```
 Preloading model.
@@ -218,40 +205,35 @@ Preloading model.
 #Model   0.05s var:405/405 constraints:1468/1468
 ```
 
-### Search Phase
+### Фаза пошуку
 
-The search progress log is an essential element of the overall log, crucial for
-identifying performance bottlenecks. It clearly demonstrates the solver's
-progression over time and pinpoints where it faces significant challenges. It is
-important to discern whether the upper or lower bounds are causing issues, or if
-the solver initially finds a near-optimal solution but struggles to minimize a
-small remaining gap.
+Лог прогресу пошуку — ключова частина логу, що дозволяє знайти вузькі місця
+продуктивності. Він показує, як solver просувається з часом і де виникають
+труднощі. Важливо розуміти, чи проблема у верхніх чи нижніх межах, або чи
+solver швидко знаходить майже оптимальний розв’язок, але довго зменшує залишковий
+розрив.
 
 > [!WARNING]
 >
-> For models without an objective, especially the log of the search phase will
-> look very different. This chapter focuses on models with an objective.
+> Для моделей без цілі лог виглядатиме зовсім інакше. У цьому розділі ми
+> розглядаємо моделі з цільовою функцією.
 
-The structure of the log entries is standardized as follows:
+Структура записів логу:
 
 ```
 EVENT NAME | TIME  | BEST SOLUTION | RANGE OF THE SEARCH | COMMENT
 ```
 
-For instance, an event marked `#2` indicates the discovery of the second
-solution. Here, you will observe an improvement in the `BEST SOLUTION` metric. A
-notation like `best:16` confirms that the solver has found a solution with a
-value of 16.
+Наприклад, подія `#2` означає знайдений другий розв’язок. Ви побачите покращення
+у `BEST SOLUTION`. Запис `best:16` означає, що знайдено розв’язок зі значенням
+16.
 
-An event with `#Bound` denotes an enhancement in the bound, as seen by a
-reduction in the `RANGE OF THE SEARCH`. A detail such as `next:[7,14]` signifies
-that the solver is now focused on finding a solution valued between 7 and 14.
+Подія `#Bound` означає покращення межі, що видно у `RANGE OF THE SEARCH`. Запис
+`next:[7,14]` означає, що solver тепер шукає розв’язок між 7 і 14.
 
-The `COMMENT` section provides essential information about the strategies that
-led to these improvements.
+`COMMENT` показує, яка стратегія спричинила це покращення.
 
-Events labeled `#Model` signal modifications to the model, such as fixing
-certain variables.
+Події `#Model` означають зміни моделі, наприклад фіксацію змінних.
 
 ```
 Starting search at 0.05s with 16 workers.
@@ -303,28 +285,23 @@ Starting search at 0.05s with 16 workers.
 #Bound  29.35s best:1450  next:[1451,1515] objective_lb_search
 ```
 
-As this log is event-driven, it can be challenging to interpret. The
-[Log Analyzer](https://cpsat-log-analyzer.streamlit.app/) helps by automatically
-plotting these values in a more understandable way. Since the values at the
-beginning of the search are often out of scale, use the zoom function to focus
-on the relevant parts of the search.
+Оскільки лог подієвий, його складно інтерпретувати. [Log Analyzer](https://cpsat-log-analyzer.streamlit.app/)
+допомагає, автоматично будуючи графіки. Оскільки значення на початку пошуку
+можуть бути «не в масштабі», використовуйте zoom, щоб сфокусуватися на
+релевантних ділянках.
 
 | ![Search Progress](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/search_progress_plot_1.png) | ![Optimality Gap](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/search_progress_plot_2.png) | ![Model Changes](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/search_progress_plot_3.png) |
 | :----------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------: |
-|                               Shows how the lower and upper bounds change over time.                               |                                  Shows how quickly the optimality gap converges.                                  |     Shows how the model changes over time as new insights from the search allow the solver to fix variables.     |
+|                               Показує, як змінюються нижні та верхні межі з часом.                               |                                  Показує, як швидко збігається optimality gap.                                  |     Показує, як модель змінюється з часом, коли solver фіксує змінні на основі нових інсайтів.     |
 
-### Subsolver Details
+### Деталі сабсолверів
 
-Now there comes a lot of information about the different subsolvers that are
-used. This is a very detailed part of the log and can be overwhelming. You
-already need to be rather deep into the details of CP-SAT to actually make any
-use of this information. It is primarily intended for the developers of CP-SAT.
-It gives you insights into how the various subsolvers have been contributing to
-the solution, how the otherwise hidden LP-techniques, including cutting planes,
-have been used, and how the different heuristics have been applied. Based on
-this data, you could try to tune the various parameters of CP-SAT for your
-problem. However, note that you will probably need a lot of experience and
-experiments to gain an advantage compared to the default settings.
+Далі йде багато інформації про різні сабсолвери. Це дуже детальна частина логу
+і вона може бути складною. Щоб реально використати цю інформацію, потрібно
+глибоко розуміти CP-SAT. В основному це корисно для розробників CP-SAT. Це дає
+інсайти про те, як різні сабсолвери внесли вклад у розв’язок, як застосовувалися
+LP-техніки та евристики. На основі цього можна спробувати тюнити параметри, але
+потрібно багато досвіду та експериментів, щоб перевершити дефолтні налаштування.
 
 ```
 Task timing                          n [     min,      max]      avg      dev     time         n [     min,      max]      avg      dev    dtime
@@ -352,13 +329,13 @@ Clauses shared            Num
         'reduced_costs':    2
 ```
 
-### Summary
+### Підсумок
 
-This final block of the log contains a summary by the solver. Here you find the
-most important information, such as how successful the search was.
+Останній блок містить підсумок solver-а. Тут ви знайдете найважливішу
+інформацію, наприклад, наскільки успішним був пошук.
 
-You can find the original documentation
-[here](https://github.com/google/or-tools/blob/8768ed7a43f8899848effb71295a790f3ecbe2f2/ortools/sat/cp_model.proto#L720).
+Оригінальна документація:
+[тут](https://github.com/google/or-tools/blob/8768ed7a43f8899848effb71295a790f3ecbe2f2/ortools/sat/cp_model.proto#L720).
 
 ```
 CpSolverResponse summary:
