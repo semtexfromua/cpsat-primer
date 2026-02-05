@@ -1,120 +1,112 @@
 <a name="building_an_optimization_api"></a>
 
-# Building an Optimization API (DRAFT)
+# Побудова оптимізаційного API (ЧЕРНЕТКА)
 
-In this chapter, we will create a basic optimization service that performs
-computations on a cluster rather than on the client side. This service can be
-extended with a straightforward frontend, allowing non-technical users to access
-the optimization capabilities. By encapsulating your optimization code within an
-easy-to-use API, integration into larger systems becomes more streamlined, and
-the separation of algorithm development from deployment is achieved.
+У цьому розділі ми створимо базовий сервіс оптимізації, який виконує обчислення
+на кластері, а не на стороні клієнта. Цей сервіс можна доповнити простим
+фронтендом, що дозволить нетехнічним користувачам отримати доступ до можливостей
+оптимізації. Інкапсулювавши код оптимізації у зручному API, ви спрощуєте
+інтеграцію в більші системи та відокремлюєте розробку алгоритмів від розгортання.
 
-While this chapter does not cover every aspect of building a production-ready
-API, it will address many important points of it. This foundational knowledge
-will enable you to collaborate effectively with your integration experts to
-finalize the implementation details, or even do it yourself.
+Хоч цей розділ і не охоплює всі аспекти побудови продакшн-готового API, він
+розгляне багато важливих моментів. Цих базових знань буде достатньо, щоб
+ефективно співпрацювати з інженерами інтеграції й завершити деталі реалізації,
+або навіть зробити це самостійно.
 
-To illustrate these principles, we will develop a simple optimization model for
-the Traveling Salesman Problem (TSP). Users will be able to submit an instance
-of the TSP, and the API will return a solution. The primary challenge, compared
-to many other APIs, is that the TSP is an NP-hard problem, and the CP-SAT solver
-may need several minutes to solve even moderately sized instances. Additionally,
-we cannot run the solver on the web server; instead, we must distribute the
-computation across a cluster. If many requests are received simultaneously, a
-request may need to wait before computation can start.
+Щоб проілюструвати ці принципи, ми розробимо просту оптимізаційну модель для
+задачі комівояжера (TSP). Користувачі зможуть надсилати екземпляр TSP, а API
+повертатиме розв’язок. Основна складність, порівняно з багатьма іншими API,
+полягає в тому, що TSP — NP-складна задача, і розв’язувачу CP-SAT можуть
+знадобитися кілька хвилин навіть для помірних за розміром екземплярів. Крім
+того, ми не можемо запускати розв’язувач на вебсервері; натомість треба
+розподіляти обчислення по кластеру. Якщо одночасно надходить багато запитів,
+окремі запити можуть чекати, перш ніж обчислення стартують.
 
-Therefore, this will not be a simple "send request, get response" API. Instead,
-we will implement a task queue, returning a task ID that users can use to check
-the status of their computation and retrieve the result once it is ready. To
-enhance user experience, we will allow users to specify a webhook URL, which we
-will call once the computation is complete.
+Отже, це не буде просте API «надіслав запит — отримав відповідь». Натомість ми
+реалізуємо чергу задач, повертатимемо ID задачі, і користувачі зможуть
+перевіряти статус обчислення та отримувати результат після готовності. Щоб
+покращити досвід користувача, ми дозволимо вказувати webhook URL, на який
+надішлемо повідомлення після завершення обчислення.
 
-You should be able to easily adapt this API to your own optimization problems,
-allowing you to quickly service your optimization algorithms to your colleagues.
+Ви зможете легко адаптувати це API до власних оптимізаційних задач і швидко
+надавати свої алгоритми колегам.
 
-## Specifying the Essential Endpoints
+## Визначення ключових ендпойнтів
 
-Before we start coding, we should specify the endpoints our API will expose, so
-we know what we need to implement. This is something you can directly share with
-the coworkers who will implement the frontend or other parts of the system, so
-they know what to expect and can start working on their parts. It is usually
-simple to change the details of the payloads later, but changing the flow of the
-API can be much more complex.
+Перш ніж почати кодити, потрібно визначити ендпойнти, які надаватиме API, щоб
+розуміти, що саме реалізовувати. Цим можна безпосередньо поділитися з колегами,
+які робитимуть фронтенд чи інші частини системи, щоб вони знали, чого очікувати,
+і могли починати свою частину. Зазвичай деталі payload-ів легко змінити пізніше,
+але змінювати загальну логіку API значно складніше.
 
-The fundamental operations we will support are:
+Базові операції, які ми підтримуватимемо:
 
-1. **POST /jobs**: This endpoint will accept a JSON payload containing the TSP
-   instance. The API will create a new task, store the instance, and return a
-   task ID. The payload will also allow users to specify a webhook URL to call
-   once the computation is complete.
-2. **GET /jobs/{task_id}**: This endpoint will return the status of the task
-   with the given ID.
-3. **GET /jobs/{task_id}/solution**: This endpoint will return the solution of
-   the task with the given ID, once it is available.
-4. **DELETE /jobs/{task_id}**: This endpoint will cancel the task with the given
-   ID.
-5. **GET /jobs**: This endpoint will return a list of all tasks, including their
-   status and metadata.
+1. **POST /jobs**: ендпойнт приймає JSON-пейлоад із екземпляром TSP. API створює
+   нову задачу, зберігає екземпляр і повертає ID задачі. Пейлоад також дозволяє
+   вказати webhook URL, який буде викликано після завершення обчислень.
+2. **GET /jobs/{task_id}**: повертає статус задачі з заданим ID.
+3. **GET /jobs/{task_id}/solution**: повертає розв’язок задачі з заданим ID, коли
+   він доступний.
+4. **DELETE /jobs/{task_id}**: скасовує задачу з заданим ID.
+5. **GET /jobs**: повертає список усіх задач із їхніми статусами та метаданими.
 
-By defining these endpoints, we ensure that our API is robust and capable of
-handling the core functionalities required for managing and solving TSP
-instances. This structure will facilitate user interactions, from submitting
-tasks to retrieving solutions and monitoring the status of their requests.
+Визначивши ці ендпойнти, ми гарантуємо, що API буде надійним і зможе виконувати
+ключові функції керування та розв’язання екземплярів TSP. Така структура
+полегшує взаємодію користувачів — від подання задач до отримання розв’язків і
+моніторингу статусу запитів.
 
-Once we have successfully launched or TSP optimization service, we can
-anticipate requests to extend our optimization capabilities to other problems.
-Therefore, we should add the prefix `/tsp_solver/v1` to all endpoints to
-facilitate future expansions of our API with additional solvers, e.g.,
-`knapsack_solver/v1`, or `/tsp_solver/v2_experimental`.
+Після успішного запуску сервісу оптимізації TSP можна очікувати запитів на
+розширення оптимізаційних можливостей до інших задач. Тому варто додати
+префікс `/tsp_solver/v1` до всіх ендпойнтів, щоб полегшити майбутні розширення
+API додатковими розв’язувачами, наприклад `knapsack_solver/v1` або
+`/tsp_solver/v2_experimental`.
 
-You may ask why we do not just create a new project for each solver and then
-just stick them together on a higher level. The reason is that we may want to
-share the same infrastructure for all solvers, especially the task queue and the
-worker cluster. This can not only be easier to maintain, but also cheaper as
-resources can be shared. Therefore, it makes sense to keep them in the same
-project. However, it will make sense to separate the actual algorithms from the
-API code, and only import the algorithms into our API project. We will not do
-this in this chapter, but I personally prefer the algorithms to be as separated
-as possible as they are often complex enough on their own.
+Можна запитати, чому не зробити окремий проєкт для кожного розв’язувача, а потім
+«склеїти» їх на верхньому рівні. Причина в тому, що ми хочемо ділити одну й ту
+саму інфраструктуру між усіма розв’язувачами, особливо чергу задач і кластер
+воркерів. Це не лише простіше в підтримці, а й дешевше, бо ресурси спільні. Тому
+логічно тримати їх в одному проєкті. Водночас має сенс відокремити самі
+алгоритми від API-коду й лише імпортувати їх у API-проєкт. Ми цього не робитимемо
+в цьому розділі, але я особисто надаю перевагу максимально можливому
+відокремленню алгоритмів, бо вони й так достатньо складні.
 
-## Architecture
+## Архітектура
 
-Having outlined the requirements, we will now consider the architecture of our
-system. The system will incorporate the following components:
+Окресливши вимоги, розгляньмо архітектуру системи. Вона включатиме такі
+компоненти:
 
-1. **FastAPI for implementing the endpoints**: FastAPI is a modern,
-   high-performance web framework for building APIs with Python. We will use
-   FastAPI to define API endpoints and handle HTTP requests due to its
-   simplicity, speed, and automatic interactive API documentation.
+1. **FastAPI для реалізації ендпойнтів**: FastAPI — сучасний високопродуктивний
+   вебфреймворк для побудови API на Python. Ми використаємо FastAPI для
+   визначення ендпойнтів і обробки HTTP-запитів завдяки його простоті, швидкості
+   та автоматичній інтерактивній документації.
 
-2. **Redis as a database and communication interface with the workers**: Redis
-   is an in-memory data structure store that can function as a database, cache,
-   and message broker. We will utilize Redis for its speed and efficiency in
-   storing and sharing tasks and solutions, which allows quick access and
-   automatic expiration of data when it is no longer needed.
+2. **Redis як база даних і інтерфейс комунікації з воркерами**: Redis — це
+   in-memory сховище структур даних, яке може працювати як база даних, кеш і
+   брокер повідомлень. Ми використовуватимемо Redis через його швидкість і
+   ефективність у зберіганні та передачі задач і розв’язків, що забезпечує
+   швидкий доступ і автоматичне видалення даних, коли вони більше не потрібні.
 
-3. **Workers managed with RQ (Redis Queue)**: RQ is a simple Python library for
-   queuing jobs and processing them in the background with workers. This enables
-   our API to handle tasks asynchronously, offloading computationally expensive
-   processes to background workers and thereby improving the API's
-   responsiveness.
+3. **Воркери, керовані RQ (Redis Queue)**: RQ — проста Python-бібліотека для
+   постановки задач у чергу та обробки їх у фоні воркерами. Це дозволяє API
+   обробляти задачі асинхронно, виносячи обчислювально дорогі процеси у фон,
+   і таким чином підвищувати швидкодію API.
 
-To easily manage these components, we will use Docker and Docker Compose to
-containerize the API, Redis, and worker instances. This will allow us to quickly
-set up and run the service either locally or in a cloud environment.
+Щоб легко керувати цими компонентами, ми використаємо Docker і Docker Compose
+для контейнеризації API, Redis і воркерів. Це дозволить швидко підняти сервіс
+локально або в хмарі.
 
 > [!WARNING]
 >
-> We will ignore security aspects in this chapter. This service should be only
-> for internal use within the own network and not be exposed to the internet. If
-> you want to expose it, you should add authentication, rate limiting, and other
-> security measures.
+> У цьому розділі ми ігноруємо аспекти безпеки. Цей сервіс має використовуватися
+> лише всередині власної мережі й не має бути доступним з інтернету. Якщо ви
+> хочете його публікувати, потрібно додати автентифікацію, rate limiting та інші
+> заходи безпеки.
 
-### Project Structure
+### Структура проєкту
 
-As we only have a single solver in this project, we will neither separate the
-solver from the API nor encapsulate the API, but use a simple, flat structure.
-You can find the complete project in
+Оскільки у цьому проєкті лише один розв’язувач, ми не будемо відокремлювати його
+від API і не інкапсулюватимемо API, а використаємо просту пласку структуру.
+Повний проєкт можна знайти в
 [./examples/optimization_api](https://github.com/d-krupke/cpsat-primer/blob/main/examples/optimization_api).
 
 ```text
@@ -131,76 +123,72 @@ You can find the complete project in
 └── requirements.txt
 ```
 
-Let us quickly go through the components of the project:
+Швидко пройдемося по складових проєкту:
 
-1. **Requirements**: We define the necessary Python packages in a
-   `requirements.txt` file to ensure that the environment can be easily set up
-   and replicated. This file includes all dependencies needed for the project.
-   `requirements.txt` are rather outdated, but they are the simplest way to just
-   install the dependencies in our container.
+1. **Requirements**: ми визначаємо необхідні Python-пакети у файлі
+   `requirements.txt`, щоб середовище можна було легко налаштувати та
+   відтворити. Цей файл містить усі залежності проєкту. `requirements.txt`
+   дещо застарілий підхід, але це найпростіший спосіб встановити залежності в
+   контейнері.
 
-2. **Docker Environment**:
+2. **Docker-оточення**:
 
-   - `Dockerfile`: The Dockerfile specifies the Docker image and environment
-     setup for the API. It ensures that the application runs in a consistent
-     environment across different machines.
-   - `docker-compose.yml`: This file configures the services required for the
-     project, including the API, Redis, and worker instances. Docker Compose
-     simplifies the process of managing multiple containers, ensuring they are
-     correctly built and started in the right order. A simple
-     `docker-compose up -d --build` will get the whole system up and running.
+   - `Dockerfile`: визначає Docker-образ і налаштування середовища для API. Це
+     гарантує, що застосунок працює однаково на різних машинах.
+   - `docker-compose.yml`: налаштовує сервіси проєкту, включно з API, Redis і
+     воркерами. Docker Compose спрощує керування кількома контейнерами,
+     забезпечуючи коректну збірку та порядок запуску. Команда
+     `docker-compose up -d --build` підніме всю систему.
 
-3. **Solver Implementation**:
+3. **Реалізація розв’язувача**:
 
-   - `./app/solver.py`: This module contains the implementation of the TSP
-     solver using CP-SAT. It also specifies the expected input and output data.
+   - `./app/solver.py`: модуль містить реалізацію TSP-розв’язувача на CP-SAT, а
+     також визначає очікувані вхідні та вихідні дані.
 
-4. **Request and Response Models**:
+4. **Моделі запитів і відповідей**:
 
-   - `./app/models.py`: This module specifies further data models for API
-     requests and responses.
+   - `./app/models.py`: модуль визначає додаткові моделі даних для запитів і
+     відповідей API.
 
-5. **Database**:
+5. **База даних**:
 
-   - `./app/db.py`: This module implements a proxy class to interact with Redis,
-     abstracting database operations for storing and retrieving job requests,
-     statuses, and solutions.
+   - `./app/db.py`: модуль реалізує проксі-клас для взаємодії з Redis, абстрагуючи
+     операції БД для збереження та отримання запитів, статусів і розв’язків.
 
-6. **Config**:
+6. **Конфігурація**:
 
-   - `./app/config.py`: This module provides configuration functions to set up
-     the database connection and task queue. By centralizing configuration, we
-     ensure that other parts of the application do not need to manage connection
-     details, making the codebase more modular and easier to maintain.
+   - `./app/config.py`: модуль містить конфігураційні функції для налаштування
+     підключення до БД та черги задач. Централізована конфігурація означає, що
+     інші частини застосунку не повинні керувати деталями з’єднання, що робить
+     код більш модульним і зручним у підтримці.
 
-7. **Tasks**:
+7. **Задачі**:
 
-   - `./app/tasks.py`: This module defines the tasks to be outsourced to
-     workers, which right now only includes the optimization job. Our web server
-     will only need to get a reference to the task functions in order to queue
-     them, but not actually run anything of this code. For the workers, this
-     file will be the entry point.
+   - `./app/tasks.py`: модуль визначає задачі, що передаються воркерам; наразі
+     це лише задача оптимізації. Вебсерверу потрібне лише посилання на функції
+     задач, щоб ставити їх у чергу, але він не запускає цей код. Для воркерів
+     цей файл є точкою входу.
 
 8. **API**:
-   - `./app/main.py`: This module implements the FastAPI application with routes
-     for submitting jobs, checking job statuses, retrieving solutions, and
-     canceling jobs. This is the entry point for the web server.
+   - `./app/main.py`: модуль реалізує FastAPI-застосунок з маршрутами для
+     подання задач, перевірки статусів, отримання розв’язків і скасування задач.
+     Це точка входу для вебсерверу.
 
-### Running the Application
+### Запуск застосунку
 
-To run the application, we use Docker and Docker Compose to build and run the
-containers. This ensures the API and its dependencies are correctly set up. Once
-the containers are running, you can interact with the API via HTTP requests.
+Для запуску застосунку ми використовуємо Docker і Docker Compose, щоб зібрати і
+запустити контейнери. Це гарантує коректне налаштування API та його залежностей.
+Після запуску контейнерів можна взаємодіяти з API через HTTP-запити.
 
-## Docker Environment
+## Docker-оточення
 
-We use Docker to ensure a consistent development and production environment.
-Docker allows us to package our application with all its dependencies into a
-standardized unit for software development. Docker Compose is used to manage
-multi-container applications, defining and running multi-container Docker
-applications. As the web server and the workers essentially share the same code,
-just with different entry points, we can use the same Docker image for both. The
-different entry points will be specified in the `docker-compose.yml`.
+Ми використовуємо Docker, щоб забезпечити узгоджене середовище розробки та
+продакшну. Docker дозволяє запакувати застосунок разом з усіма залежностями в
+стандартизований контейнер. Docker Compose використовується для керування
+мультиконтейнерними застосунками. Оскільки вебсервер і воркери по суті
+використовують один і той самий код, але з різними точками входу, ми можемо
+використати один Docker-образ для обох. Різні точки входу задаються в
+`docker-compose.yml`.
 
 ### Dockerfile
 
@@ -223,8 +211,8 @@ COPY ./app /app
 
 ### docker-compose.yml
 
-To get our composition of containers, with the API, Redis, and the workers up
-and running, we use the following `docker-compose.yml` file:
+Щоб підняти композицію контейнерів з API, Redis і воркерами, використовуємо
+наступний файл `docker-compose.yml`:
 
 ```yaml
 services:
@@ -251,19 +239,18 @@ services:
       replicas: 2 # Adding two workers for parallel processing
 ```
 
-The `docker-compose.yml` file sets up three services:
+Файл `docker-compose.yml` налаштовує три сервіси:
 
-- `optimization_api_fastapi`: This service builds the FastAPI application,
-  exposes it on port 80, and ensures it starts after Redis is available.
-- `optimization_api_redis`: This service sets up the Redis database from the
-  official Redis image. We just need to remember the name of the container to
-  connect to it.
-- `optimization_api_worker`: This service builds the worker, which processes
-  tasks from the queue. We can scale the number of workers by increasing the
-  number of replicas. Theoretically, these workers could be run on different
-  machines to scale horizontally.
+- `optimization_api_fastapi`: збирає FastAPI-застосунок, відкриває порт 80 і
+  гарантує запуск після готовності Redis.
+- `optimization_api_redis`: підіймає Redis з офіційного образу. Потрібно лише
+  пам’ятати назву контейнера для підключення.
+- `optimization_api_worker`: запускає воркер, який обробляє задачі з черги.
+  Кількість воркерів можна масштабувати, збільшуючи кількість реплік.
+  Теоретично їх можна запускати на різних машинах для горизонтального
+  масштабування.
 
-### Solver
+### Розв’язувач
 
 In this section, we will explore the implementation of the optimization
 algorithm that we will deploy as an API. Specifically, we will focus on a simple

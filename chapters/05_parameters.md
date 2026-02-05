@@ -767,7 +767,7 @@ Minimal unsat core:
 > [документації CPMpy](https://cpmpy.readthedocs.io/en/latest/unsat_core_extraction.html),
 > бібліотеки моделювання з підтримкою CP-SAT як бекенду.
 
-### Presolve
+### Попереднє спрощення (presolve)
 
 CP-SAT має етап presolve, який спрощує модель перед розв’язанням. Це може
 суттєво зменшити простір пошуку і покращити продуктивність. Однак presolve може
