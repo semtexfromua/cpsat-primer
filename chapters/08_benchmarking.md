@@ -2,7 +2,7 @@
 
 <a name="08-benchmarking"></a>
 
-## Benchmarking your Model
+## Бенчмаркінг вашої моделі
 
 <!-- START_SKIP_FOR_README -->
 
@@ -10,238 +10,225 @@
 
 <!-- STOP_SKIP_FOR_README -->
 
-This chapter explores methods for comparing the performance of different models
-applied to complex problems, where the basic model leaves room for improvement —
-either in runtime or in solution quality, especially when the model cannot
-always be solved to optimality. As a scientist writing a paper on a new model
-(or, more likely, a new algorithm that internally uses a model), this will be
-the default case as research on a problem that can already be solved well is
-hard to publish. Whether you aim merely to evaluate whether your new approach
-outperforms the current one or intend to prepare a formal scientific
-publication, you face the same challenges; in the latter case, however, the
-process becomes more extensive and formalized (but this may also be true for the
-first case depending on your manager).
+У цьому розділі розглядаються методи порівняння продуктивності різних моделей,
+які застосовуються до складних задач, де базова модель залишає простір для
+покращення — або за часом роботи, або за якістю розв’язку, особливо коли модель
+не завжди можна розв’язати оптимально. Для дослідника, який пише статтю про
+нову модель (або, що частіше, про новий алгоритм, який внутрішньо використовує
+модель), це буде типовим випадком, адже дослідження проблеми, яку вже добре
+розв’язують, важко опублікувати. Чи ви просто хочете оцінити, чи новий підхід
+кращий за поточний, чи готуєте формальну наукову публікацію — виклики однакові;
+у другому випадку процес просто стає більш масштабним і формалізованим (хоча
+інколи це може стосуватися і першого випадку, залежно від вашого менеджера).
 
 > [!WARNING]
 >
-> In some cases, the primary performance bottleneck may not lie within CP-SAT
-> itself but rather in the **Python code used to generate the model**.
-> Identifying the most resource-intensive segments of your Python code is
-> therefore essential. The profiler
-> [Scalene](https://github.com/plasma-umass/scalene) has proven to be
-> particularly effective for pinpointing such issues. In many situations, simple
-> logging statements (e.g.,
-> `logging.info("Building circuit constraint on graph with %d nodes and %d edges", n, m)`)
-> can also be sufficient to reveal fundamental performance problems. It is easy
-> to underestimate the size or construction cost of auxiliary structures, which
-> can have a significant impact on overall runtime.
+> У деяких випадках основне вузьке місце продуктивності може бути не в CP-SAT, а
+> в **Python-коді, що генерує модель**. Тому критично важливо знаходити
+> найресурсомісткіші ділянки коду. Профайлер
+> [Scalene](https://github.com/plasma-umass/scalene) добре зарекомендував себе
+> для виявлення таких проблем. У багатьох ситуаціях достатньо навіть простих
+> логів (наприклад,
+> `logging.info("Building circuit constraint on graph with %d nodes and %d edges", n, m)`),
+> щоб побачити базові проблеми продуктивності. Легко недооцінити розмір або
+> вартість побудови допоміжних структур, що може суттєво вплинути на загальний
+> час виконання.
 
-During the explorative phase, when you probe different ideas, you will likely
-select one to five instances that you can run quickly and compare. However, for
-most applications, this number is insufficient, and you risk overfitting your
-model to these instances — gaining performance improvements on them but
-sacrificing performance on others. You may even limit your model’s ability to
-solve certain instances.
+Під час дослідницької фази, коли ви перевіряєте різні ідеї, ви, ймовірно,
+оберете один-п’ять екземплярів, які можна швидко запускати та порівнювати.
+Однак для більшості застосувань цього недостатньо, і ви ризикуєте
+переадаптувати модель під ці екземпляри — покращивши результат на них, але
+погіршивши на інших. Ви навіть можете обмежити здатність моделі розв’язувати
+певні екземпляри.
 
-A classic example involves deactivating specific CP-SAT search strategies or
-preprocessing steps that have not yielded benefits on the selected instances. If
-your instance set is large enough, the risk is low; however, if you have only a
-few instances, you may remove the single strategy necessary to solve a
-particular class of problems. Modern solvers include features that impose a
-modest overhead on simple instances but enable solving otherwise intractable
-cases. This trade-off is worthwhile: **do not sacrifice the ability to solve
-complex instances for a marginal performance gain on simple ones**. Therefore,
-always benchmark your changes properly before deploying them to production, even
-if you do not plan to publish your results scientifically.
+Класичний приклад — вимкнення певних стратегій пошуку CP-SAT або кроків
+попередньої обробки, які не дали користі на вибраних екземплярах. Якщо набір
+екземплярів достатньо великий, ризик невеликий; але якщо у вас лише кілька
+екземплярів, ви можете прибрати єдину стратегію, потрібну для розв’язання
+певного класу задач. Сучасні розв’язувачі мають можливості, що додають невеликий
+овергед на простих екземплярах, але дозволяють розв’язувати інакше
+нерозв’язні випадки. Такий компроміс виправданий: **не жертвуйте здатністю
+розв’язувати складні екземпляри заради мізерного виграшу на простих**. Тому
+завжди коректно бенчмаркуйте зміни перед впровадженням у продакшн, навіть якщо
+не плануєте наукових публікацій.
 
-Note that this chapter focuses solely on improving the performance of your model
-with respect to its specific formulation; it does not address the evaluation of
-the model's accuracy or its business value. When tackling a real-world problem,
-where your model is merely an approximation
-[of reality](https://en.wikipedia.org/wiki/All_models_are_wrong), it is
-essential to also consider refining the approximation and monitoring the
-real-world performance of the resulting solutions. In some cases, simpler
-formulations not only yield better outcomes but are also easier to optimize for.
+Зауважте, що цей розділ зосереджується лише на покращенні продуктивності моделі
+в межах її конкретного формулювання; він не охоплює оцінку точності моделі чи її
+бізнес-цінності. Коли ви розв’язуєте реальну задачу, де модель є лише
+наближенням
+[реальності](https://en.wikipedia.org/wiki/All_models_are_wrong), важливо також
+працювати над якістю наближення і відстежувати реальну ефективність отриманих
+рішень. У деяких випадках простіші формулювання не лише дають кращі результати,
+а й легше оптимізуються.
 
-### No-Free-Lunch Theorem and Timeouts
+### Теорема no-free-lunch і тайм-аути
 
-The **no‐free‐lunch theorem** and timeouts complicate benchmarking more than you
-might have anticipated. The no‐free‐lunch theorem asserts that no single
-algorithm outperforms all others across every instance, which is especially true
-for NP‐hard problems. Consequently, improving performance on some instances
-often coincides with degradations on others. It is essential to assess whether
-the gains justify the losses.
+**Теорема no-free-lunch** і тайм-аути ускладнюють бенчмаркінг більше, ніж може
+здатися. Теорема no-free-lunch стверджує, що не існує алгоритму, який
+перевершує всі інші на кожному екземплярі, що особливо справедливо для
+NP-складних задач. Відповідно, покращення на одних екземплярах часто
+супроводжується погіршеннями на інших. Важливо оцінювати, чи виправдані
+виграші порівняно з втратами.
 
-Another challenge arises when imposing a time limit to prevent individual
-instances from running indefinitely. Without such a limit, benchmark runs can
-become prohibitively long. However, including aborted runs in the dataset
-complicates performance evaluation, as it remains unclear whether a solver would
-have found a solution shortly after the timeout or was trapped in an infinite
-loop. Discarding all instances that timed out on a particular model restricts
-the evaluation to simpler instances, even though the more complex ones are often
-of greater interest. Conversely, discarding all models that timed out on any
-instance may leave no viable candidates, as any solver is likely to fail on at
-least one instance in a sufficiently large benchmark set. Whether the goal is to
-find a provably optimal solution, the best solution within a fixed time limit,
-or simply any feasible solution, it is essential to enable comparisons over data
-sets that include unknown outcomes.
+Інша проблема виникає, коли ми вводимо ліміт часу, щоб окремі екземпляри не
+працювали нескінченно. Без такого ліміту бенчмарки можуть тривати надто довго.
+Однак включення перерваних запусків у дані ускладнює оцінку продуктивності,
+адже незрозуміло, чи розв’язувач знайшов би рішення одразу після тайм-ауту, чи
+застряг у нескінченному пошуку. Якщо відкинути всі екземпляри, що дали
+тайм-аут для певної моделі, оцінка обмежиться простими екземплярами, хоча
+складніші часто цікавіші. Навпаки, якщо відкинути всі моделі, що дали тайм-аут
+на будь-якому екземплярі, можна не залишити жодного кандидата, адже будь-який
+розв’язувач імовірно провалиться хоча б на одному екземплярі у достатньо
+великому наборі. Чи ви шукаєте доведено оптимальне рішення, найкраще рішення за
+фіксований час або просто будь-яке допустиме рішення — важливо забезпечити
+порівняння на наборах даних, які містять невідомі результати.
 
-### Example: Nurse Rostering Problem Benchmark
+### Приклад: бенчмарк задачі формування графіка медсестер
 
-Let us examine the performance of CP-SAT, Gurobi, and Hexaly on a Nurse
-Rostering Problem to illustrate the additional challenge of selecting an
-appropriate time limit. Nurse rostering is a complex yet common problem in which
-nurses must be assigned to shifts while satisfying a variety of constraints.
-Since CP-SAT, Gurobi, and Hexaly differ significantly in their underlying
-algorithms, the comparison reveals pronounced performance differences. However,
-such patterns can also be observed when using the same solver across instances,
-albeit usually not as pronounced.
+Розгляньмо продуктивність CP-SAT, Gurobi та Hexaly на задачі формування
+графіка медсестер, щоб проілюструвати додаткову складність вибору відповідного
+ліміту часу. Це складна, але поширена задача, де медсестер потрібно призначити
+на зміни, задовольняючи різноманітні обмеження. Оскільки CP-SAT, Gurobi та
+Hexaly суттєво відрізняються за внутрішніми алгоритмами, порівняння показує
+виразні відмінності в продуктивності. Подібні патерни можна спостерігати і
+в межах одного розв’язувача на різних екземплярах, хоча зазвичай не так
+виразно.
 
-The following two plots illustrate the value of the incumbent solution (i.e.,
-the best solution found so far) and the best proven lower bound during the
-search. These are challenging instances, and only Gurobi is able to find an
-optimal solution.
+Наступні два графіки ілюструють значення поточного найкращого розв’язку
+(incumbent) та найкращої доведеної нижньої межі під час пошуку. Це складні
+екземпляри, і лише Gurobi знаходить оптимальний розв’язок.
 
-Notably, the best-performing solver changes depending on the allotted
-computation time. For this problem, Hexaly excels at finding good initial
-solutions quickly but tends to stall thereafter. CP-SAT requires slightly more
-time to get started but demonstrates steady progress. In contrast, Gurobi begins
-slowly but eventually makes substantial improvements.
+Важливо, що найкращий розв’язувач змінюється залежно від виділеного часу. Для
+цієї задачі Hexaly добре знаходить початкові рішення, але потім часто
+застрягає. CP-SAT стартує трохи повільніше, зате демонструє стабільний прогрес.
+Gurobi ж починає повільно, але з часом робить суттєві покращення.
 
-So, which solver is best for this problem?
+То який розв’язувач найкращий для цієї задачі?
 
 |                                                                                              ![NRP Instance 19](https://github.com/d-krupke/cpsat-primer/blob/main/images/nrp_19.png?raw=true)                                                                                               |
 | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Performance comparison of CP-SAT, Gurobi, and Hexaly on instance 19 of the Nurse Rostering Problem Benchmark. Hexaly starts strong but is eventually overtaken by CP-SAT. Gurobi surpasses Hexaly near the end by a small margin. CP-SAT and Gurobi converge to nearly the same lower bound. |
+| Порівняння продуктивності CP-SAT, Gurobi та Hexaly на екземплярі 19 бенчмарку графіків медсестер. Hexaly добре стартує, але його згодом обганяє CP-SAT. Gurobi наприкінці трохи випереджає Hexaly. CP-SAT і Gurobi сходяться майже до тієї самої нижньої межі. |
 
 |                                                                                                                                                                               ![NRP Instance 20](https://github.com/d-krupke/cpsat-primer/blob/main/images/nrp_20.png?raw=true)                                                                                                                                                                               |
 | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Performance comparison of CP-SAT, Gurobi, and Hexaly on instance 20 of the Nurse Rostering Problem Benchmark. Hexaly again performs well early but is outperformed by CP-SAT. Gurobi maintains a poor incumbent value for most of the runtime but eventually makes a significant improvement and proves optimality. The optimal solution is visibly superior to CP-SAT's best solution. CP-SAT is unable to prove a meaningful lower bound for this instance. |
+| Порівняння продуктивності CP-SAT, Gurobi та Hexaly на екземплярі 20 бенчмарку графіків медсестер. Hexaly знову добре стартує, але його випереджає CP-SAT. Gurobi більшу частину часу має слабке incumbent-значення, проте зрештою робить значний ривок і доводить оптимальність. Оптимальний розв’язок помітно кращий за найкращий розв’язок CP-SAT. CP-SAT не може довести значущу нижню межу для цього екземпляра. |
 
 > [!WARNING]
 >
-> These two plots (and even this specific problem) are insufficient to draw
-> definitive conclusions about the overall performance of the solvers.
-> Nevertheless, it is remarkable that our beloved open-source solver, CP-SAT,
-> performs so well against the commercial solvers Gurobi and Hexaly in this
-> context.
+> Ці два графіки (і навіть ця конкретна задача) недостатні, щоб зробити
+> остаточні висновки про загальну продуктивність розв’язувачів. Втім, вражає,
+> що наш улюблений open-source розв’язувач CP-SAT тут настільки добре
+> конкурує з комерційними Gurobi та Hexaly.
 
-If provably optimal solutions are required, Gurobi may be the most suitable
-choice; however, the likelihood of achieving optimality is low for most
-instances. If your instances are expected to grow in size and require fast
-solutions, Hexaly might be preferable, as it appears highly effective at finding
-good solutions quickly. This observation is also supported by preliminary
-results on larger instances, for which neither CP-SAT nor Gurobi find any
-feasible solution. CP-SAT, by contrast, offers a strong compromise between the
-two: although it starts more slowly, it maintains consistent progress throughout
-the search.
+Якщо потрібні доведено оптимальні розв’язки, Gurobi може бути найкращим
+вибором; однак імовірність досягти оптимальності низька для більшості
+екземплярів. Якщо очікується зростання розміру екземплярів і потрібні швидкі
+рішення, Hexaly може бути кращим, бо він дуже ефективно знаходить хороші
+розв’язки на початку. Це підтверджують і попередні результати на більших
+екземплярах, де ні CP-SAT, ні Gurobi не знаходять жодного допустимого рішення.
+Натомість CP-SAT — хороший компроміс: він стартує повільніше, але зберігає
+стабільний прогрес протягом усього пошуку.
 
 > [!TIP]
 >
-> A commonly used metric for convergence is the
+> Поширена метрика збіжності —
 > [**primal integral**](https://www.sciencedirect.com/science/article/abs/pii/S0167637713001181),
-> which measures the area under the curve of the incumbent solution value over
-> time. It provides a single scalar that summarizes how quickly a solver
-> improves its best-known solution. CP-SAT reports a related metric: the
-> integral of the logarithm of the optimality gap, which also accounts for the
-> quality of the bound. These metrics offer an objective measure of solver
-> progress over time, though they may not fully capture problem-specific or
-> subjective priorities.
+> яка вимірює площу під кривою значення incumbent-розв’язку в часі. Вона дає
+> один скаляр, що підсумовує, наскільки швидко розв’язувач покращує найкраще
+> відоме рішення. CP-SAT повідомляє споріднену метрику: інтеграл логарифма
+> optimality gap, що також враховує якість межі. Ці метрики дають об’єктивну
+> оцінку прогресу в часі, хоча можуть не повністю відображати специфіку задачі
+> або суб’єктивні пріоритети.
 
-### Defining Your Benchmarking Goals
+### Визначення цілей бенчмаркінгу
 
-The first step is to determine your specific requirements and how best to
-measure solver performance accordingly. It is not feasible to manually plot
-performance for every instance and assign scores based on subjective
-impressions; such an approach does not scale and lacks objectivity and
-reproducibility. Instead, you should define a concrete metric that accurately
-reflects your goals. One strategy is to carefully select benchmark instances
-that are still likely to be solved to optimality, with the expectation that
-performance trends will generalize to larger instances. Another to decide for a
-fixed time limit we are willing to wait for a solution, and then measure how
-well each solver performs under these constraints. While no evaluation method
-will be perfect, it is essential to remain aware of potential threats to the
-validity of your results. Let us go through some common scenarios.
+Перший крок — визначити конкретні вимоги і як найкраще відповідно вимірювати
+продуктивність розв’язувача. Неможливо вручну будувати графіки для кожного
+екземпляра і виставляти оцінки за суб’єктивними враженнями; такий підхід не
+масштабується і позбавлений об’єктивності та відтворюваності. Натомість слід
+визначити конкретну метрику, що точно відображає ваші цілі. Одна стратегія —
+обережно добрати бенчмарк-екземпляри, які, ймовірно, розв’язуються оптимально,
+з очікуванням, що тенденції продуктивності узагальняться на більші екземпляри.
+Інша — визначити фіксований ліміт часу, який ви готові чекати на розв’язок, і
+виміряти, наскільки добре кожен розв’язувач працює в цих межах. Жоден метод
+оцінювання не буде ідеальним, але важливо усвідомлювати потенційні загрози
+валідності результатів. Розгляньмо кілька типових сценаріїв.
 
 > :reference:
 >
-> Empirical studies on algorithms have historically faced some tension within
-> the academic community, where theoretical results are often viewed as more
-> prestigious or fundamental. The paper
+> Емпіричні дослідження алгоритмів історично мали певне напруження в академічній
+> спільноті, де теоретичні результати часто вважаються більш престижними або
+> фундаментальними. Стаття
 > _[Needed: An Empirical Science of Algorithms](https://pubsonline.informs.org/doi/epdf/10.1287/opre.42.2.201)_
-> by John Hooker (1994) offers a valuable historical and philosophical
-> perspective on this issue.
+> Джона Гукера (1994) дає цінну історичну та філософську перспективу щодо цього.
 
-## Common Benchmarking Scenarios and Visualization Techniques
+## Типові сценарії бенчмаркінгу та візуалізаційні техніки
 
-Several common benchmarking scenarios arise in practice. To select an
-appropriate visualization or evaluation method, it is important to first
-identify which scenario applies to your case and to recognize which tools are
-better suited for other contexts. Avoid choosing the most visually appealing or
-complex plot by default; instead, select the one that best serves your
-analytical goals. Keep in mind that the primary purpose of a plot is to make
-tabular data more accessible and easier to interpret. It does not replace the
-underlying tables, nor does it provide definitive answers.
+На практиці виникає кілька типових сценаріїв бенчмаркінгу. Щоб обрати
+відповідну візуалізацію чи метод оцінювання, важливо спочатку визначити, який
+сценарій стосується вашого випадку, і розуміти, які інструменти краще підходять
+для інших контекстів. Не варто за замовчуванням обирати найвізуально привабливий
+або складний графік; натомість оберіть той, що найкраще відповідає вашим
+аналітичним цілям. Пам’ятайте, що основне призначення графіка — зробити
+табличні дані доступнішими та легшими для інтерпретації. Він не замінює
+первинні таблиці і не дає остаточних відповідей.
 
-1. **Instances are always solved to optimality, and only runtime matters.** This
-   is the simplest benchmarking scenario. If every instance can be solved to
-   optimality and your only concern is runtime, you can summarize performance
-   using the mean (relative) runtime or visualize it using a basic box plot. The
-   primary challenge here lies in choosing the appropriate type of mean (e.g.,
-   arithmetic, geometric, harmonic) and selecting representative instances that
-   reflect production-like conditions. For this case, the rest of the chapter
-   may be skipped.
+1. **Екземпляри завжди розв’язуються оптимально, і важливий лише час.** Це
+   найпростіший сценарій бенчмаркінгу. Якщо кожен екземпляр розв’язується
+   оптимально, а вас цікавить лише час, можна узагальнити продуктивність через
+   середній (відносний) час або використати простий box plot. Головна складність
+   — вибір відповідного типу середнього (арифметичного, геометричного,
+   гармонічного) та добір репрезентативних екземплярів, що відображають умови
+   продакшну. У цьому випадку решту розділу можна пропустити.
 
-2. **Optimal or feasible solutions are sought, but may not always be found
-   within the time limit.** When timeouts occur, runtimes for unsolved instances
-   become unknown, making traditional means unreliable. In such cases, **cactus
-   plots** are an effective way to visualize solver performance, even in the
-   presence of incomplete data.
+2. **Шукаються оптимальні або допустимі розв’язки, але їх не завжди вдається
+   знайти в межах ліміту часу.** Коли трапляються тайм-аути, часи для
+   нерозв’язаних екземплярів стають невідомими, тож традиційні середні значення
+   стають ненадійними. У таких випадках **cactus plots** є ефективним способом
+   візуалізувати продуктивність розв’язувача навіть за неповних даних.
 
-3. **The goal is to find the best possible solution within a fixed time limit.**
-   Here, the focus is on **solution quality under time constraints**, rather
-   than on whether optimality is reached. **Performance plots** are especially
-   suitable for this purpose, as they reveal how closely each solver or model
-   approaches the best-known solution across the benchmark set.
+3. **Мета — знайти найкращий можливий розв’язок за фіксований ліміт часу.**
+   Тут фокус на **якості розв’язку за часових обмежень**, а не на тому, чи
+   досягнуто оптимальності. **Performance plots** особливо підходять для цього,
+   адже показують, наскільки близько кожен розв’язувач чи модель підходить до
+   найкращого відомого розв’язку на бенчмарковому наборі.
 
-4. **Scalability analysis: how performance evolves with instance size.** If you
-   are analyzing how well a model scales, i.e., how large an instance it can
-   solve to optimality and how the optimality gap grows thereafter, **split
-   plots** are a good choice. They show runtime for solved instances and
-   optimality gap for those that exceed the time limit, allowing for a unified
-   view of scalability.
+4. **Аналіз масштабованості: як продуктивність змінюється з розміром екземпляра.**
+   Якщо ви оцінюєте, як модель масштабується, тобто який максимальний розмір
+   екземпляра вона здатна розв’язати оптимально і як далі росте optimality gap,
+   **split plots** — хороший вибір. Вони показують час для розв’язаних
+   екземплярів і optimality gap для тих, що перевищили ліміт часу, даючи цілісне
+   уявлення про масштабованість.
 
-5. **Multi-metric performance comparison against a baseline.** When you want a
-   quick, intuitive overview of how your model performs across several metrics,
-   such as runtime, objective value, and lower bound, **scatter plots with
-   performance zones** are ideal. They provide a clear comparative
-   visualization, making it easy to spot outliers and trade-offs across
-   dimensions.
+5. **Порівняння продуктивності за кількома метриками з базовою моделлю.** Коли
+   потрібен швидкий, інтуїтивний огляд того, як модель працює за кількома
+   метриками (час, значення цілі, нижня межа), ідеально підходять **scatter plots
+   with performance zones**. Вони дають наочну порівняльну візуалізацію, що
+   допомагає легко помічати викиди та компроміси між вимірами.
 
 > [!TIP]
 >
-> Use the
-> [SIGPLAN Empirical Evaluation Checklist](https://raw.githubusercontent.com/SIGPLAN/empirical-evaluation/master/checklist/checklist.pdf)
-> if your evaluation has to satisfy academic standards.
+> Використовуйте
+> [SIGPLAN Empirical Evaluation Checklist](https://raw.githubusercontent.com/SIGPLAN/empirical-evaluation/master/checklist/checklist.pdf),
+> якщо ваша оцінка має відповідати академічним стандартам.
 
-### Quickly Comparing to a Baseline Using Scatter Plots
+### Швидке порівняння з базовою моделлю за допомогою scatter plot
 
-Scatter plots with performance zones are, in my experience, highly effective for
-quickly comparing the performance of a prototype against a baseline across
-multiple metrics. While these plots do not provide a formal quantitative
-evaluation, they offer a clear visual overview of how performance has shifted.
-Their key advantages are their intuitive readability and their ability to
-accommodate `NaN` values. They are particularly useful for identifying outliers,
-though they can be less effective when too many points overlap or when data
-ranges vary significantly (sometimes, a log scale can help here).
+Діаграми розсіювання із зонами продуктивності, з мого досвіду, дуже ефективні для
+швидкого порівняння прототипу з базовою моделлю за кількома метриками. Хоч ці
+графіки не дають формальної кількісної оцінки, вони забезпечують чіткий візуальний
+огляд того, як змінилася продуктивність. Їхні ключові переваги — інтуїтивна
+читабельність та здатність працювати з `NaN`-значеннями. Вони особливо корисні
+для виявлення викидів, хоча можуть бути менш ефективними, коли забагато точок
+перекривається або діапазони даних сильно різняться (інколи допомагає лог-шкала).
 
-Consider the following example table, which compares a basic optimization model
-with a prototype model in terms of runtime, objective value, and lower bound.
-The runtime is capped at 90 seconds, and if no optimal solution is found within
-this limit, the objective value is set to `NaN`. A run only terminates before
-the time limit if an optimal solution is found.
+Розгляньмо такий приклад таблиці, що порівнює базову оптимізаційну модель із
+прототипом за часом, значенням цілі та нижньою межею. Час обмежений 90 секундами,
+і якщо оптимальний розв’язок не знайдено за цей час, значення цілі встановлюється
+в `NaN`. Запуск завершується раніше ліміту лише тоді, коли знайдено оптимальний
+розв’язок.
 
-<details><summary>Example Data</summary>
+<details><summary>Приклад даних</summary>
 
 | instance_name | strategy  | runtime |   objective | lower_bound |
 | :------------ | :-------- | ------: | ----------: | ----------: |
@@ -304,40 +291,38 @@ the time limit if an optimal solution is found.
 
 </details>
 
-From the table, we can already spot some fundamental issues. For example, the
-prototype fails on three instances, and several instances yield significantly
-worse results than the baseline. However, when we turn to the scatter plots with
-performance zones, such anomalies become immediately apparent.
+З таблиці вже видно деякі фундаментальні проблеми. Наприклад, прототип
+провалюється на трьох екземплярах, а на кількох інших дає суттєво гірші
+результати, ніж базова модель. Проте на scatter plot із зонами продуктивності
+такі аномалії стають одразу помітними.
 
 |                                                                                                                                              ![Scatter Plot with Performance Zones](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/scatter_tsp.png)                                                                                                                                              |
 | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Scatter plot comparing the performance of a prototype model against a baseline model across three metrics: runtime, objective value, and lower bound. The x-axis represents the baseline model's performance; the y-axis shows the prototype model's performance. Color-coded zones indicate relative performance levels, making it easier to identify where the prototype outperforms or underperforms the baseline. |
+| Scatter plot, що порівнює продуктивність прототипу з базовою моделлю за трьома метриками: час, значення цілі та нижня межа. Вісь x відображає продуктивність базової моделі, вісь y — продуктивність прототипу. Кольорові зони показують відносні рівні продуктивності, що полегшує ідентифікацію ділянок, де прототип кращий або гірший за базову модель. |
 
-For runtime, both models typically hit the time limit, so there is limited
-variation to observe. However, the baseline model solves a few instances
-significantly faster, whereas the prototype consistently uses the full time
-limit. For the objective value, both models produce similar results on most
-instances. Yet, particularly on the larger instances, the prototype yields
-either very poor or no solutions at all.
+За часом обидві моделі зазвичай упираються в ліміт, тож варіативність невелика.
+Однак базова модель розв’язує кілька екземплярів значно швидше, тоді як
+прототип стабільно використовує весь ліміт. За значенням цілі обидві моделі
+переважно дають подібні результати. Проте, особливо на великих екземплярах,
+прототип дає або дуже погані, або взагалі не знаходить розв’язків.
 
-Interestingly, the lower bounds produced by the prototype are much better for
-some instances. This improvement was not obvious from a cursory review of the
-table but becomes immediately noticeable in the plots.
+Цікаво, що нижні межі прототипу для деяких екземплярів значно кращі. Це не було
+очевидним при поверхневому перегляді таблиці, але стає помітним на графіках.
 
-Scatter plots are also highly effective when working with multiple performance
-metrics, particularly when you want to ensure that gains in one metric do not
-come at the expense of unacceptable losses in another. In practice, it is often
-difficult to precisely quantify the relative importance of each metric from the
-outset. The intuitive nature of these plots offers a valuable overview, serving
-as a visual aid before you commit to a specific performance metric. The example
-below illustrates a hypothetical scenario involving a vehicle routing problem.
+Діаграми розсіювання також дуже ефективні, коли працюєте з кількома метриками
+продуктивності, особливо якщо потрібно переконатися, що виграш в одній метриці
+не супроводжується неприйнятними втратами в іншій. На практиці часто складно
+заздалегідь точно визначити відносну важливість кожної метрики. Інтуїтивність
+цих графіків дає цінний огляд і слугує візуальною підказкою перед тим, як ви
+зафіксуєте конкретну метрику продуктивності. Нижче показано гіпотетичний приклад
+для задачі маршрутизації транспортних засобів.
 
 |                                                                                                                                                             ![Scatter Plot for Multi-Objectives](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/scatter_performance_zones.png)                                                                                                                                                              |
 | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Scatter plots illustrating performance trade-offs across multiple metrics in a hypothetical vehicle routing problem. These plots help assess whether improvements in one metric come at the cost of significant regressions in another. Their intuitive layout makes them especially useful when metric priorities are not yet clearly defined, offering a quick overview of relative performance and highlighting outliers across different algorithm versions. |
+| Scatter plots, що ілюструють компроміси продуктивності за кількома метриками в гіпотетичній задачі маршрутизації. Вони допомагають оцінити, чи покращення однієї метрики не супроводжується значними регресіями в іншій. Інтуїтивне розташування робить їх особливо корисними, коли пріоритети метрик ще не визначені, даючи швидкий огляд відносної продуктивності та підсвічуючи викиди між версіями алгоритмів. |
 
 <details>
-<summary>Here is the code I used to generate the plots. You can freely copy and use it.</summary>
+<summary>Ось код, який я використав для побудови графіків. Його можна вільно копіювати та використовувати.</summary>
 
 ```python
 """
@@ -580,37 +565,36 @@ def plot_comparison_grid(
 
 </details>
 
-### Success-Based Benchmarking: Cactus Plots and PAR Metrics
+### Бенчмаркінг за фактом успіху: cactus plots і PAR-метрики
 
-The SAT community frequently uses cactus plots (also known as survival plots) to
-effectively compare the time to success of different solvers on a benchmark set,
-even when timeouts occur. If you are dealing with a pure constraint satisfaction
-problem, this approach is directly applicable. However, it can also be extended
-to other binary success indicators — such as proving optimality, even under
-optimality tolerances.
+У спільноті SAT часто використовують cactus plots (також відомі як survival
+plots), щоб ефективно порівнювати час до успіху різних розв’язувачів на
+бенчмарковому наборі, навіть коли трапляються тайм-аути. Якщо ви працюєте з
+чистою задачею задоволення обмежень, цей підхід застосовується безпосередньо.
+Втім, його можна поширити й на інші бінарні індикатори успіху — наприклад,
+доведення оптимальності, навіть із допусками оптимальності.
 
-Additionally, the **PAR10** metric is commonly used to summarize solver
-performance on a benchmark set. It is defined as the average time a solver takes
-to solve an instance, where unsolved instances (within the time limit) are
-penalized by assigning them a runtime equal to 10 times the cutoff. Variants
-like **PAR2**, which use a penalty factor of 2 instead of 10, are also
-encountered. While a factor of 10 is conventional, it remains an arbitrary
-choice. Ultimately, you must decide how to handle unknowns (instances not solved
-within the time limit) since you only know that their actual runtime exceeds the
-cutoff. If an explicit performance metric is required to declare a winner,
-PAR-style metrics are widely accepted but come with notable limitations.
+Додатково метрика **PAR10** широко використовується для підсумовування
+продуктивності розв’язувача на бенчмарковому наборі. Вона визначається як
+середній час розв’язання екземпляра, де нерозв’язані екземпляри (в межах ліміту
+часу) штрафуються шляхом присвоєння часу, що дорівнює 10-кратному cutoff.
+Зустрічаються і варіанти на кшталт **PAR2**, де штрафний коефіцієнт дорівнює 2.
+Хоча множник 10 — конвенційний, це все одно довільний вибір. Зрештою, вам
+потрібно вирішити, як обробляти «невідомі» (екземпляри, що не розв’язані в межах
+ліміту), адже ви лише знаєте, що їхній фактичний час перевищує cutoff. Якщо для
+визначення переможця потрібна явна метрика продуктивності, PAR-метрики широко
+прийняті, але мають помітні обмеження.
 
-To gain a more nuanced view of solver performance, **cactus plots** are often
-employed. In these plots, each solver is represented by a line where each point
-$(x, y)$ indicates that $y$ benchmark instances were solved within $x$ seconds
-(there exists also the reversed version).
+Щоб отримати більш нюансоване уявлення про продуктивність, часто використовують
+**cactus plots**. На таких графіках кожен розв’язувач представлений лінією, де
+кожна точка $(x, y)$ означає, що $y$ бенчмарк-екземплярів розв’язано за $x$
+секунд (існує також обернена версія).
 
 | ![Cactus Plot 1](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/tsp/2023-11-18_random_euclidean/PUBLIC_DATA/cactus_plot.png?raw=true) |
 | :---------------------------------------------------------------------------------------------------------------------------------------------------: |
-|                                     Each point $(x, y)$ shows that $x$ instances were solved within $y$ seconds.                                      |
+|                                     Кожна точка $(x, y)$ означає, що $x$ екземплярів було розв’язано за $y$ секунд.                                      |
 
-The mean PAR10 scores for the four strategies in the example above are as
-follows:
+Середні значення PAR10 для чотирьох стратегій у прикладі вище такі:
 
 | Strategy             |       PAR10 |
 | :------------------- | ----------: |
@@ -619,78 +603,73 @@ follows:
 | Iterative Dantzig    |  752.412118 |
 | Miller-Tucker-Zemlin | 1150.014846 |
 
-In case you are wondering, this is some data on solving the Traveling Salesman
-Problem (TSP) with different strategies. Gurobi dominates, but it is well-known
-that Gurobi is excellent at solving TSP.
+Якщо вам цікаво, це дані щодо розв’язання задачі комівояжера (TSP) різними
+стратегіями. Gurobi домінує, і це не дивно — добре відомо, що Gurobi чудово
+розв’язує TSP.
 
-If the number of solvers or models under comparison is not too large, you can
-also use a variation of the cactus plot to show solver performance under
-different **optimality tolerances**. This allows you to examine how much
-performance improves when the tolerance is relaxed. However, if your primary
-interest lies in **solution quality**, performance plots are likely to be more
-appropriate.
+Якщо кількість розв’язувачів або моделей у порівнянні не надто велика, можна
+використати варіацію cactus plot, щоб показати продуктивність при різних
+**допусках оптимальності**. Це дозволяє оцінити, наскільки покращується
+продуктивність при послабленні допуску. Втім, якщо основний інтерес —
+**якість розв’язку**, performance plots, імовірно, будуть доречнішими.
 
-In the following example, different optimality tolerances reveal a visible
-performance improvement for the strategies `AddCircuit` and
-`Miller-Tucker-Zemlin`. For the other two strategies, the impact of tolerance
-changes is minimal. This variation of the cactus plot can also be applied to
-compare solver performance across different benchmark sets, especially if you
-suspect significant variation across instance categories.
+У наступному прикладі різні допуски оптимальності демонструють помітне
+покращення для стратегій `AddCircuit` і `Miller-Tucker-Zemlin`. Для інших двох
+стратегій вплив зміни допусків мінімальний. Цю варіацію cactus plot можна також
+застосувати для порівняння продуктивності на різних бенчмаркових наборах,
+особливо якщо ви підозрюєте значні відмінності між категоріями екземплярів.
 
 | ![Cactus Plot with Optimality Tolerances](https://github.com/d-krupke/cpsat-primer/blob/main/evaluations/tsp/2023-11-18_random_euclidean/PUBLIC_DATA/cactus_plot_opt_tol.png?raw=true) |
 | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-|             Each line style represents an optimality tolerance. The plot shows how many instances ($y$) can be solved within a given time limit ($x$) for each tolerance.              |
+|             Кожен стиль лінії відповідає допуску оптимальності. Графік показує, скільки екземплярів ($y$) можна розв’язати в межах заданого ліміту часу ($x$) для кожного допуску.              |
 
-It is also common practice to include a **virtual best** line in the cactus
-plot. This line indicates, for each instance, the best time achieved by any
-solver. Although it does not represent an actual solver, it serves as a valuable
-reference to evaluate the potential for solver complementarity. If one solver
-clearly dominates, the virtual best line will coincide with its curve. However,
-if the lines diverge, it suggests that no single solver is universally
-superior—a case of the “no free lunch” principle. Even if one solver performs
-best on 90% of instances, the remaining 10% may be better handled by
-alternatives. The greater the gap between the best actual solver and the virtual
-best, the stronger the case for a portfolio approach.
+Також поширено додавати на cactus plot лінію **virtual best**. Вона показує
+для кожного екземпляра найкращий час, досягнутий будь-яким розв’язувачем. Хоча
+це не реальний розв’язувач, така лінія є корисним еталоном для оцінки
+комплементарності. Якщо один розв’язувач явно домінує, лінія virtual best
+збігатиметься з його кривою. Якщо ж криві розходяться, це означає, що жоден
+розв’язувач не є універсально кращим — прояв принципу «no free lunch». Навіть
+якщо один розв’язувач найкращий на 90% екземплярів, решту 10% можуть краще
+закривати альтернативи. Чим більший розрив між найкращим реальним розв’язувачем
+і virtual best, тим сильніший аргумент на користь портфельного підходу.
 
 > :reference:
 >
-> A more detailed discussion on this type of plot can be found in the referenced
-> academic paper:
+> Детальніше про цей тип графіків можна прочитати в академічній статті:
 > [Benchmarking Solvers, SAT-style by Brain, Davenport, and Griggio](http://www.sc-square.org/CSA/workshop2-papers/RP3-FinalVersion.pdf)
 
-### Performance Plots for Solution Quality within a Time Limit
+### Performance plots для якості розв’язку за ліміту часу
 
-When dealing with instances that typically cannot be solved to optimality,
-**performance plots** are often more appropriate than cactus plots. These plots
-illustrate the relative performance of different models or solvers on a set of
-instances, usually under a fixed time limit. At the leftmost point of the plot
-(where $x = 1$), each solver’s line indicates the proportion of instances for
-which it achieved the best-known solution (not necessarily exclusively). Then
-its $(x,y)$ coordinates indicate the proportion $y$ of instances for which the
-solver achieved a solution that is at most $x$ times worse than the best known
-solution. For example, if a solver has a point at $(1.05, 0.8)$, it means that
-it found a solution within 5% of the best-known solution for 80% of the
-instances. Often, a logarithmic scale is used for the x-axis, especially when
-the performance ratios vary widely. However, down below we use a linear scale
-because the values are close to 1.
+Коли маєте справу з екземплярами, які зазвичай не вдається розв’язати
+оптимально, **performance plots** часто доречніші за cactus plots. Ці графіки
+показують відносну продуктивність різних моделей або розв’язувачів на наборі
+екземплярів, зазвичай із фіксованим лімітом часу. У лівій крайній точці графіка
+(де $x = 1$) кожна лінія розв’язувача показує частку екземплярів, на яких він
+досяг найкращого відомого розв’язку (не обов’язково унікально). Далі координати
+$(x,y)$ означають частку $y$ екземплярів, для яких розв’язувач знайшов розв’язок,
+що не більше ніж у $x$ разів гірший за найкращий відомий. Наприклад, якщо є
+точка $(1.05, 0.8)$, це означає, що для 80% екземплярів розв’язувач знайшов
+розв’язок не гірший за 5% від найкращого. Часто для осі x використовують
+логарифмічну шкалу, особливо коли відношення продуктивності сильно варіюються.
+Однак нижче ми використовуємо лінійну шкалу, бо значення близькі до 1.
 
-In the example below, based on the **Capacitated Vehicle Routing Problem
-(CVRP)**, the performance plots compare three different models across a
-benchmark set. These plots offer a clear visual summary of how closely each
-model approaches the best solution.
+У прикладі нижче, на основі **Capacitated Vehicle Routing Problem (CVRP)**,
+performance plots порівнюють три різні моделі на бенчмарковому наборі. Ці
+графіки дають наочне уявлення про те, наскільки кожна модель наближається до
+найкращого розв’язку.
 
 |                                                                                                                                 ![Performance Plot Objective](https://github.com/d-krupke/cpsat-primer/blob/main/images/performance_plot_objective.png?raw=true)                                                                                                                                  |
 | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Performance plot comparing the objective values of different CVRP models on a benchmark set. The Miller–Tucker–Zemlin model performs best on most instances and remains close to the best on the rest. The other two models find the best solution in only about 10% of instances but solve roughly 70% within 2% of the best known solution, with `multiple_circuit` showing a slight advantage. |
+| Performance plot, що порівнює значення цілі різних CVRP-моделей на бенчмарковому наборі. Модель Miller–Tucker–Zemlin найкраща на більшості екземплярів і залишається близькою до найкращої на решті. Дві інші моделі знаходять найкращий розв’язок лише приблизно у 10% випадків, але розв’язують близько 70% екземплярів у межах 2% від найкращого відомого рішення, де `multiple_circuit` має невелику перевагу. |
 
-This can of course also be done for the lower bounds produced by each model.
+Звісно, це можна зробити і для нижніх меж, які дає кожна модель.
 
 |                                                                               ![Performance Plot Lower Bound](https://github.com/d-krupke/cpsat-primer/blob/main/images/performance_plot_bound.png?raw=true)                                                                               |
 | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Performance plot comparing the lower bounds produced by each CVRP model. The `add_circuit` model consistently achieves the best bounds, while the other two models yield bounds that are up to 20% worse in the best case and up to 100% worse (i.e., half the quality) on some instances. |
+| Performance plot, що порівнює нижні межі для кожної CVRP-моделі. Модель `add_circuit` стабільно дає найкращі межі, тоді як дві інші моделі мають межі до 20% гірші в кращому випадку і до 100% гірші (тобто вдвічі гірша якість) на деяких екземплярах. |
 
 <details>
-<summary>Here is the code I used to generate the plots. You can freely copy and use it.</summary>
+<summary>Ось код, який я використав для побудови графіків. Його можна вільно копіювати та використовувати.</summary>
 
 ```python
 # MIT License
@@ -883,259 +862,242 @@ def plot_performance_profile(
 
 > :reference:
 >
-> Tangi Migot has written an excellent article on
-> [Performance Plots](https://tmigot.github.io/posts/2024/06/teaching/). Also
-> take a look on the original paper
+> Танґі Міґо написав чудову статтю про
+> [Performance Plots](https://tmigot.github.io/posts/2024/06/teaching/). Також
+> варто глянути на оригінальну роботу
 > [Benchmarking optimization software with performance profiles (Dolan & Moré 2002)](https://link.springer.com/article/10.1007/s101070100263)
 
-### Analyzing the Scalability of a Single Model
+### Аналіз масштабованості однієї моделі
 
-When working with a single model and aiming to analyze its **scalability**, a
-**split plot** can serve as an effective visualization. This type of plot shows
-the model’s runtime across instances of varying size, under a fixed time limit.
-If an instance is solved within the time limit, its actual runtime is shown. If
-not, the point is plotted above the time limit on a **transformed y-axis** that
-now displays the **optimality gap** instead of runtime.
+Якщо ви працюєте з однією моделлю й хочете оцінити її **масштабованість**, то
+**split plot** є ефективною візуалізацією. Такий графік показує час роботи
+моделі на екземплярах різного розміру за фіксованого ліміту часу. Якщо екземпляр
+розв’язано в межах ліміту, показується реальний час. Якщо ні — точка
+проектується вище ліміту на **трансформованій осі y**, яка відображає
+**optimality gap** замість часу.
 
-An example of such a plot is shown below. Since aggregating this data into a
-line plot can be challenging, the visualization may become cluttered if too many
-instances are included or if multiple models are compared simultaneously.
+Приклад такого графіка наведено нижче. Оскільки агрегація цих даних у лінійний
+графік може бути складною, візуалізація може «захаращуватися», якщо включити
+надто багато екземплярів або одночасно порівнювати кілька моделей.
 
 |                                                                                                  ![Split Plot](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/split_plot.png)                                                                                                   |
 | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Split plot illustrating runtime (for solved instances) and optimality gap (for unsolved instances). The y-axis is divided into two regions: one showing actual runtimes for instances solved within the time limit, and one showing optimality gaps for instances where the time limit was exceeded. |
+| Split plot, що ілюструє час роботи (для розв’язаних екземплярів) і optimality gap (для нерозв’язаних). Вісь y поділено на дві області: одна показує фактичні часи для екземплярів, розв’язаних у межах ліміту, а інша — optimality gap для екземплярів, що перевищили ліміт. |
 
 > [!WARNING]
 >
-> For many problems, there is no single instance size metric to compare over.
-> Usually, you can still classify the instances into size categories. However,
-> for especially complex problems, it may be best to just provide a table with
-> the results for the largest instances to give an idea of the model's
-> scalability.
+> Для багатьох задач не існує єдиної метрики розміру екземпляра. Зазвичай ви
+> все одно можете класифікувати екземпляри за категоріями розміру. Однак для
+> особливо складних задач, можливо, найкраще просто подати таблицю з результатами
+> для найбільших екземплярів, щоб дати уявлення про масштабованість моделі.
 
-### Importance of Including Tables
+### Важливість таблиць
 
-Tables offer a concise and detailed view of benchmarking results. They allow
-readers to verify the accuracy of reported data, inspect individual instances,
-and complement high-level visual summaries such as plots.
+Таблиці дають стислий і детальний огляд результатів бенчмаркінгу. Вони
+дозволяють читачам перевіряти коректність даних, розглядати окремі екземпляри та
+доповнювати високорівневі візуальні підсумки, наприклад графіки.
 
-While the previous sections presented insightful plots for visualizing
-performance trends, it is essential to also include at least one table that
-contains the raw results for the key benchmark instances. Many high-quality
-papers rely solely on tables to present their results, as they provide
-transparency and precision.
+Хоч попередні розділи показали корисні графіки для візуалізації тенденцій
+продуктивності, важливо включити принаймні одну таблицю з «сирими» результатами
+для ключових бенчмарк-екземплярів. Багато якісних робіт спираються лише на
+таблиці, адже вони забезпечують прозорість і точність.
 
-However, avoid including every table with all available data—this applies even
-to appendices. Instead, consider what information a critical reader would need
-to verify that your plots are not misleading. Focus on presenting the most
-relevant and interpretable results. A comprehensive dataset can always be linked
-in an external repository, but the tables within your paper should remain clear,
-selective, and to the point. Even if you are only optimizing for yourself, use
-plots to gain an overview but also check out the data tables.
+Втім, не варто включати всі таблиці з усіма даними — це стосується навіть
+додатків. Натомість подумайте, яка інформація потрібна критичному читачеві, щоб
+переконатися, що графіки не вводять в оману. Зосередьтеся на найрелевантніших і
+найінтерпретованіших результатах. Повний набір даних можна дати у зовнішньому
+репозиторії, але таблиці в статті мають бути чіткими, вибірковими та по суті.
+Навіть якщо ви оптимізуєте лише для себе, використовуйте графіки для огляду, але
+обов’язково переглядайте таблиці з даними.
 
 |                                                       ![Table with Results](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/table_samplns.png)                                                        |
 | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Example table from a recent publication, presenting detailed results of a new algorithm across benchmark instances. While less intuitive than plots, such tables enable readers to examine individual outcomes in detail. |
+| Приклад таблиці з недавньої публікації, що подає детальні результати нового алгоритму на бенчмарк-екземплярах. Хоч такі таблиці менш інтуїтивні за графіки, вони дозволяють детально розглянути окремі результати. |
 
-## Distinguishing Exploratory and Workhorse Studies in Benchmarking
+## Розрізнення exploratory та workhorse досліджень у бенчмаркінгу
 
-Before diving into comprehensive benchmarking for scientific publications, it is
-essential to conduct preliminary investigations to assess your model’s
-capabilities and identify any foundational issues. This phase, known as
-_exploratory studies_, is crucial for establishing the basis for more detailed
-benchmarking, subsequently termed as _workhorse studies_. These latter studies
-aim to provide reliable answers to specific research questions and are often the
-core of academic publications. It is important to explicitly differentiate
-between these two study types and maintain their distinct purposes: exploratory
-studies for initial understanding and flexibility, and workhorse studies for
-rigorous, reproducible research.
+Перш ніж переходити до повномасштабного бенчмаркінгу для наукових публікацій,
+важливо провести попередні дослідження, щоб оцінити можливості моделі та
+виявити базові проблеми. Ця фаза, відома як _exploratory studies_, є критичною
+для створення основи більш детального бенчмаркінгу, що згодом називається
+_workhorse studies_. Останні мають на меті дати надійні відповіді на конкретні
+дослідницькі запитання і часто є ядром академічних публікацій. Важливо чітко
+розрізняти ці два типи досліджень і зберігати їхні різні цілі: exploratory
+для первинного розуміння та гнучкості, workhorse — для суворих і відтворюваних
+досліджень.
 
 > :reference:
 >
-> For a comprehensive exploration of benchmarking, I highly recommend Catherine
-> C. McGeoch's book,
+> Для ґрунтовного огляду бенчмаркінгу рекомендую книгу Кетрін К. МакҐіоч
 > ["A Guide to Experimental Algorithmics"](https://www.cambridge.org/core/books/guide-to-experimental-algorithmics/CDB0CB718F6250E0806C909E1D3D1082),
-> which offers an in-depth discussion on this topic.
+> яка глибоко розглядає цю тему.
 
-### Exploratory Studies: Foundation Building
+### Exploratory studies: закладання основи
 
-Exploratory studies serve as a first step toward understanding both your model
-and the problem it aims to solve. This phase is focused on building intuition
-and identifying key characteristics before committing to formal benchmarking.
+Exploratory studies (дослідницькі) — це перший крок до розуміння і моделі, і задачі, яку вона
+має розв’язувати. Ця фаза спрямована на формування інтуїції та виявлення
+ключових характеристик, перш ніж переходити до формального бенчмаркінгу.
 
-- **Objective**: The goal at this stage is to gain early insights — not to draw
-  definitive conclusions. Exploratory studies help identify realistic instance
-  sizes, anticipate potential challenges, and narrow down hyperparameter search
-  spaces.
+- **Мета**: на цьому етапі потрібно отримати ранні інсайти, а не робити
+  остаточні висновки. Exploratory studies допомагають оцінити реалістичні
+  розміри екземплярів, передбачити потенційні труднощі та звузити простір
+  пошуку гіперпараметрів.
 
-Avoid setting up elaborate benchmarking frameworks during this phase. Keep the
-process lightweight and flexible to enable rapid iteration. If updating your
-benchmarks becomes cumbersome each time you adjust your model, it will slow your
-progress and — since benchmarking code tends to be tedious — you may lose
-motivation quickly.
+У цій фазі не варто будувати складні бенчмаркові фреймворки. Тримайте процес
+легким і гнучким, щоб швидко ітерувати. Якщо оновлення бенчмарків стає
+незручним щоразу, коли ви змінюєте модель, це сповільнить прогрес і — з огляду
+на те, що бенчмарковий код часто нудний — швидко знизить мотивацію.
 
-From personal experience, I observed a significant drop in productivity when I
-first learned to build robust benchmarking setups. I began applying the same
-level of rigor to exploratory phases, mistakenly treating the setup as a one-off
-investment that would pay off in the long run. However, whenever you do
-something genuinely interesting, unexpected issues inevitably arise, requiring
-further iterations on the setup. In trying to anticipate such surprises, it
-becomes tempting to over-engineer the process—spending excessive time
-considering what could go wrong and preparing for every contingency, rather than
-simply getting started.
+З власного досвіду: моя продуктивність суттєво впала, коли я вперше навчився
+будувати надійні бенчмаркові налаштування. Я почав застосовувати той самий рівень
+суворості і в exploratory фазі, помилково сприймаючи сетап як одноразову
+інвестицію, що окупиться згодом. Але щойно ви робите щось справді цікаве,
+неминуче виникають несподівані проблеми, які потребують нових ітерацій над
+сетапом. Намагаючись передбачити такі сюрпризи, легко переінженерити процес —
+витрачаючи надто багато часу на «що може піти не так» замість того, щоб просто
+почати.
 
-Instead, strike a balance: avoid letting things become disorganized, but
-postpone formal benchmarking until you are ready to share results. For example,
-I used quick exploratory studies in a single jupyter notebook to estimate
-appropriate instance sizes for the benchmark plots shown earlier. Not a reliable
-part of a pipeline, but it got the job done quickly and only then I set up a
-proper pipeline to create my final plots and tables.
+Натомість тримайте баланс: не допускайте хаосу, але відкладіть формальний
+бенчмаркінг, доки не будете готові ділитися результатами. Наприклад, я робив
+швидкі exploratory дослідження в одному Jupyter notebook, щоб оцінити
+відповідні розміри екземплярів для бенчмарк-графіків, показаних раніше. Це не
+було надійною частиною пайплайна, але швидко дало потрібний результат — і лише
+потім я зібрав повноцінний пайплайн для фінальних графіків і таблиць.
 
-### Workhorse Studies: Conducting In-depth Evaluations
+### Workhorse studies: проведення глибоких оцінювань
 
-Workhorse studies follow the exploratory phase and are characterized by more
-structured and meticulous methodologies. This stage is essential for conducting
-comprehensive evaluations of your model and collecting substantive data for
-analysis.
+Workhorse studies (основні) ідуть після exploratory фази й характеризуються більш
+структурованими та ретельними методологіями. Цей етап критично важливий для
+всебічної оцінки моделі та збору суттєвих даних для аналізу.
 
-- **Objective**: These studies aim to answer specific research questions and
-  yield meaningful insights. The approach is methodical, emphasizing clearly
-  defined objectives. Benchmarks should be well-structured and sufficiently
-  large to produce statistically significant results.
+- **Мета**: такі дослідження мають відповідати на конкретні наукові запитання і
+  давати значущі інсайти. Підхід методичний, з чітко визначеними цілями.
+  Бенчмарки мають бути добре структурованими та достатньо великими, щоб
+  забезпечити статистично значущі результати.
 
-While you can convert one of your exploratory studies into a workhorse study, I
-strongly recommend starting the data collection process from scratch. Make it as
-difficult as possible for outdated or flawed data to enter your benchmarking
-setup.
+Хоча можна перетворити одне з exploratory досліджень у workhorse, я наполегливо
+рекомендую починати збір даних з нуля. Зробіть так, щоб застарілі або помилкові
+дані було максимально складно «протягнути» у ваш бенчмарковий сетап.
 
-Your exploratory studies should already have provided a reasonable estimate of
-the required runtime for benchmarks. Always ensure that you allocate sufficient
-time for potential failures and that your setup can resume if, for instance, a
-colleague inadvertently terminates your job. Monitor the results while the
-benchmarks are running—you do not want to wait a week only to discover that you
-forgot to save the solutions.
+Exploratory-дослідження вже повинні дати розумну оцінку потрібного часу для
+бенчмарків. Завжди закладайте достатньо часу на можливі збої та передбачайте
+можливість відновлення виконання, якщо, наприклад, колега випадково зупинить
+ваше завдання. Слідкуйте за результатами під час роботи бенчмарків — не хочете
+чекати тиждень, а потім виявити, що забули зберегти розв’язки.
 
-I personally structure a workhorse study as follows:
+Особисто я структурую workhorse дослідження так:
 
-1. **Hypothesis or Research Question** Clearly define a hypothesis or research
-   question that emerged during the exploratory phase.
+1. **Гіпотеза або дослідницьке питання** Чітко сформулюйте гіпотезу або
+   дослідницьке питання, яке виникло під час exploratory фази.
 
-2. **Experiment Design** Develop a detailed experimental plan, including the
-   instance set, the models/configurations to be evaluated, and the metrics to
-   be collected.
+2. **Дизайн експерименту** Розробіть детальний план експерименту, включно з
+   набором екземплярів, моделями/конфігураціями для оцінювання та метриками,
+   які потрібно зібрати.
 
-3. **Benchmark Setup** Implement a robust benchmarking framework that supports
-   reproducibility and efficient execution.
+3. **Бенчмарковий сетап** Реалізуйте надійний бенчмарковий фреймворк, що
+   підтримує відтворюваність та ефективне виконання.
 
-4. **Data Collection** Execute the experiments, ensuring that all relevant data
-   is collected and stored in a structured and reliable format.
+4. **Збір даних** Запустіть експерименти, забезпечивши збір і збереження всіх
+   релевантних даних у структурованому та надійному форматі.
 
-5. **Data Analysis** Analyze the results using appropriate statistical and
-   visualization techniques.
+5. **Аналіз даних** Проаналізуйте результати, використовуючи відповідні
+   статистичні та візуалізаційні методи.
 
-6. **Discussion of Findings** Interpret the results and discuss their
-   implications in the context of the initial hypothesis or research question.
+6. **Обговорення висновків** Інтерпретуйте результати й обговоріть їхні
+   наслідки в контексті початкової гіпотези або дослідницького питання.
 
-7. **Threats to Validity** Reflect on potential threats to the validity of your
-   findings, such as biases in instance selection, model assumptions, or
-   evaluation procedures.
+7. **Загрози валідності** Розгляньте потенційні загрози валідності ваших
+   висновків, такі як упередження у виборі екземплярів, припущення моделі або
+   процедури оцінювання.
 
-## Selecting a Benchmark Instance Set
+## Вибір бенчмарк-набору екземплярів
 
-Constructing a benchmark instance set is often more challenging than it first
-appears, especially when no established benchmarks exist. Even when such sets
-exist, they may be poorly sized or less realistic than anticipated. In fact,
-some seemingly realistic datasets may have had portions of the original data
-replaced with uniformly random values to preserve confidentiality, often without
-realizing that such modifications can substantially alter the problem's
-characteristics. Crafting a high-quality benchmark instance set can be an art in
-itself. A notable example is the
-[MIPLIB collection](https://link.springer.com/article/10.1007/s12532-020-00194-3),
-which stands as a scientific contribution in its own right.
+Побудова бенчмарк-набору екземплярів часто складніша, ніж здається на перший
+погляд, особливо коли немає усталених бенчмарків. Навіть якщо такі набори є,
+вони можуть бути невдало підібрані за розміром або менш реалістичні, ніж
+очікувалося. Ба більше, деякі на вигляд «реалістичні» набори могли мати частину
+оригінальних даних заміненою рівномірно випадковими значеннями для збереження
+конфіденційності — і часто без усвідомлення, що такі зміни суттєво впливають на
+характеристики задачі. Створення якісного бенчмарк-набору — це певною мірою
+мистецтво. Помітний приклад — колекція
+[MIPLIB](https://link.springer.com/article/10.1007/s12532-020-00194-3), яка сама
+по собі є науковим внеском.
 
-If you already have a deployed implementation, the process is fortunately quite
-straightforward. You can collect the instances that have been solved in the past
-and use them (or a representative subset) as your benchmark set. Performing
-basic data analysis to examine the distribution of instance characteristics is
-advisable; for example, it may turn out that 99% of the instances are trivial,
-while the remaining 1% are significantly more challenging and thus more relevant
-for improvement. In most cases, basic domain knowledge and judgment are often
-sufficient to construct a useful benchmark set without the need for particularly
-creative solutions.
+Якщо у вас вже є розгорнуте рішення, процес значно простіший. Ви можете зібрати
+екземпляри, які розв’язувалися раніше, і використати їх (або репрезентативну
+підмножину) як бенчмарк. Доцільно провести базовий аналіз даних, щоб подивитися
+на розподіл характеристик екземплярів; наприклад, може виявитися, що 99%
+екземплярів тривіальні, а решта 1% значно складніші й важливіші для покращення.
+У більшості випадків базових доменних знань та здорового глузду достатньо, щоб
+скласти корисний бенчмарк-набір без надмірно креативних рішень.
 
-If you are not in this fortunate position, the first step is to check whether
-any public data is available for your problem or for a sufficiently similar one.
-For instance, although the widely used
-[TSPLIB](http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95/) benchmark set
-for the Traveling Salesman Problem (TSP) contains only distance information, it
-is relatively straightforward to generate Capacitated Vehicle Routing Problem
-(CVRP) instances from it, allowing the reuse of well-structured and challenging
-inputs for a related problem. This can be done by randomly selecting a depot and
-assigning a vehicle capacity based on a fraction of a heuristic TSP solution. If
-you obtain readily available instances, be sure to verify whether they remain
-challenging; they may originate from a different era or may not have been
-well-designed, as not everything published online is of high quality (although I
-hope that this Primer is).
+Якщо ж ви не в такому сприятливому становищі, перший крок — перевірити, чи є
+публічні дані для вашої задачі або достатньо схожої. Наприклад, хоча широко
+використовуваний бенчмарк
+[TSPLIB](http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95/) для задачі
+комівояжера (TSP) містить лише інформацію про відстані, з нього відносно легко
+згенерувати екземпляри Capacitated Vehicle Routing Problem (CVRP), що дозволяє
+повторно використати добре структуровані й складні входи для спорідненої задачі.
+Це можна зробити, випадково обравши депо і призначивши місткість транспорту на
+основі частки евристичного розв’язку TSP. Якщо ви берете готові екземпляри,
+переконайтеся, що вони лишаються складними; вони можуть бути з іншої епохи або
+погано спроєктовані, адже не все, що є онлайн, високої якості (хоча, сподіваюся,
+цей праймер — так).
 
-If no suitable public benchmarks are available, you will need to generate your
-own instances. Even with public benchmarks available, generating your own
-instances can still be beneficial to generate additional instances in order to
-control specific parameters and systematically evaluate the impact of varying a
-single factor on your model's performance. In typical benchmark sets, the
-diverse instances can confound the effects of individual parameters, making it
-difficult to isolate their impact without large datasets and careful statistical
-design. Nevertheless, it is important to maintain diversity within your general
-instance set to ensure that your model remains robust and capable of handling a
-broad range of scenarios.
+Якщо відповідних публічних бенчмарків немає, доведеться генерувати власні
+екземпляри. Навіть за наявності публічних бенчмарків створення своїх може бути
+корисним: ви зможете генерувати додаткові екземпляри, контролювати окремі
+параметри та систематично оцінювати вплив зміни одного чинника на продуктивність
+моделі. У типових наборах різноманітні екземпляри можуть «змішувати» впливи
+параметрів, ускладнюючи їх ізоляцію без великих даних і акуратного
+статистичного дизайну. Водночас важливо зберігати різноманітність у загальному
+наборі екземплярів, щоб модель залишалася стійкою і здатною працювати в широкому
+діапазоні сценаріїв.
 
 > :video:
 >
-> To deepen your understanding of benchmark instance diversity, consider the
-> concept of **Instance Space Analysis**. Kate Smith-Miles offers an insightful
-> [30-minute talk on this topic](https://www.youtube.com/watch?v=-2t2c9-snf0),
-> exploring how analyzing the space of instances can guide better instance
-> selection and generation.
+> Щоб глибше зрозуміти різноманітність бенчмарк-екземплярів, зверніть увагу на
+> концепцію **Instance Space Analysis**. Кейт Сміт-Майлз має змістовну
+> [30-хвилинну доповідь на цю тему](https://www.youtube.com/watch?v=-2t2c9-snf0),
+> де розповідає, як аналіз простору екземплярів допомагає краще добирати та
+> генерувати екземпляри.
 
-When implementing your own instance generation, it is often possible to leverage
-existing tools. For example,
-[NetworkX provides a comprehensive collection of random graph generators](https://networkx.org/documentation/stable/reference/generators.html)
-that can be adapted to suit a variety of problem settings. An exploratory study
-is usually necessary to identify which generator aligns best with the
-requirements of your specific problem. For generating other types of values, you
-can experiment with different random distributions. One particularly effective
-technique is using images to define spatial or value distributions, for example,
-treating pixel intensities as sampling probabilities.
+Коли ви реалізуєте власну генерацію екземплярів, часто можна скористатися
+готовими інструментами. Наприклад,
+[NetworkX має вичерпний набір генераторів випадкових графів](https://networkx.org/documentation/stable/reference/generators.html),
+які можна адаптувати під різні постановки задач. Зазвичай потрібно провести
+exploratory дослідження, щоб визначити, який генератор найкраще відповідає
+вимогам конкретної задачі. Для генерації інших типів значень можна експериментувати
+з різними випадковими розподілами. Один особливо ефективний прийом — використання
+зображень для визначення просторових або вартісних розподілів, наприклад,
+вважаючи інтенсивності пікселів імовірностями вибірки.
 
 > [!TIP]
 >
-> It is also advisable not to combine all your instances into a single set, but
-> instead to evaluate performance separately across different benchmark groups.
-> This approach often reveals interesting and meaningful performance
-> differences.
+> Також варто не об’єднувати всі екземпляри в один набір, а оцінювати
+> продуктивність окремо по різних бенчмарк-групах. Такий підхід часто виявляє
+> цікаві й змістовні відмінності в продуктивності.
 
-A final point worth emphasizing is the importance of generating and storing
-proper instance files, rather than relying solely on the seed of a pseudo-random
-number generator. This is a recurring concern I have encountered with both
-experienced peers and students. While pseudo-random generators are valuable for
-introducing randomized but reproducible elements into algorithms, they are not a
-substitute for persistently stored data. (That said, I have seen too many cases
-where a student unknowingly computed the mean over multiple runs using the same
-seed.) Although, in theory, a seed combined with the source code should suffice
-to reproduce a complete experiment, in practice, code tends to degrade more
-quickly than data. This is especially true for C++ code, which may be less
-reproducible than anticipated due to subtle instances of undefined behavior,
-even among experienced programmers.
+Окремо варто наголосити на важливості генерування та збереження повноцінних
+файлів екземплярів, а не лише покладання на seed псевдовипадкового генератора.
+Це повторювана проблема, з якою я стикався і серед досвідчених колег, і серед
+студентів. Хоча псевдовипадкові генератори корисні для введення випадковості,
+що відтворюється, вони не є заміною постійно збережених даних. (До речі, я бачив
+надто багато випадків, коли студент несвідомо обчислював середнє по кількох
+запусках з одним і тим самим seed.) Теоретично seed у поєднанні з кодом має
+достатньо відтворити експеримент, але на практиці код «старіє» швидше за дані.
+Особливо це стосується C++: відтворюваність може бути гіршою, ніж очікується,
+через тонкі прояви undefined behavior навіть у досвідчених програмістів.
 
-## Efficiently Managing Your Benchmarks
+## Ефективне управління бенчмарками
 
-Benchmark data management can quickly become complex, especially when managing
-multiple experiments and research questions simultaneously. The following
-strategies can help maintain an organized workflow and ensure that your results
-remain reliable:
+Управління бенчмарковими даними швидко ускладнюється, особливо коли ви ведете
+кілька експериментів і дослідницьких питань паралельно. Наступні стратегії
+допоможуть зберігати порядок і надійність результатів:
 
-- **Folder Structure:** Maintain a clear and consistent folder hierarchy for
-  your experiments. A typical setup includes a top-level `evaluations` directory
-  with descriptive subfolders for each experiment. For example:
+- **Структура папок:** підтримуйте чітку й послідовну ієрархію папок для
+  експериментів. Типовий сетап — це верхньорівнева директорія `evaluations` з
+  описовими підпапками для кожного експерименту. Наприклад:
 
   ```
   evaluations
@@ -1161,56 +1123,51 @@ remain reliable:
   │   │   ├── ...
   ```
 
-- **Documentation:** It is easy to forget why or when a particular experiment
-  was conducted. Always include a brief `README.md` file with essential notes.
-  This document does not need to be polished initially, but it should capture
-  the core context. The more important the experiment, the more beneficial it is
-  to revisit and enhance the documentation once the experiment is underway and
-  you have had time to reflect on its purpose and outcomes.
+- **Документація:** легко забути, чому або коли проводився конкретний
+  експеримент. Завжди додавайте короткий `README.md` з ключовими нотатками.
+  Документ не має бути ідеально відшліфованим на старті, але має фіксувати
+  основний контекст. Чим важливіший експеримент, тим корисніше повернутися до
+  документації та доповнити її, коли експеримент уже триває і ви встигаєте
+  осмислити мету та результати.
 
-- **Redundancy:** Excessive concern about redundancy in your data and code is
-  generally unnecessary. Evaluation setups are not production systems and are
-  not expected to be maintained over the long term. In fact, redundancy,
-  particularly in utility functions, can simplify refactoring. Legacy
-  experiments can continue using older versions of the code, and updates can be
-  applied selectively. It is advisable to include a brief changelog in each
-  utility file to indicate the version in use. Consider this a lightweight form
-  of dependency management. Although copying and pasting code may feel
-  inappropriate to a software engineer trained in best practices, this portion
-  of your work is typically intended to be static for reproducibility, rather
-  than actively maintained.
+- **Надмірність:** надмірна тривога щодо дублювання даних і коду зазвичай
+  зайва. Оцінювальні сетапи — не продакшн-системи, і їх не очікується підтримувати
+  довгостроково. Ба більше, надмірність, особливо в утилітних функціях, може
+  спростити рефакторинг. Старі експерименти можуть залишатися на старих версіях
+  коду, а оновлення — застосовуватися вибірково. Рекомендується додавати короткий
+  changelog у кожен утилітний файл, щоб позначати версію. Це можна розглядати як
+  легковагове керування залежностями. Хоч копіювання-вставлення може здаватися
+  «неправильним» інженеру ПЗ, цей шматок роботи зазвичай статичний заради
+  відтворюваності, а не для активного супроводу.
 
-- **Extensive Private and Simple Public Data:** Organize your data into two
-  sections: one for private use and one for public dissemination. The private
-  section should contain all raw and intermediate data to facilitate future
-  investigations into anomalies or unexpected behavior. The public section
-  should be concise, curated, and optimized for analysis and sharing. If the
-  private data grows too large, consider transferring it to external storage and
-  leaving a reference or note indicating its location, ideally with the hope
-  that it will not be needed again. If your experiments are not huge, you may
-  also be able to store all data in the public section.
+- **Розгорнуті приватні та прості публічні дані:** організуйте дані в дві
+  секції: одну для приватного використання та одну для публічного поширення.
+  Приватна секція має містити всі сирі та проміжні дані, щоб можна було
+  розслідувати аномалії чи несподівану поведінку. Публічна секція має бути
+  стислою, відібраною і оптимізованою для аналізу та поширення. Якщо приватних
+  даних стає надто багато, варто перенести їх у зовнішнє сховище і залишити
+  посилання/нотатку про місце зберігання — бажано з надією, що це більше не
+  знадобиться. Якщо експерименти невеликі, можливо, ви зможете зберігати всі
+  дані в публічній секції.
 
-- **Experiment Flexibility:** Design experiments to be both interruptible and
-  extensible. This allows long-running studies to be paused and resumed, and new
-  models or configurations to be added without restarting the entire process.
-  Such flexibility is particularly valuable in exploratory research, which often
-  involves frequent iterations, as well as in large-scale, long-duration runs.
-  The longer an experiment runs, the more likely it is that it will be
-  interrupted by system updates, network failures, or other unforeseen events.
+- **Гнучкість експериментів:** проєктуйте експерименти так, щоб їх можна було
+  зупиняти й продовжувати, а також додавати нові моделі чи конфігурації без
+  перезапуску всього процесу. Така гнучкість особливо цінна в exploratory
+  дослідженнях з частими ітераціями, а також у великих, довготривалих запусках.
+  Чим довше триває експеримент, тим більша ймовірність переривань через оновлення
+  системи, збої мережі або інші непередбачувані події.
 
-- **Parallelization:** Obtaining results quickly can help maintain momentum and
-  focus. Learn to utilize a computing cluster or cloud infrastructure to
-  parallelize experiments. Although there is an initial learning curve, the
-  effort required to implement parallelization is usually small in comparison to
-  the efficiency gains it provides.
+- **Паралелізація:** швидке отримання результатів допомагає зберігати темп і
+  фокус. Навчіться використовувати кластер або хмарну інфраструктуру для
+  паралельного запуску експериментів. Хоча є початковий поріг входу, зусилля на
+  впровадження паралелізації зазвичай невеликі порівняно з виграшем у швидкості.
 
 > [!TIP]
 >
-> Because existing tools did not fully satisfy my requirements, I developed
-> [AlgBench](https://github.com/d-krupke/AlgBench) to manage benchmarking
-> results and [Slurminade](https://github.com/d-krupke/slurminade) to simplify
-> experiment distribution on computing clusters through a decorator-based
-> interface. However, more effective solutions may now be available,
-> particularly from the machine learning community. If you are aware of tools
-> you find useful, I would be very interested in hearing about them and would be
-> glad to explore their potential.
+> Оскільки наявні інструменти не повністю відповідали моїм вимогам, я створив
+> [AlgBench](https://github.com/d-krupke/AlgBench) для керування результатами
+> бенчмаркінгу та [Slurminade](https://github.com/d-krupke/slurminade), щоб
+> спростити розподіл експериментів на кластерах через інтерфейс на основі
+> декораторів. Втім, нині можуть існувати ефективніші рішення, особливо зі
+> спільноти машинного навчання. Якщо знаєте корисні інструменти, буду радий
+> почути про них і з задоволенням розгляну їхній потенціал.
