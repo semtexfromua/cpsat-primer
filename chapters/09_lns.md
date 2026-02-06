@@ -2,7 +2,7 @@
 
 <a name="09-lns"></a>
 
-## Using CP-SAT for Bigger Problems with Large Neighborhood Search
+## Використання CP-SAT для більших задач із Large Neighborhood Search
 
 <!-- START_SKIP_FOR_README -->
 
@@ -10,71 +10,70 @@
 
 <!-- STOP_SKIP_FOR_README -->
 
-CP-SAT is great at solving small and medium-sized problems. But what if you have
-a really big problem on your hands? One option might be to use a special kind of
-algorithm known as a "meta-heuristic", like a
-[genetic algorithm](https://en.wikipedia.org/wiki/Genetic_algorithm). But these
-can be hard to set up and might not even give you good results.
+CP-SAT чудово справляється з малими та середніми задачами. Але що робити, якщо
+у вас дійсно велика задача? Один із варіантів — використати спеціальний клас
+алгоритмів, відомий як «метаевристики», наприклад
+[генетичний алгоритм](https://en.wikipedia.org/wiki/Genetic_algorithm). Але їх
+важко налаштувати, і вони можуть не дати добрих результатів.
 
-Sometimes you will see new algorithms with cool-sounding names in scientific
-papers. While tempting, these are often just small twists on older methods and
-might leave out key details that make them work. If you are interested, there's
-a discussion about this issue in a paper by Sörensen, called
+Інколи в наукових статтях можна побачити нові алгоритми з «крутими» назвами.
+Це спокусливо, але часто такі методи — лише невеликі варіації старіших підходів
+і можуть опускати ключові деталі, які змушують їх працювати. Якщо цікаво, про
+цю проблему є обговорення в статті Соренсена
 ["Metaheuristics – The Metaphor Exposed"](http://onlinelibrary.wiley.com/doi/10.1111/itor.12001).
 
-The good news? You do not have to implement an algorithm that simulates the
-mating behavior of forest frogs to solve your problem. If you already know how
-to use CP-SAT, you can stick with it to solve big problems without adding
-unnecessary complications. Even better? This technique, called Large
-Neighborhood Search, often outperforms all other approaches.
+Добра новина? Вам не потрібно реалізовувати алгоритм, що імітує шлюбну поведінку
+лісових жаб, щоб розв’язати задачу. Якщо ви вже вмієте користуватися CP-SAT, то
+можете залишитися з ним і розв’язувати великі задачі без зайвих ускладнень. Ще
+краще: ця техніка, відома як Large Neighborhood Search, часто перевершує інші
+підходи.
 
-### What Sets Large Neighborhood Search Apart?
+### Чим відрізняється Large Neighborhood Search?
 
-Many traditional methods generate several "neighbor" options around an existing
-solution and pick the best one. However, making each neighbor solution takes
-time, limiting how many you can examine.
+Багато традиційних методів генерують кілька «сусідів» навколо поточного
+розв’язку та обирають найкращий. Але побудова кожного сусіднього розв’язку
+потребує часу, що обмежує кількість варіантів, які можна перевірити.
 
-Large Neighborhood Search (LNS) offers a more efficient approach. Instead of
-generating neighbors one by one, LNS formulates a "mini-problem" that modifies
-parts of the current solution. This often involves randomly selecting some
-variables, resetting them, and using CP-SAT (or a similar tool) to find the
-optimal new values within the context of the remaining solution. This method,
-known as "destroy and repair," allows for a broader exploration of neighbor
-solutions without constructing each one individually.
+Large Neighborhood Search (LNS) пропонує ефективніший підхід. Замість
+побудови сусідів по одному, LNS формулює «міні-задачу», що змінює частини
+поточного розв’язку. Зазвичай це означає випадково вибрати деякі змінні,
+обнулити їх та використати CP-SAT (або подібний інструмент), щоб знайти
+оптимальні нові значення в контексті решти розв’язку. Цей метод, відомий як
+«destroy and repair», дозволяє ширше досліджувати сусідів без побудови кожного
+окремо.
 
-Moreover, LNS can easily be mixed with other methods like genetic algorithms. If
-you are already using a genetic algorithm, you could supercharge it by applying
-CP-SAT to find the best possible crossover of two or more existing solutions. It
-is like genetic engineering, but without any ethical worries!
+Крім того, LNS легко поєднувати з іншими методами, такими як генетичні
+алгоритми. Якщо ви вже використовуєте генетичний алгоритм, можна «прокачати»
+його, застосувавши CP-SAT для пошуку найкращого кросинговера двох чи більше
+поточних рішень. Це ніби генетична інженерія, але без етичних дилем!
 
-When looking into the logs of CP-SAT, you may notice that it uses LNS itself to
-find better solutions.
+Якщо подивитися на логи CP-SAT, можна помітити, що він сам використовує LNS для
+пошуку кращих рішень.
 
 ```
 8 incomplete subsolvers: [feasibility_pump, graph_arc_lns, graph_cst_lns, graph_dec_lns, graph_var_lns, rins/rens, rnd_cst_lns, rnd_var_lns]
 ```
 
-Why does it not suffice to just run CP-SAT if it already solves the problem with
-LNS? The reason is that CP-SAT has to be relatively problem-agnostic. It has no
-way of knowing the structure of your problem and thus cannot use this
-information to improve the search. You on the other hand know a lot about your
-problem and can use this knowledge to implement a more efficient version.
+Чому ж недостатньо просто запускати CP-SAT, якщо він і так використовує LNS?
+Причина в тому, що CP-SAT має бути відносно агностичним до задачі. Він не знає
+структури вашої задачі, а отже не може використати цю інформацію для
+покращення пошуку. Ви ж, навпаки, багато знаєте про свою задачу і можете
+використати ці знання, щоб реалізувати ефективніший варіант.
 
-**Literature:**
+**Література:**
 
-- General Paper on LNS-variants:
+- Загальна стаття про варіанти LNS:
   [Pisinger and Ropke - 2010](https://backend.orbit.dtu.dk/ws/portalfiles/portal/5293785/Pisinger.pdf)
-- A generic variant (RINS), that is also used by CP-SAT:
+- Загальний варіант (RINS), який використовує також CP-SAT:
   [Danna et al. 2005](https://link.springer.com/article/10.1007/s10107-004-0518-7)
 
-We will now look into some examples to see this approach in action.
+Тепер розглянемо кілька прикладів.
 
-#### Example 1: Knapsack
+#### Приклад 1: Рюкзак
 
-You are given a knapsack that can carry a certain weight limit $C$, and you have
-various items $I$ you can put into it. Each item $i\in I$ has a weight $w_i$ and
-a value $v_i$. The goal is to pick items to maximize the total value while
-staying within the weight limit.
+Є рюкзак із певним лімітом ваги $C$, а також набір предметів $I$, які можна
+покласти всередину. Кожен предмет $i\in I$ має вагу $w_i$ і цінність $v_i$. Мета
+— максимізувати сумарну цінність, не перевищивши ліміт ваги.
 
 ```math
 \max \sum_{i \in I} v_i x_i
@@ -88,24 +87,23 @@ staying within the weight limit.
 x_i \in \\{0,1\\}
 ```
 
-This is one of the simplest NP-hard problems and can be solved with a dynamic
-programming approach in pseudo-polynomial time. CP-SAT is also able to solve
-many large instances of this problem in an instant. However, its simple
-structure makes it a good example to demonstrate the use of Large Neighborhood
-Search, even if the algorithm will not be of much use for this problem.
+Це одна з найпростіших NP-складних задач, яку можна розв’язати динамічним
+програмуванням за псевдополіноміальний час. CP-SAT також здатен розв’язувати
+багато великих екземплярів цієї задачі майже миттєво. Однак її проста структура
+робить задачу хорошим прикладом, щоб продемонструвати Large Neighborhood
+Search, навіть якщо цей алгоритм не надто корисний саме для рюкзака.
 
-A simple idea for the LNS is to delete some elements from the current solution,
-compute the remaining capacity after deletion, select some additional items from
-the remaining items, and try to find the optimal solution to fill the remaining
-capacity with the deleted items and the newly selected items. Repeat this until
-you are happy with the solution quality. The number of items you delete and
-select can be fixed such that the problem can be easily solved by CP-SAT. You
-can find a full implementation under
+Проста ідея LNS: видалити кілька предметів із поточного розв’язку, обчислити
+залишкову місткість, вибрати кілька додаткових предметів із тих, що залишилися,
+і знайти оптимальний розв’язок, який заповнює залишкову місткість видаленими
+та новими предметами. Повторюйте, доки вас влаштовує якість рішення. Кількість
+видалених і доданих предметів можна зафіксувати так, щоб CP-SAT легко розв’язував
+підзадачу. Повну реалізацію можна знайти в
 [examples/lns_knapsack.ipynb](https://github.com/d-krupke/cpsat-primer/blob/main/examples/lns_knapsack.ipynb).
 
-Let us look only on an example here:
+Подивімося лише один приклад:
 
-Instance: $C=151$,
+Екземпляр: $C=151$,
 $I=I_{0}(w=12, v=37),I_{1}(w=16, v=49),I_{2}(w=20, v=53),I_{3}(w=11, v=14),I_{4}(w=19, v=42),$
 $\quad I_{5}(w=13, v=53),I_{6}(w=18, v=54),I_{7}(w=16, v=56),I_{8}(w=14, v=45),I_{9}(w=12, v=39),$
 $\quad I_{10}(w=11, v=42),I_{11}(w=19, v=43),I_{12}(w=12, v=43),I_{13}(w=19, v=66),I_{14}(w=20, v=54),$
@@ -127,160 +125,155 @@ $\quad I_{85}(w=12, v=27),I_{86}(w=15, v=35),I_{87}(w=18, v=48),I_{88}(w=15, v=6
 $\quad I_{90}(w=20, v=64),I_{91}(w=13, v=45),I_{92}(w=19, v=64),I_{93}(w=18, v=83),I_{94}(w=11, v=38),$
 $\quad I_{95}(w=10, v=30),I_{96}(w=18, v=65),I_{97}(w=19, v=56),I_{98}(w=12, v=41),I_{99}(w=17, v=36)$
 
-Initial solution of value 442:
+Початкове рішення з цінністю 442:
 $\\{I_{0}, I_{1}, I_{2}, I_{3}, I_{4}, I_{5}, I_{6}, I_{7}, I_{8}, I_{9}\\}$
 
-We will now repeatedly delete 5 items from the current solution and try to fill
-the newly gained capacity with an optimal solution built from the deleted items
-and 10 additional items. Note that this approach essentially considers
-$2^{5+10}=32768$ neighbored solutions in each iteration. However, we could
-easily scale it up to consider $2^{100+900}\sim 10^{300}$ neighbored solutions
-in each iteration thanks to the implicit representation of the neighbored
-solutions and CP-SAT ability to prune large parts of the search space.
+Тепер будемо повторювано видаляти 5 предметів із поточного розв’язку та
+намагатися заповнити отриману місткість оптимальним рішенням, побудованим із
+видалених предметів і ще 10 додаткових. Зауважте, що цей підхід по суті
+розглядає $2^{5+10}=32768$ сусідніх рішень у кожній ітерації. Водночас ми могли
+б легко масштабувати його, щоб розглядати $2^{100+900}\sim 10^{300}$ сусідніх
+рішень у кожній ітерації завдяки неявному поданню сусідів і здатності CP-SAT
+відтинати великі частини простору пошуку.
 
-**Round 1 of LNS algorithm:**
+**Раунд 1 алгоритму LNS:**
 
-- Deleting the following 5 items from the solution:
+- Видаляємо такі 5 предметів із розв’язку:
   $\\{I_{0}, I_{7}, I_{8}, I_{9}, I_{6}\\}$
-- Repairing solution by considering the following subproblem:
-  - Subproblem: $C=72$,
+- Відновлюємо розв’язок, розглядаючи таку підзадачу:
+  - Підзадача: $C=72$,
     $I=\\{I_{6},I_{9},I_{86},I_{13},I_{47},I_{73},I_{0},I_{8},I_{7},I_{38},I_{57},I_{11},I_{60},I_{14}\\}$
-- Computed the following solution of value 244 for the subproblem:
+- Знайдено таке рішення з цінністю 244 для підзадачі:
   $\\{I_{8}, I_{9}, I_{13}, I_{38}, I_{47}\\}$
-- Combining
+- Об’єднуємо
   $\\{I_{1}, I_{2}, I_{3}, I_{4}, I_{5}\\}\cup \\{I_{8}, I_{9}, I_{13}, I_{38}, I_{47}\\}$
-- New solution of value 455:
+- Нове рішення з цінністю 455:
   $\\{I_{1}, I_{2}, I_{3}, I_{4}, I_{5}, I_{8}, I_{9}, I_{13}, I_{38}, I_{47}\\}$
 
-**Round 2 of LNS algorithm:**
+**Раунд 2 алгоритму LNS:**
 
-- Deleting the following 5 items from the solution:
+- Видаляємо такі 5 предметів із розв’язку:
   $\\{I_{3}, I_{13}, I_{2}, I_{9}, I_{1}\\}$
-- Repairing solution by considering the following subproblem:
-  - Subproblem: $C=78$,
+- Відновлюємо розв’язок, розглядаючи таку підзадачу:
+  - Підзадача: $C=78$,
     $I=\\{I_{13},I_{9},I_{84},I_{41},I_{15},I_{42},I_{74},I_{16},I_{3},I_{1},I_{2},I_{67},I_{50},I_{89},I_{43}\\}$
-- Computed the following solution of value 275 for the subproblem:
+- Знайдено таке рішення з цінністю 275 для підзадачі:
   $\\{I_{1}, I_{15}, I_{43}, I_{50}, I_{84}\\}$
-- Combining
+- Об’єднуємо
   $\\{I_{4}, I_{5}, I_{8}, I_{38}, I_{47}\\}\cup \\{I_{1}, I_{15}, I_{43}, I_{50}, I_{84}\\}$
-- New solution of value 509:
+- Нове рішення з цінністю 509:
   $\\{I_{1}, I_{4}, I_{5}, I_{8}, I_{15}, I_{38}, I_{43}, I_{47}, I_{50}, I_{84}\\}$
 
-**Round 3 of LNS algorithm:**
+**Раунд 3 алгоритму LNS:**
 
-- Deleting the following 5 items from the solution:
+- Видаляємо такі 5 предметів із розв’язку:
   $\\{I_{8}, I_{43}, I_{84}, I_{1}, I_{50}\\}$
-- Repairing solution by considering the following subproblem:
-  - Subproblem: $C=79$,
+- Відновлюємо розв’язок, розглядаючи таку підзадачу:
+  - Підзадача: $C=79$,
     $I=\\{I_{84},I_{76},I_{34},I_{16},I_{37},I_{20},I_{8},I_{43},I_{50},I_{1},I_{12},I_{35},I_{53}\\}$
-- Computed the following solution of value 283 for the subproblem:
+- Знайдено таке рішення з цінністю 283 для підзадачі:
   $\\{I_{8}, I_{12}, I_{20}, I_{37}, I_{50}, I_{84}\\}$
-- Combining
+- Об’єднуємо
   $\\{I_{4}, I_{5}, I_{15}, I_{38}, I_{47}\\}\cup \\{I_{8}, I_{12}, I_{20}, I_{37}, I_{50}, I_{84}\\}$
-- New solution of value 526:
+- Нове рішення з цінністю 526:
   $\\{I_{4}, I_{5}, I_{8}, I_{12}, I_{15}, I_{20}, I_{37}, I_{38}, I_{47}, I_{50}, I_{84}\\}$
 
-**Round 4 of LNS algorithm:**
+**Раунд 4 алгоритму LNS:**
 
-- Deleting the following 5 items from the solution:
+- Видаляємо такі 5 предметів із розв’язку:
   $\\{I_{37}, I_{4}, I_{20}, I_{5}, I_{15}\\}$
-- Repairing solution by considering the following subproblem:
-  - Subproblem: $C=69$,
+- Відновлюємо розв’язок, розглядаючи таку підзадачу:
+  - Підзадача: $C=69$,
     $I=\\{I_{37},I_{4},I_{20},I_{15},I_{82},I_{41},I_{56},I_{76},I_{85},I_{5},I_{32},I_{57},I_{7},I_{67}\\}$
-- Computed the following solution of value 260 for the subproblem:
+- Знайдено таке рішення з цінністю 260 для підзадачі:
   $\\{I_{5}, I_{7}, I_{15}, I_{20}, I_{37}\\}$
-- Combining
+- Об’єднуємо
   $\\{I_{8}, I_{12}, I_{38}, I_{47}, I_{50}, I_{84}\\}\cup \\{I_{5}, I_{7}, I_{15}, I_{20}, I_{37}\\}$
-- New solution of value 540:
+- Нове рішення з цінністю 540:
   $\\{I_{5}, I_{7}, I_{8}, I_{12}, I_{15}, I_{20}, I_{37}, I_{38}, I_{47}, I_{50}, I_{84}\\}$
 
-**Round 5 of LNS algorithm:**
+**Раунд 5 алгоритму LNS:**
 
-- Deleting the following 5 items from the solution:
+- Видаляємо такі 5 предметів із розв’язку:
   $\\{I_{38}, I_{12}, I_{20}, I_{47}, I_{37}\\}$
-- Repairing solution by considering the following subproblem:
-  - Subproblem: $C=66$,
+- Відновлюємо розв’язок, розглядаючи таку підзадачу:
+  - Підзадача: $C=66$,
     $I=\\{I_{20},I_{47},I_{37},I_{86},I_{58},I_{56},I_{54},I_{38},I_{12},I_{39},I_{68},I_{75},I_{66},I_{2},I_{99}\\}$
-- Computed the following solution of value 254 for the subproblem:
+- Знайдено таке рішення з цінністю 254 для підзадачі:
   $\\{I_{12}, I_{20}, I_{37}, I_{47}, I_{75}\\}$
-- Combining
+- Об’єднуємо
   $\\{I_{5}, I_{7}, I_{8}, I_{15}, I_{50}, I_{84}\\}\cup \\{I_{12}, I_{20}, I_{37}, I_{47}, I_{75}\\}$
-- New solution of value 560:
+- Нове рішення з цінністю 560:
   $\\{I_{5}, I_{7}, I_{8}, I_{12}, I_{15}, I_{20}, I_{37}, I_{47}, I_{50}, I_{75}, I_{84}\\}$
 
-#### Example 2: Different Neighborhoods for the Traveling Salesman Problem
+#### Приклад 2: Різні околиці для задачі комівояжера
 
-Simply removing a portion of the solution and then trying to fix it is not the
-most effective approach. In this section, we will explore various neighborhoods
-for the Traveling Salesman Problem (TSP). The geometry of TSP not only permits
-advantageous neighborhoods but also offers visually appealing representations.
-When you have several neighborhood strategies, they can be dynamically
-integrated using an Adaptive Large Neighborhood Search (ALNS).
+Просто видалити частину розв’язку й потім намагатися його полагодити — не
+найефективніший підхід. У цьому розділі ми розглянемо різні околиці для задачі
+комівояжера (TSP). Геометрія TSP не лише дозволяє ефективні околиці, але й дає
+візуально привабливі представлення. Коли у вас є кілька стратегій околиць, їх
+можна динамічно інтегрувати за допомогою Adaptive Large Neighborhood Search
+(ALNS).
 
-The image illustrates an optimization process for a tour that needs to traverse
-the green areas, factoring in turn costs, within an embedded graph (mesh). The
-optimization involves choosing specific regions (highlighted in red) and
-calculating the optimal tour within them. As iterations progress, the initial
-tour generally improves, although some iterations may not yield any enhancement.
-Regions in red are selected due to the high cost of the tour within them. Once
-optimized, the center of that region is added to a tabu list, preventing it from
-being chosen again.
+Зображення ілюструє процес оптимізації маршруту, який має пройти через зелені
+зони з урахуванням вартості поворотів, у вбудованому графі (mesh). Оптимізація
+полягає у виборі конкретних регіонів (позначених червоним) і обчисленні
+оптимального туру в їхніх межах. Із перебігом ітерацій початковий маршрут
+зазвичай покращується, хоча деякі ітерації можуть не дати жодного поліпшення.
+Червоні області вибираються через високу вартість маршруту в них. Після
+оптимізації центр такого регіону додається до tabu-списку, щоб його не обирали
+знову.
 
 |                                                                   ![Large Neighborhood Search Geometry Example](https://github.com/d-krupke/cpsat-primer/blob/main/images/lns_pcpp.png)                                                                   |
 | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Large Neighbordhood Search for Coverage Path Planning by repeatedly selecting a geometric region (red) and optimizing the tour within it. The red parts of the tour highlight the changes in the iteration. Read from left to right, and from up to down. |
+| Large Neighborhood Search для планування покриття шляхом повторного вибору геометричної області (червоної) та оптимізації маршруту всередині неї. Червоні частини маршруту показують зміни ітерації. Читайте зліва направо та зверху вниз. |
 
-How can you determine the appropriate size of a region to select? You have two
-main options: conduct preliminary experiments or adjust the size adaptively
-during the search. Simply allocate a time limit for each iteration. If the
-solver does not optimize within that timeframe, decrease the region size.
-Conversely, if it does, increase the size. Utilizing exponential factors will
-help the size swiftly converge to its optimal dimension. However, it's essential
-to note that this method assumes subproblems are of comparable difficulty and
-may necessitate additional conditions.
+Як визначити відповідний розмір регіону для вибору? Є два основні варіанти:
+провести попередні експерименти або адаптивно налаштовувати розмір під час
+пошуку. Просто задайте ліміт часу на кожну ітерацію. Якщо розв’язувач не
+встигає оптимізувати в межах цього часу — зменшуйте розмір регіону. Якщо
+встигає — збільшуйте. Використання експоненційних коефіцієнтів допоможе швидко
+наблизити розмір до оптимального. Втім, важливо пам’ятати, що такий підхід
+припускає порівнянну складність підзадач і може потребувати додаткових умов.
 
-For the Euclidean TSP, as opposed to a mesh, optimizing regions is not
-straightforward. Multiple effective strategies exist, such as employing a
-segment from the previous tour rather than a geometric region. By implementing
-various neighborhoods and evaluating their success rates, you can allocate a
-higher selection probability to the top-performing ones. This approach is
-demonstrated in an animation crafted by two of my students, Gabriel Gehrke and
-Laurenz Illner. They incorporated four distinct neighborhoods and utilized ALNS
-to dynamically select the most effective one.
+Для евклідової задачі комівояжера, на відміну від mesh, оптимізація регіонів не
+є простою. Є кілька ефективних стратегій, наприклад використання сегмента
+попереднього туру замість геометричної області. Якщо реалізувати кілька різних
+околиц і оцінювати їхню результативність, можна давати вищу ймовірність
+вибору найуспішнішим. Цей підхід показано в анімації, створеній двома моїми
+студентами, Габріелем Ґерке та Лауренцом Ілльнером. Вони реалізували чотири
+різні околиці та застосували ALNS, щоб динамічно обирати найефективнішу.
 
 |                                                                                                                                                                         ![ALNS TSP](https://github.com/d-krupke/cpsat-primer/blob/main/images/alns_tsp_compr.gif)                                                                                                                                                                         |
 | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Animation of an Adaptive Large Neighborhood Search for the classical Traveling Salesman Problem. It uses four different neighborhood strategies which are selected randomly with a probability based on their success rate in previous iterations. If you check the logs of the latest (v9.8) version of CP-SAT, it also rates the performance of its LNS-strategies and uses the best performing strategies more often (UCB1-algorithm). |
+| Анімація Adaptive Large Neighborhood Search для класичної задачі комівояжера. Використовуються чотири різні стратегії околиць, які випадково обираються з імовірністю, що залежить від їхнього успіху в попередніх ітераціях. Якщо подивитися логи останньої (v9.8) версії CP-SAT, він також оцінює ефективність своїх LNS-стратегій і частіше використовує найкращі (алгоритм UCB1). |
 
-#### Multi-Armed Bandit: Exploration vs. Exploitation
+#### Багаторукий бандит: дослідження vs. використання
 
-Having multiple strategies for each iteration of your Large Neighborhood Search
-(LNS) is beneficial, but how do you decide which one to use? While you could
-select a strategy at random, this approach is inefficient because it is unlikely
-to choose the best one. Alternatively, you could stick to the strategy that
-performed well in the past, but there may be a better option you have not tried
-yet. This brings us to the classic exploration vs. exploitation dilemma. On one
-hand, you want to exploit strategies that have proven successful, but on the
-other, you need to explore new strategies to discover potentially better ones.
+Наявність кількох стратегій для кожної ітерації LNS — це добре, але як вибрати,
+яку використовувати? Можна вибирати випадково, але це неефективно, адже
+ймовірність обрати найкращу стратегію низька. Можна завжди обирати стратегію, що
+раніше добре працювала, але тоді ви ризикуєте не знайти ще кращу. Це класична
+дилема «дослідження vs. використання» (exploration vs. exploitation). З одного
+боку, хочеться використовувати стратегії, які вже дали результат, а з іншого —
+потрібно досліджувати нові, потенційно кращі.
 
-Fortunately, this issue has been widely studied as the
-[Multi-Armed Bandit Problem](https://en.wikipedia.org/wiki/Multi-armed_bandit),
-and there are numerous effective solutions available. One popular approach is
-the Upper Confidence Bound (UCB1) algorithm. I wanted to highlight this dilemma
-to make you aware that many experts have already tackled it and developed
-sophisticated strategies.
+На щастя, ця проблема добре вивчена як
+[задача багаторукого бандита](https://en.wikipedia.org/wiki/Multi-armed_bandit),
+і існує багато ефективних рішень. Один із популярних підходів — алгоритм Upper
+Confidence Bound (UCB1). Я хотів звернути увагу на цю дилему, щоб ви знали: над
+нею вже багато працювали і розробили витончені стратегії.
 
-In practice, CP-SAT schedules its LNS strategies using a simple round-robin
-method, as reflected by their equal number of calls in the logs. Whenever a
-worker thread finishes its work, it will execute an iteration with the next
-strategy in the list, leading to a fair distribution of calls. In this case, we
-can see that the `'routing_path_lns'` strategy was the most successful,
-improving the incumbent solution 41 times out of 65 calls. There might be room
-for performance improvements by employing a more advanced strategy selection
-algorithm. However, it is important to recognize the relatively low number of
-calls to each strategy in combination with diminishing and noisy returns. If you
-only have a few iterations, a more advanced algorithm may not have enough data
-to make reliable decisions.
+На практиці CP-SAT планує свої LNS-стратегії за простим принципом round-robin,
+що відображається однаковою кількістю викликів у логах. Коли робітничий потік
+завершує роботу, він запускає ітерацію з наступною стратегією зі списку, що
+призводить до рівномірного розподілу викликів. У цьому прикладі видно, що
+стратегія `'routing_path_lns'` була найуспішнішою — вона покращувала поточне
+рішення 41 раз із 65 викликів. Можливо, є простір для покращення, застосувавши
+більш просунутий алгоритм вибору стратегій. Однак важливо враховувати відносно
+невелику кількість викликів для кожної стратегії в поєднанні зі спадною та
+шумною віддачею. Якщо ітерацій небагато, то просунутий алгоритм може не мати
+достатньо даних для надійних рішень.
 
 ```
 LNS stats                Improv/Calls  Closed  Difficulty  TimeLimit
@@ -297,16 +290,16 @@ LNS stats                Improv/Calls  Closed  Difficulty  TimeLimit
 
 > [!TIP]
 >
-> We have found the following simple procedure effective:
+> Ми вважаємо ефективною таку просту процедуру:
 >
-> - Begin with a strategy optimized for low-hanging fruit, i.e., a relatively
->   fast-converging method.
-> - If progress stalls, randomly select a new strategy from your predefined
->   pool.
+> - Починайте зі стратегії, що орієнтована на «низькосяжні плоди», тобто
+>   відносно швидко сходиться.
+> - Якщо прогрес зупинився, випадково обирайте нову стратегію з попередньо
+>   визначеного пулу.
 >
-> Predicting the optimal strategy at each stage is challenging as the best
-> strategy changes during the search, and may not be worth the effort. This
-> simple approach exploits a working strategy until it stalls, then explores a
-> new one, automatically favoring strategies that yield progress. To avoid
-> fixation on a slowly converging method, optionally enforce a switch after a
-> predetermined number of iterations.
+> Передбачити оптимальну стратегію на кожному етапі складно, адже найкраща
+> стратегія змінюється в процесі пошуку, і, можливо, це не варте зусиль. Такий
+> простий підхід використовує робочу стратегію, доки вона не зупиниться, а тоді
+> досліджує нову, автоматично віддаючи перевагу тим, що приносять прогрес. Щоб
+> уникнути «залипання» на повільно збіжній стратегії, за бажанням можна
+> примусово перемикатися після певної кількості ітерацій.

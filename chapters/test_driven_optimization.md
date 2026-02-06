@@ -1,4 +1,4 @@
-# Test-Driven Development with CP-SAT
+# Test-driven development із CP-SAT
 
 <!-- START_SKIP_FOR_README -->
 
@@ -8,162 +8,152 @@
 
 <a name="test-driven-optimization"></a>
 
-In this chapter, we demonstrate how to apply test-driven development (TDD)
-principles to the nurse rostering problem using the CP-SAT solver. Our objective
-is to build a model that is modular, thoroughly tested, extensible, and
-straightforward to maintain.
+У цьому розділі ми покажемо, як застосувати принципи test-driven development
+(TDD) до задачі складання графіків медсестер із використанням CP-SAT. Наша мета
+— побудувати модульну, ретельно протестовану, розширювану й просту в супроводі
+модель.
 
-I consider TDD a valuable approach for optimization problems, even though I do
-not follow the formal TDD cycle strictly. Writing tests early helps clarify
-requirements, refine problem specifications, and expose ambiguities in the
-initial formulation. In many real-world scenarios, the problem statement is
-incomplete or evolving. By expressing expectations as executable tests, we can
-communicate requirements more effectively and adjust them as new insights
-emerge.
+Я вважаю TDD корисним підходом для оптимізаційних задач, хоча й не дотримуюся
+формального циклу TDD буквально. Раннє написання тестів допомагає уточнювати
+вимоги, покращувати постановку задачі та виявляти неоднозначності у первинному
+формулюванні. У багатьох реальних сценаріях постановка неповна або змінюється.
+Виражаючи очікування у вигляді виконуваних тестів, ми ефективніше комунікуємо
+вимоги й коригуємо їх, коли з’являються нові інсайти.
 
-The nurse rostering problem is particularly suitable for illustrating this
-approach. It represents a class of scheduling problems where constraints and
-objectives change frequently in response to stakeholder feedback. In such
-settings, modular design and systematic testing substantially reduce the cost of
-adapting and validating the model as requirements evolve.
+Задача формування графіка медсестер особливо добре підходить для ілюстрації
+цього підходу. Вона належить до класу задач планування, де обмеження й цілі
+часто змінюються у відповідь на фідбек стейкхолдерів. У таких умовах модульний
+дизайн і систематичне тестування суттєво зменшують вартість адаптації й
+валідації моделі при зміні вимог.
 
-For small or well-defined problems, a simple implementation with a few manual
-checks may suffice. However, as complexity grows and outcomes become harder to
-verify informally, a structured, test-driven approach proves highly beneficial.
-It allows the problem to be decomposed into smaller, testable components that
-can be incrementally implemented, validated, and refined.
+Для невеликих або чітко визначених задач може бути достатньо простої реалізації
+з кількома ручними перевірками. Але зі зростанням складності та ускладненням
+неформальної перевірки результатів структурований TDD-підхід стає дуже корисним.
+Він дозволяє розбити задачу на менші тестовані компоненти, які можна
+інкрементально реалізовувати, перевіряти та вдосконалювати.
 
-This chapter does not advocate for perfection at the outset. In practice,
-building a working prototype often comes first, and design improvements are
-introduced once they offer clear benefits. The key is to maintain a balance
-between rapid prototyping and introducing structure and tests at the right stage
-of development.
+Цей розділ не закликає до ідеальності з першої спроби. На практиці спочатку
+зазвичай з’являється робочий прототип, а покращення дизайну додаються тоді, коли
+це дає очевидну користь. Ключове — підтримувати баланс між швидким
+прототипуванням та введенням структури і тестів на відповідному етапі
+розробки.
 
-We will incrementally construct a nurse rostering model using CP-SAT, guided by
-test-driven principles. The workflow includes defining formal **data schemas**
-for inputs and outputs, implementing **solver-independent validation functions**
-that encode constraints and objectives, and creating **modular components** for
-decision variables, constraints, and soft objectives. We conclude by combining
-these modules into a complete solver and verifying its solutions on test
-instances. However, before doing so, we will briefly review a classical approach
-and what can go wrong when the problem complexity increases.
+Ми інкрементально побудуємо модель графіків медсестер на CP-SAT, керуючись
+TDD-принципами. Робочий процес включає формалізацію **схем даних** для входів і
+виходів, реалізацію **solver-незалежних функцій валідації**, що кодують
+обмеження й цілі, а також створення **модульних компонентів** для змінних
+рішення, обмежень і м’яких цілей. Наприкінці ми об’єднаємо ці модулі в
+повноцінний розв’язувач і перевіримо його на тестових екземплярах. Перед цим
+ми коротко розглянемо класичний підхід і те, що може піти не так зі зростанням
+складності задачі.
 
 > :warning:
 >
-> This chapter is not intended as a strict guideline but as one possible
-> approach. I do not follow every step outlined here in every project. Instead,
-> I aim to share principles that I have found useful in practice. Operations
-> researchers may gain insights into software engineering practices, while
-> software engineers may learn how to apply their skills to optimization models.
-> Experienced optimizers may find value in comparing their own approach with the
-> one presented here.
+> Цей розділ не є жорстким керівництвом, а лише одним із можливих підходів. Я не
+> слідую кожному описаному тут кроку в кожному проєкті. Натомість я ділюся
+> принципами, які виявилися корисними на практиці. Дослідники операцій можуть
+> почерпнути ідеї зі світу інженерії ПЗ, а програмні інженери — навчитися
+> застосовувати свої навички до оптимізаційних моделей. Досвідчені оптимізатори
+> можуть порівняти свій підхід із представленим тут.
 
 ---
 
 > :video:
 >
-> There appears to be limited material addressing software engineering practices
-> specifically in operations research. However, the talk
+> Схоже, що матеріалів про практики інженерії ПЗ саме в операційних дослідженнях
+> небагато. Втім, доповідь
 > [_Optimization Modeling: The Art of Not Making It an Art_](https://www.gurobi.com/events/optimization-modeling-the-art-of-not-making-it-an-art/)
-> by Ronald van der Velden (Gurobi) is an excellent resource that partially
-> overlaps with the themes discussed in this chapter. (Note: Registration with a
-> company name and email address is required to access the content.)
+> Рональда ван дер Велдена (Gurobi) є чудовим ресурсом, який частково
+> перекривається з темами цього розділу. (Примітка: для доступу потрібна
+> реєстрація з назвою компанії та email.)
 
-You can find the complete code for this chapter
-[here](https://github.com/d-krupke/cpsat-primer/tree/main/examples/tdd).
+Повний код до цього розділу можна знайти
+[тут](https://github.com/d-krupke/cpsat-primer/tree/main/examples/tdd).
 
-## Classical Steps for Textbook Problems
+## Класичні кроки для «підручникових» задач
 
-<!-- From classroom to complex reality -->
+<!-- Від аудиторії до складної реальності -->
 
-Before introducing the more advanced TDD-inspired workflow, let us briefly
-review a classical approach to implementing optimization models, as commonly
-encountered in textbook exercises or university homework. This traditional
-approach can also be effective for many real-world problems, provided their
-complexity remains moderate. However, real-world problems often introduce
-additional challenges that are absent from well-structured academic exercises.
-As the problem complexity increases, this classical approach becomes difficult
-to manage. We will therefore explore how software engineering practices can help
-address these challenges.
+Перш ніж перейти до більш просунутого TDD-підходу, коротко згадаємо класичний
+спосіб побудови оптимізаційних моделей, типовий для підручників і домашніх
+завдань. Такий підхід може бути ефективним і для багатьох реальних задач, якщо
+їхня складність помірна. Однак реальні задачі часто додають проблеми, яких немає
+в добре структурованих академічних вправах. Із ростом складності класичний
+підхід стає важким у супроводі. Тому ми розглянемо, як практики інженерії ПЗ
+допомагають із цими викликами.
 
-Let us consider a concrete example: the **Facility Location Problem (FLP)**. To
-set the right context, we will present it as if it were stated directly on a
-homework sheet:
+Розгляньмо конкретний приклад: **задачу розміщення об’єктів (FLP)**. Для
+контексту подамо її так, ніби вона сформульована в домашньому завданні:
 
-<!-- Textbook Exercise FLP -->
+<!-- Підручникова вправа FLP -->
 
-> A delivery company is planning to open new warehouses to serve its customers.
-> There is a set $F$ of potential warehouse locations, and a set $C$ of
-> customers who need to receive their orders.
+> Компанія з доставки планує відкрити нові склади, щоб обслуговувати клієнтів.
+> Є множина $F$ потенційних локацій складів та множина $C$ клієнтів, які мають
+> отримати замовлення.
 >
-> Opening a warehouse at location $i \in F$ comes with a fixed cost $f_i$.
-> Shipping goods from warehouse $i \in F$ to customer $j \in C$ costs $c_{i,j}$.
+> Відкриття складу в локації $i \in F$ має фіксовану вартість $f_i$. Доставка
+> товарів зі складу $i \in F$ до клієнта $j \in C$ коштує $c_{i,j}$.
 >
-> Every customer $j \in C$ must be served by exactly one warehouse, and a
-> warehouse can only ship goods if it is actually opened.
+> Кожен клієнт $j \in C$ має обслуговуватися рівно одним складом, і склад може
+> відправляти товари лише якщо він відкритий.
 >
-> The company needs to decide which warehouse locations $i \in F$ to open and
-> which warehouse will serve each customer $j \in C$ so that the total
-> cost—consisting of the opening costs $f_i$ and the shipping costs $c_{i,j}$—is
-> as small as possible.
+> Компанія має вирішити, які локації складів $i \in F$ відкривати, і який склад
+> обслуговуватиме кожного клієнта $j \in C$, щоб загальна вартість — відкриття
+> $f_i$ і доставки $c_{i,j}$ — була мінімальною.
 
-<!-- Approach to convert it into a mathematical model -->
+<!-- Підхід до перетворення на математичну модель -->
 
-Now, a good idea would be to highlight parameters, decisions, constraints, and
-objectives in the text (using different colors), and then write down the
-mathematical formulation of the problem in the following steps:
+Далі має сенс виділити параметри, рішення, обмеження та цілі в тексті (наприклад,
+різними кольорами) і записати математичну постановку у таких кроках:
 
-1. **Parameters:** Define the problem parameters, specifying the input data for
-   the model.
-2. **Decision Variables:** Define the variables representing the decisions or
-   assignments to be made.
-3. **Constraints and Objectives:** Specify the constraints that must be
-   satisfied and the objectives to be optimized.
+1. **Параметри:** визначити параметри задачі — вхідні дані моделі.
+2. **Змінні рішення:** визначити змінні, що представляють рішення або призначення.
+3. **Обмеження та цілі:** задати обмеження, яких потрібно дотриматися, і цілі
+   оптимізації.
 
-<!-- The mathematical model -->
+<!-- Математична модель -->
 
-For this problem, this would look like this:
+Для цієї задачі це виглядатиме так:
 
-> **Parameters:**
+> **Параметри:**
 >
-> - $F$: Set of potential facility locations.
-> - $C$: Set of customers.
-> - $f_i \in \mathbb{N}_0$ for $i \in F$: Fixed cost of opening facility $i$.
-> - $c_{i,j} \in \mathbb{N}_0$ for $i \in F, j \in C$: Cost of serving customer
->   $j$ from facility $i$.
+> - $F$: множина потенційних локацій об’єктів.
+> - $C$: множина клієнтів.
+> - $f_i \in \mathbb{N}_0$ для $i \in F$: фіксована вартість відкриття об’єкта $i$.
+> - $c_{i,j} \in \mathbb{N}_0$ для $i \in F, j \in C$: вартість обслуговування
+>   клієнта $j$ з об’єкта $i$.
 >
-> **Decision Variables:**
+> **Змінні рішення:**
 >
-> - $y_i \in \mathbb{B} \ \forall i \in F$: $y_i = 1$ if facility $i$ is opened,
->   and 0 otherwise.
-> - $x_{i,j} \in \mathbb{B} \ \forall i \in F, j \in C$: $x_{i,j} = 1$ if
->   customer $j$ is served by facility $i$, and 0 otherwise.
+> - $y_i \in \mathbb{B} \ \forall i \in F$: $y_i = 1$, якщо об’єкт $i$ відкрито,
+>   і 0 інакше.
+> - $x_{i,j} \in \mathbb{B} \ \forall i \in F, j \in C$: $x_{i,j} = 1$, якщо
+>   клієнта $j$ обслуговує об’єкт $i$, і 0 інакше.
 >
-> **Objective Function:**
+> **Цільова функція:**
 >
-> Minimize the total cost of opening facilities and serving customers:
+> Мінімізувати сумарну вартість відкриття об’єктів та обслуговування клієнтів:
 > $\min \sum_{i \in F} f_i \cdot y_i + \sum_{i \in F} \sum_{j \in C} c_{i,j} \cdot x_{i,j}.$
 >
-> **Constraints:**
+> **Обмеження:**
 >
-> 1. **Customer Assignment:** Each customer must be served by exactly one open
->    facility: $\sum_{i \in F} x_{i,j} = 1 \quad \forall j \in C.$
-> 2. **Facility Activation:** A customer can only be served by a facility if
->    that facility is open: $x_{i,j} \leq y_i \quad \forall i \in F, j \in C.$
+> 1. **Призначення клієнтів:** кожен клієнт має обслуговуватися рівно одним
+>    відкритим об’єктом: $\sum_{i \in F} x_{i,j} = 1 \quad \forall j \in C.$
+> 2. **Активація об’єкта:** клієнта можна обслуговувати об’єктом лише якщо він
+>    відкритий: $x_{i,j} \leq y_i \quad \forall i \in F, j \in C.$
 
-<!-- The mathematical model is concise and precise -->
+<!-- Математична модель є лаконічною та точною -->
 
-The mathematical notation is so compact that one can easily work through it on a
-whiteboard or a sheet of paper, which makes it ideal for group discussions. Such
-concise, precise notation also makes it easier to identify inconsistencies or
-errors directly at least for smaller problems.
+Математична нотація настільки компактна, що її легко опрацьовувати на дошці чи
+аркуші, і це ідеально підходить для групових обговорень. Така лаконічна й
+точна форма також полегшує виявлення неузгодженостей або помилок, принаймні для
+невеликих задач.
 
-<!-- implementation -->
+<!-- реалізація -->
 
-Finally, you implement it either with your favorite optimization framework or
-modelling language. In case of an exercise, it is also very likely that your
-instructor has already provided some test instances, which you can use to verify
-your implementation.
+Насамкінець ви реалізуєте модель у вибраному вами фреймворку оптимізації або
+мові моделювання. У випадку навчальної вправи дуже ймовірно, що викладач уже
+надав тестові інстанси, які можна використати для перевірки реалізації.
 
 ```python
 from ortools.sat.python import cp_model
@@ -199,18 +189,18 @@ status = solver.solve(model)
 # ...
 ```
 
-<!-- classes instead of functions -->
+<!-- класи замість функцій -->
 
-Usually you would implement this in a function; however, I often need to make
-models incremental, which is not compatible with stateless functions. Moreover,
-using classes in Python is almost as straightforward as using pure functions.
-Being able to manipulate the model after construction, like fixing certain
-variables, also makes it easier to test and debug.
+Зазвичай це реалізують у вигляді функції; однак мені часто потрібно робити
+моделі інкрементальними, що не сумісно зі статeless-функціями. До того ж
+використання класів у Python майже так само просте, як і чистих функцій.
+Можливість змінювати модель після побудови, наприклад фіксувати певні змінні,
+також полегшує тестування та налагодження.
 
-<!-- Example of wrapping it into a class. -->
+<!-- Приклад обгортання в клас. -->
 
-I would encapsulate this code in a class to enhance reusability, resulting in an
-implementation similar to the following:
+Я б інкапсулював цей код у клас для підвищення повторного використання, і це
+виглядало б приблизно так:
 
 ```python
 class FacilityLocationModel:
@@ -228,245 +218,235 @@ class FacilityLocationModel:
         # ...
 ```
 
-<!-- you could also just directly model it in code -->
+<!-- можна також прямо змоделювати в коді -->
 
-As you can see, the implementation is actually nearly identical to the
-mathematical formulation and many experts may opt to directly implement it,
-especially when using modeling languages like Pyomo, GAMS, or AMPL.
+Як бачите, реалізація майже ідентична математичній постановці, і багато
+експертів можуть обрати пряме кодування, особливо при використанні мов
+моделювання на кшталт Pyomo, GAMS чи AMPL.
 
-<!-- also works for many practical cases as many practical problems are basic -->
+<!-- працює і для багатьох практичних випадків, бо багато задач базові -->
 
-In practice, many cases are still simple enough to follow this workflow.
-Although the data may not be readily available or may require extensive
-preprocessing, and the problem statement may not yet be fully defined, it is
-often possible to sketch the mathematical formulation and then implement it in a
-single step. This is particularly feasible because many problems are essentially
-well-known combinatorial optimization problems, merely obscured by
-domain-specific terminology. With experience, you can often identify the
-underlying structure of the problem quickly and adapt them to custom constraints
-with ease.
+На практиці багато випадків усе ще достатньо прості, щоб слідувати цьому
+процесу. Хоча дані можуть бути недоступні одразу або вимагати суттєвої
+передобробки, а постановка задачі ще не повністю визначена, часто можна
+намалювати математичну постановку й одразу реалізувати її. Це особливо
+можливо, бо багато задач по суті — добре відомі комбінаторні оптимізаційні
+задачі, лише «замасковані» доменною термінологією. З досвідом можна швидко
+розпізнати структуру проблеми й легко адаптувати її під нестандартні
+обмеження.
 
-<!-- perfect for simple problems -->
+<!-- ідеально для простих задач -->
 
-As long as the model remains this simple, you may only need to add a few basic
-tests to verify that the solutions behave as expected; there is no need for
-modularization or extensive validation functions. Such a model is easy to
-understand and can be implemented within minutes. It can be presented on a
-single slide, and any additional structure would likely introduce unnecessary
-complexity rather than improving clarity.
+Поки модель лишається такою простою, достатньо кількох базових тестів, щоб
+переконатися, що розв’язки поводяться очікувано; немає потреби в модульності чи
+розлогих функціях валідації. Таку модель легко зрозуміти і реалізувати за
+кілька хвилин. Її можна показати на одному слайді, а додаткова структура радше
+внесе зайву складність, ніж підвищить ясність.
 
-<!-- from simplifying abstraction to incomprehensible, similar to tech debt -->
+<!-- від спрощувальної абстракції до незрозумілості, як техборг -->
 
-Mathematical abstraction can simplify a problem; however, it can also become so
-abstract that the original problem is no longer recognizable. While the
-threshold varies depending on one's background, there comes a point at which
-monolithic mathematical formulations become incomprehensible, and even minor
-modifications require significant effort. It will also be extremely difficult to
-debug such a model if you cannot look at components in isolation. This situation
-parallels a software architecture that, while initially straightforward, has
-accumulated complexity through incremental growth, to the point where any
-modification is fraught with risk and development velocity suffers.
+Математична абстракція може спрощувати задачу, але також може стати настільки
+абстрактною, що початкова проблема перестає бути впізнаваною. Поріг залежить
+від бекграунду, але настає момент, коли монолітні формулювання стають
+незрозумілими, а навіть незначні зміни вимагають значних зусиль. Якщо не можна
+розглядати компоненти ізольовано, налагодження такої моделі стає надзвичайно
+складним. Це схоже на архітектуру ПЗ, яка починалася просто, але через
+інкрементальне зростання накопичила складність до рівня, де будь-яка зміна
+ризикована, а швидкість розробки падає.
 
-<!-- Examples of things that can go wrong -->
+<!-- Приклади того, що може піти не так -->
 
-Here are a few things that can go wrong when the model grows too complex:
+Ось кілька речей, які можуть піти не так, коли модель стає надто складною:
 
-- You are the only one who understands the model, making it unmaintainable by
-  others.
-- Even you no longer fully understand the model, causing simple changes to take
-  forever or to break things—often only discovered when it fails in production.
-- The model's complexity makes it impossible to verify individual components in
-  isolation, making root-cause analysis extremely difficult.
-- Testing becomes impractical, leaving you with constant doubts about whether
-  the model is correct.
-- A subtle bug silently excludes high-quality solutions, leading to significant
-  opportunity loss without any explicit error.
-- Bad or inconsistent data goes undetected due to missing validation checks,
-  producing incorrect results and eroding trust in your code.
-- Communication with stakeholders breaks down because you lack a clear, shared
-  language to formally specify requirements.
-- The model becomes so convoluted that implementing all requirements—or even
-  building a first useful prototype—feels impossible.
-- No clear input/output data interfaces, making collaboration and integration
-  difficult.
+- Ви єдина людина, яка розуміє модель, тому іншим її неможливо підтримувати.
+- Навіть ви самі вже не повністю її розумієте, тож прості зміни займають
+  вічність або ламають усе — і це часто виявляється лише в продакшні.
+- Складність моделі не дозволяє перевіряти компоненти ізольовано, що робить
+  аналіз першопричин дуже складним.
+- Тестування стає непрактичним, і ви постійно сумніваєтеся в коректності моделі.
+- Тонкий баг тихо відсікає якісні розв’язки, що призводить до значних втрат
+  можливостей без явної помилки.
+- Погані або неконсистентні дані не виявляються через відсутність валідації,
+  породжуючи неправильні результати й підриваючи довіру до коду.
+- Комунікація зі стейкхолдерами ламається, бо немає спільної мови для формального
+  опису вимог.
+- Модель стає настільки заплутаною, що реалізація всіх вимог — або навіть
+  створення першого корисного прототипу — здається неможливою.
+- Немає чітких інтерфейсів входу/виходу даних, що ускладнює співпрацю та
+  інтеграцію.
 - ...
 
-<!-- These are failures on the "easy" parts -->
+<!-- Це збої на «простих» частинах -->
 
-All of these issues may fail the project, before even reaching the real
-challenges of optimizing scalability and ensuring real-world accuracy.
+Усі ці проблеми можуть завалити проєкт ще до того, як ви дійдете до справжніх
+викликів — оптимізації масштабованості та забезпечення точності в реальному
+світі.
 
-<!-- Overview -->
+<!-- Огляд -->
 
-In the remainder of this chapter, we will explore how to avoid this situation by
-applying software engineering practices to optimization models on the example of
-the nurse rostering problem. We will do the following steps:
+Далі в цьому розділі ми розглянемо, як уникнути такої ситуації, застосувавши
+практики інженерії ПЗ до оптимізаційних моделей на прикладі задачі графіка
+медсестер. Ми виконаємо такі кроки:
 
-1. **Data Schema:** Define structured schemas for the problem instance and
-   solution, covering parameters and parts of the decision space.
-2. **Validation Functions:** Implement functions to verify feasibility and
-   compute objective values, serving as the formal specification.
-3. **Decision Variables:** Introduce decision variables encapsulated in
-   containers to simplify constraint and objective construction.
-4. **Modular Constraints and Objectives:** Build constraints and soft objectives
-   as independent, testable modules.
-5. **Solver Integration:** Combine these components into a complete CP-SAT model
-   and test it in completion to check that the components work together as
-   expected.
+1. **Схема даних:** визначити структуровані схеми для екземпляра задачі та
+   розв’язку, охопивши параметри й частини простору рішень.
+2. **Функції валідації:** реалізувати функції для перевірки здійсненності та
+   обчислення значень цілі як формальну специфікацію.
+3. **Змінні рішення:** ввести змінні рішення, інкапсульовані в контейнери, щоб
+   спростити побудову обмежень і цілей.
+4. **Модульні обмеження та цілі:** будувати обмеження й м’які цілі як незалежні,
+   тестовані модулі.
+5. **Інтеграція розв’язувача:** поєднати ці компоненти в повну CP-SAT модель і
+   протестувати її в цілому, щоб перевірити спільну роботу компонентів.
 
-<!-- not all-or-nothing -->
+<!-- не все або нічого -->
 
 > [!TIP]
 >
-> You can transition fluently between the two approaches; it is not an
-> all-or-nothing choice. It is entirely feasible to adopt only parts of the
-> approach described here and apply them to selected aspects of the problem.
+> Можна плавно переходити між двома підходами; це не вибір «усе або нічого».
+> Цілком реально взяти лише частину описаного підходу й застосувати її до
+> окремих аспектів задачі.
 
-## The Nurse Rostering Problem
+## Задача складання графіка медсестер
 
-Before implementing a solution, we first outline the nurse rostering problem and
-its initial requirements. The
+Перш ніж реалізовувати розв’язок, окреслимо задачу формування графіка медсестер
+та її початкові вимоги. Задача
 [nurse rostering problem](https://en.wikipedia.org/wiki/Nurse_scheduling_problem)
-involves assigning a set of nurses to shifts over a defined planning horizon.
-Each shift has a specified demand indicating the minimum number of nurses
-required. The goal is to produce an assignment that satisfies all operational
-constraints while optimizing soft preferences and priorities. In this example,
-the requirements are as follows:
+полягає у призначенні набору медсестер на зміни в межах визначеного горизонту
+планування. Кожна зміна має заданий попит, що вказує мінімальну кількість
+медсестер, необхідних для покриття. Мета — побудувати призначення, яке
+задовольняє всі операційні обмеження, водночас оптимізуючи м’які вподобання
+та пріоритети. У цьому прикладі вимоги такі:
 
-**Constraints (Hard Requirements):**
+**Обмеження (жорсткі вимоги):**
 
-1. **Unavailability Constraint:** A nurse must not be assigned to any shift for
-   which they are unavailable or explicitly blocked.
-2. **Shift Coverage Requirement:** Each shift must be staffed with a sufficient
-   number of nurses to meet its demand.
-3. **Rest Period Constraint:** A nurse must have an adequate rest period between
-   consecutive shifts. If the interval between the end of one shift and the
-   start of the next is too short, the nurse cannot be assigned to both.
+1. **Обмеження недоступності:** медсестру не можна призначати на зміну, якщо
+   вона недоступна або явно заблокована.
+2. **Вимога покриття зміни:** кожна зміна має бути укомплектована достатньою
+   кількістю медсестер, щоб задовольнити попит.
+3. **Обмеження періоду відпочинку:** медсестра має мати достатній відпочинок між
+   послідовними змінами. Якщо інтервал між завершенням однієї зміни і початком
+   наступної замалий, медсестру не можна призначати на обидві.
 
-**Objectives (Soft Goals):**
+**Цілі (м’які вимоги):**
 
-1. **Preference Satisfaction:** Nurses may indicate preferences for particular
-   shifts. The model should honor these preferences wherever possible.
-2. **Staffing Preference:** Internal staff members should be preferred over
-   external or contract nurses when all other constraints are satisfied.
+1. **Задоволення вподобань:** медсестри можуть вказувати уподобання щодо певних
+   змін. Модель має враховувати ці вподобання, коли це можливо.
+2. **Перевага штатного персоналу:** штатних працівників слід віддавати перевагу
+   над зовнішніми чи контрактними медсестрами, якщо всі інші обмеження виконані.
 
-To keep the initial formulation manageable, we start with this limited set of
-constraints and objectives. The implementation is designed to be **modular and
-extensible**, allowing additional requirements—such as fairness, seniority,
-on-call shifts, and others—to be introduced later with minimal refactoring.
-While the initial requirements may still be easily implemented in a monolithic
-model, it should already be complex enough to illustrate the benefits of a more
-structured, test-driven approach.
+Щоб первинна постановка була керованою, ми починаємо з цього обмеженого набору
+обмежень і цілей. Реалізація спроєктована як **модульна та розширювана**,
+щоб додаткові вимоги — такі як справедливість, стаж, чергування «on-call» та
+інші — можна було додати пізніше з мінімальним рефакторингом. Хоч початкові
+вимоги ще можна легко реалізувати монолітною моделлю, вона вже достатньо
+складна, щоб показати переваги більш структурованого, тест-орієнтованого
+підходу.
 
 > [!WARNING]
 >
-> This chapter focuses on correctness, not performance. First, ensure the
-> solution is correct; only then focus on making it efficient. Correspondingly,
-> the implementation here may not be the most efficient.
+> У цьому розділі головний фокус — коректність, а не продуктивність. Спершу
+> переконайтеся, що розв’язок правильний; лише потім зосереджуйтеся на
+> ефективності. Відповідно, реалізація тут може бути не найефективнішою.
 
-## Instance and Solution Schema
+## Схема екземпляра та розв’язку
 
-<!-- Textbook examples assume perfect data; real-world data rarely is -->
+<!-- Підручникові приклади припускають ідеальні дані; у реальному світі це рідкість -->
 
-In academic or textbook settings, one often starts with clean, well-structured
-data that is perfectly tailored to the problem at hand. In real-world projects,
-however, this is rarely the case. You are often lucky to receive any data at
-all—let alone data that is complete, consistent, and ready for use.
+У академічних або підручникових прикладах часто починають із чистих,
+добре структурованих даних, які ідеально відповідають задачі. У реальних
+проєктах це трапляється рідко. Часто вже добре, якщо дані взагалі є — не кажучи
+про те, що вони повні, узгоджені й готові до використання.
 
-<!-- Data might not even exist yet, or only on paper, or be incomplete -->
+<!-- Дані можуть ще не існувати або бути лише на папері, чи бути неповними -->
 
-Data may not yet exist in digital form, or it may still be collected
-manually—perhaps even on paper. Even if a digital system is under development,
-it may not yet be deployed, and any available data might be outdated or
-incomplete. Privacy concerns or legal constraints may further restrict access to
-critical information, especially when working with personnel data, such as nurse
-schedules.
+Дані можуть ще не існувати в цифровому вигляді або все ще збиратися вручну —
+можливо, навіть на папері. Навіть якщо цифрову систему вже розробляють, її ще
+може не бути в продакшні, а наявні дані — застарілі або неповні. Питання
+приватності чи юридичні обмеження можуть додатково обмежувати доступ до
+критично важливої інформації, особливо коли йдеться про персональні дані, такі
+як графіки медсестер.
 
 > [!TIP]
 >
-> Obtain a data sample as early as possible, even if it is only an "educated
-> guess" or a small subset of the actual dataset. Such samples simplify the
-> extraction of test cases and support iterative discussions with stakeholders,
-> who often overlook trivial but important details. For instance, the model
-> developed here does not enforce a single shift per day, focusing instead on
-> rest periods and total working hours over a given period (e.g., a week).
-> Stakeholders are likely to recognize such omissions as soon as they review a
-> solution for a realistic instance. Addressing these issues typically requires
-> an agile, iterative process, which we omit here for simplicity but which can
-> be applied throughout all phases of this example.
+> Отримайте зразок даних якомога раніше, навіть якщо це лише «обґрунтоване
+> припущення» або невелика підмножина реального набору. Такі зразки полегшують
+> виділення тестових кейсів і підтримують ітеративні обговорення зі
+> стейкхолдерами, які часто не помічають дрібних, але важливих деталей.
+> Наприклад, модель, розроблена тут, не обмежує одну зміну на день і натомість
+> фокусується на періодах відпочинку та загальній кількості годин за період
+> (наприклад, тиждень). Стейкхолдери, ймовірно, помітять такі прогалини, щойно
+> переглянуть розв’язок для реалістичного інстансу. Виправлення таких проблем
+> зазвичай вимагає гнучкого, ітеративного процесу — ми його тут опускаємо для
+> простоти, але його можна застосовувати на всіх етапах цього прикладу.
 
-<!-- Even available data is often inconsistent or unreliable -->
+<!-- Навіть доступні дані часто неузгоджені або ненадійні -->
 
-And when the data does arrive, it often brings problems of its own. It may be
-incomplete, contain contradictory entries, or be structured inconsistently.
-Excel remains a de facto standard in many organizations, which introduces risks
-such as data type mismatches, inconsistent formatting, or broken formulas. Even
-worse are schemaless databases like Firestore, which offer no guarantees about
-the structure or consistency of stored documents. It is not uncommon to find
-fields that sometimes contain integers, sometimes strings, and occasionally just
-vanish altogether—along with keys that are misspelled, duplicated, or silently
-dropped.
+І коли дані все ж надходять, вони часто приносять власні проблеми. Вони можуть
+бути неповними, містити суперечливі записи або мати непослідовну структуру.
+Excel лишається де-факто стандартом у багатьох організаціях, що несе ризики на
+кшталт невідповідності типів, непослідовного форматування або зламаних формул.
+Ще гірші — schemaless бази на кшталт Firestore, які не дають жодних гарантій
+щодо структури чи узгодженості документів. Нерідко трапляються поля, які іноді
+містять цілі числа, іноді рядки, а часом просто зникають — разом із ключами,
+які можуть бути помилково написані, продубльовані або тихо втрачені.
 
-<!-- Bad input leads to failure in your code, not just theirs -->
+<!-- Погані входи ламають ваш код, а не лише їхній -->
 
-In such environments, any error in the data will propagate directly to your
-application. Your logic fails not because your model is incorrect, but because
-upstream inputs violate assumptions you did not realize you were making.
+У такому середовищі будь-яка помилка в даних безпосередньо потрапляє у вашу
+застосунок. Логіка ламається не тому, що модель неправильна, а тому, що
+вхідні дані порушують припущення, про які ви навіть не здогадувалися.
 
-<!-- Introduce schema validation and Pydantic as solution -->
+<!-- Валідація схем і Pydantic як рішення -->
 
-After enough frustrating encounters with malformed data, I became a strong
-proponent of defining formal data schemas as a first step in any serious
-optimization project. For Python, I have found
-[Pydantic](https://docs.pydantic.dev/latest/) to be an excellent tool: it allows
-you to define input and output schemas declaratively, enforces type checks and
-invariants automatically, and raises clear validation errors when assumptions
-are violated. With these schemas in place, problems can be caught early and
-diagnosed easily—long before they produce incorrect results or puzzling
-failures.
+Після достатньої кількості розчарувань через погано сформовані дані я став
+палким прихильником формальних схем даних як першого кроку в будь-якому
+серйозному оптимізаційному проєкті. У Python чудовим інструментом для цього є
+[Pydantic](https://docs.pydantic.dev/latest/): він дозволяє декларативно
+визначати вхідні та вихідні схеми, автоматично перевіряє типи й інваріанти та
+викидає зрозумілі помилки валідації, коли припущення порушуються. З такими
+схемами проблеми можна ловити рано й легко діагностувати — задовго до того, як
+вони спричинять неправильні результати або загадкові збої.
 
-<!-- Schemas are not just for machines; they clarify team communication -->
+<!-- Схеми не лише для машин; вони прояснюють комунікацію команди -->
 
-Defining a schema is also crucial for ensuring that all collaborators (including
-clients) are aligned in their understanding of the problem. You may all be using
-the same terms—like "shift", "start time", or "duration"—but interpret them
-differently. Is that duration in seconds, minutes, or hours? Is the "shift ID"
-an index or a foreign key to a separate table? Without a precise schema, it is
-easy to make dangerous assumptions.
+Визначення схеми також критично важливе, щоб усі учасники (включно з клієнтами)
+однаково розуміли задачу. Ви можете використовувати однакові терміни — «зміна»,
+«час початку», «тривалість» — але трактувати їх по-різному. Тривалість у
+секундах, хвилинах чи годинах? «ID зміни» — це індекс чи зовнішній ключ у
+окремій таблиці? Без точної схеми легко зробити небезпечні припущення.
 
-<!-- Example from history: Mars Climate Orbiter -->
+<!-- Історичний приклад: Mars Climate Orbiter -->
 
-A vivid historical example is the loss of the
+Яскравий історичний приклад — втрата
 [Mars Climate Orbiter](https://en.wikipedia.org/wiki/Mars_Climate_Orbiter)
-in 1999. The spacecraft was destroyed because one team used imperial units while
-another expected metric, and there was no enforced contract between the systems.
-The entire $327 million mission failed because of a silent mismatch in a shared
-data interface. While most optimization projects are not launching spacecraft,
-the takeaway is just as relevant: never assume shared understanding—make your
-assumptions explicit.
+у 1999 році. Космічний апарат було знищено, бо одна команда використовувала
+імперські одиниці, а інша очікувала метричні, і між системами не було
+забезпеченого контракту. Вся місія вартістю $327 млн провалилася через
+непомітну невідповідність у спільному інтерфейсі даних. Хоч більшість
+оптимізаційних проєктів не запускають космічні апарати, висновок такий самий:
+ніколи не припускайте спільного розуміння — робіть припущення явними.
 
-<!-- Start with schemas before writing any logic -->
+<!-- Почніть зі схем до написання логіки -->
 
-That is why I prefer to define and document both the input and output schemas at
-the beginning of a project, even before writing the first line of algorithmic
-code. It helps formalize the problem, clarifies the roles of different fields,
-and allows everyone to work toward the same structure. Even if the schema
-evolves over time (and it almost certainly will), the evolution is transparent,
-versioned, and easy to manage.
+Саме тому я волію визначати й документувати як вхідні, так і вихідні схеми на
+початку проєкту — ще до першого рядка алгоритмічного коду. Це допомагає
+формалізувати задачу, прояснює ролі різних полів і дозволяє всім рухатися до
+однієї структури. Навіть якщо схема еволюціонує з часом (а це майже напевно
+станеться), ця еволюція прозора, версіонована й легко керована.
 
-<!-- Summary: schemas are foundational -->
+<!-- Підсумок: схеми — основа -->
 
-Below is the data schema we will be using for the nurse rostering problem. We
-made two non-trivial additions: `preferred_shift_weight` and `staff_weight`.
-These will unlikely be part of the initial problem formulation, but as we have
-two objectives, this would allow us to easily weight the two objectives against
-each other. It could be that later on, we decide that the optimization should be
-lexicographic, making these weights irrelevant, but it is a good starting point
-to have at least some way of balancing the two objectives. If there are more
-parameters to specify the problem, e.g., switching constraints on and off, I
-would create a separate `NurseRosteringParameters` class that contains these
-parameters, instead of integrating them into the instance schema, but let us
-skip that for simplicity.
+Нижче наведено схему даних, яку ми використаємо для задачі графіків медсестер.
+Ми зробили два нетривіальні доповнення: `preferred_shift_weight` і
+`staff_weight`. Навряд чи вони будуть частиною первинної постановки, але оскільки
+в нас є дві цілі, це дозволить легко зважувати їх відносно одна одної. Можливо,
+згодом ми вирішимо, що оптимізація має бути лексикографічною, і тоді ці ваги
+стануть неважливими, але як стартовий крок корисно мати хоча б якийсь спосіб
+балансувати дві цілі. Якщо потрібно додати більше параметрів (наприклад, вмикати
+й вимикати обмеження), я б створив окремий клас
+`NurseRosteringParameters` замість інтеграції таких параметрів у схему
+екземпляра, але для простоти це опустимо.
 
 ```python
 """
@@ -582,18 +562,16 @@ class NurseRosteringInstance(BaseModel):
         return self
 ```
 
-<!-- Solution schema and pydantic vs native lists -->
+<!-- Схема розв’язку та Pydantic vs нативні списки -->
 
-For the solution, each shift is mapped to a list of assigned nurses. In
-addition, the objective value and the timestamp at which the solution was
-computed are recorded. As a potential improvement, the `list[NurseUid]`
-structure could be replaced with a dedicated Pydantic model. This approach would
-allow for the inclusion of additional shift-specific data in the future, which
-cannot be directly attached to a plain `list`. Such a design would be
-particularly advantageous when the solution must be presented in a user
-interface. Nevertheless, as long as the base object is defined as a Pydantic
-model, it is generally possible to maintain backward compatibility when
-extending the schema, even when certain native Python elements are involved.
+У розв’язку кожна зміна відображається у список призначених медсестер. Також
+зберігаються значення цільової функції та час, коли розв’язок обчислено. Як
+покращення структуру `list[NurseUid]` можна замінити окремою Pydantic-моделлю.
+Це дозволить у майбутньому додавати додаткові дані для конкретної зміни, які
+неможливо прямо прикріпити до звичайного `list`. Такий дизайн особливо корисний,
+коли розв’язок потрібно відображати в інтерфейсі користувача. Водночас, якщо
+базовий об’єкт — Pydantic-модель, зазвичай можна зберігати зворотну сумісність
+під час розширення схеми навіть тоді, коли вона містить нативні елементи Python.
 
 ```python
 class NurseRosteringSolution(BaseModel):
@@ -613,74 +591,69 @@ class NurseRosteringSolution(BaseModel):
     # Validation of the solution will be handled in a separate module.
 ```
 
-With these schemas in place, it becomes immediately clear what structure the
-input and output must follow. The `model_validator` methods let you encode
-important assumptions—such as uniqueness or sorting—and they raise explicit
-errors if those assumptions are violated. While this does not guarantee that all
-data is actually correct, it prevents many accidental errors and makes debugging
-significantly easier. By catching issues at the boundary, you gain confidence
-that the optimization logic operates on well-formed inputs.
+Із цими схемами одразу стає зрозуміло, якої структури мають дотримуватися вхідні
+та вихідні дані. Методи `model_validator` дозволяють закодувати важливі
+припущення — наприклад, унікальність чи впорядкування — і піднімати явні
+помилки, якщо припущення порушуються. Хоч це й не гарантує, що всі дані
+абсолютно правильні, воно запобігає багатьом випадковим помилкам і значно
+полегшує налагодження. Перехоплюючи проблеми на межі, ви отримуєте впевненість,
+що оптимізаційна логіка працює з коректно сформованими входами.
 
 > [!TIP]
 >
-> You do not need to use the same schema for the endpoint contract and the
-> internal representation of the optimization model. Converting between
-> different schemas is inexpensive compared to the computational cost of solving
-> the model. If a different representation enables more efficient model
-> construction, introduce an additional layer. Remember that the internal schema
-> can be modified easily, but changes to the outward-facing schema must be
-> handled carefully to avoid breaking existing interfaces.
+> Вам не обов’язково використовувати одну й ту саму схему для контракту
+> ендпойнта та внутрішнього представлення оптимізаційної моделі. Перетворення
+> між різними схемами дешево порівняно з вартістю розв’язання моделі. Якщо інше
+> представлення дозволяє ефективніше будувати модель, додайте додатковий шар.
+> Пам’ятайте: внутрішню схему можна змінювати легко, а зміни у зовнішній схемі
+> треба робити обережно, щоб не зламати існуючі інтерфейси.
 
-### Tabular Data
+### Табличні дані
 
-<!-- Tabular data is common and very nice to work with, if it is clean -->
+<!-- Табличні дані поширені й зручні, якщо вони чисті -->
 
-Many people, including myself, appreciate working with tables. In the chapter’s
-example project, we use a nested data structure. However, in many projects
-tabular data is entirely sufficient, and in such cases you should prefer this
-representation. In principle, any data structure can be expressed in tabular
-form, and most common databases, in particular relational databases accessed via
-SQL, are built around tables. Nevertheless, when extracting information requires
-complex joins or aggregations, you may need to either restructure your tables or
-adopt a more object-oriented format, for example by using Pydantic models as
-shown above. Since input data should not be modified during model construction,
-it is perfectly acceptable to employ both representations in parallel.
+Багато людей, включно зі мною, цінують роботу з таблицями. У прикладі цього
+розділу ми використовуємо вкладену структуру даних. Втім, у багатьох проєктах
+табличні дані цілком достатні, і в таких випадках краще віддавати перевагу
+саме такому поданню. В принципі, будь-яку структуру даних можна подати у
+табличному вигляді, а більшість поширених баз даних, зокрема реляційні бази
+через SQL, побудовані навколо таблиць. Проте, коли для отримання інформації
+потрібні складні джойни або агрегації, може знадобитися або перебудувати
+таблиці, або перейти до більш об’єктного формату, наприклад, до Pydantic-моделей,
+як показано вище. Оскільки під час побудови моделі вхідні дані не слід
+модифікувати, цілком прийнятно використовувати обидва представлення паралельно.
 
-If your data can be naturally and intuitively expressed in tabular form, then
-you should retain this representation. Python provides excellent libraries for
-working with tabular data, most notably [Pandas](https://pandas.pydata.org/) and
-[Polars](https://www.pola.rs/). Pandas is the most widely used library for data
-analysis in Python, and it benefits from a rich ecosystem of extensions and
-integrations. However, it can exhibit performance limitations, particularly with
-large datasets. Polars is a newer library that is more performance-oriented.
-Since optimization problems typically involve much smaller datasets than those
-encountered in data analysis or machine learning, the widespread use and
-ecosystem of Pandas usually make it the more suitable choice.
+Якщо дані природно та інтуїтивно виражаються у табличному вигляді, варто
+зберегти саме таке представлення. Python має чудові бібліотеки для роботи з
+табличними даними, зокрема [Pandas](https://pandas.pydata.org/) і
+[Polars](https://www.pola.rs/). Pandas — найпоширеніша бібліотека для аналізу
+даних у Python із багатою екосистемою розширень та інтеграцій. Водночас у неї
+є обмеження продуктивності, особливо на великих датасетах. Polars — новіша
+бібліотека, орієнтована на продуктивність. Оскільки оптимізаційні задачі
+зазвичай працюють із набагато меншими наборами даних, ніж аналітика чи ML,
+широке використання й екосистема Pandas часто роблять її більш доцільним вибором.
 
-The major advantage of storing data in a Pandas DataFrame is the ability to
-perform aggregations, filtering, and transformations with a concise and
-expressive syntax. In addition, Pandas integrates well with visualization
-libraries such as [Matplotlib](https://matplotlib.org/) and
-[Seaborn](https://seaborn.pydata.org/), which allow you to easily create
-informative visual representations of your data.
+Головна перевага зберігання даних у Pandas DataFrame — можливість виконувати
+агрегації, фільтрацію та трансформації лаконічним і виразним синтаксисом.
+Крім того, Pandas добре інтегрується з бібліотеками візуалізації, такими як
+[Matplotlib](https://matplotlib.org/) і [Seaborn](https://seaborn.pydata.org/),
+які дозволяють легко створювати інформативні візуальні представлення даних.
 
-Do you want to scale a column to the range [0, 1]? This requires only a single
-line of code:
+Хочете масштабувати колонку до діапазону [0, 1]? Для цього потрібен лише один
+рядок коду:
 
 ```python
 df['scaled_column'] = (df['column'] - df['column'].min()) / (df['column'].max() - df['column'].min())
 ```
 
-Do you want to filter rows based on a condition? Again, this can be achieved in
-one line:
+Хочете відфільтрувати рядки за умовою? Це теж робиться в один рядок:
 
 ```python
 filtered_df = df[df['column'] > threshold]
 ```
 
-CP-SAT also provides integration with Pandas, as demonstrated in the following
-knapsack example, where the values and weights of items are stored in a
-`DataFrame`:
+CP-SAT також інтегрується з Pandas, як показано в наступному прикладі задачі
+рюкзака, де значення і ваги предметів зберігаються у `DataFrame`:
 
 ```python
 from ortools.sat.python import cp_model
@@ -707,9 +680,9 @@ model.add((x @ df["weight"]) <= 15)  # total weight limit
 model.maximize(x @ df["value"])      # maximize total value
 ```
 
-Some constraints can also be conveniently added row by row. For example, suppose
-we have a set of prohibited pairs of items that cannot be selected together.
-Such restrictions can be represented naturally as a two-column table:
+Деякі обмеження зручно додавати построчно. Наприклад, уявімо набір заборонених
+пар предметів, які не можна вибирати разом. Такі обмеження природно подати як
+двоколонкову таблицю:
 
 ```python
 prohibited_pairs_df = pd.DataFrame(
@@ -724,24 +697,23 @@ for _, row in prohibited_pairs_df.iterrows():
     model.add(x[row["item1"]] + x[row["item2"]] <= 1)
 ```
 
-Suppose we have not only prohibited pairs of items but arbitrary sets of items
-that cannot be selected together. To express this structure in a classical
-tabular format, we would introduce a unique identifier for each set and a
-relation table that maps item identifiers to set identifiers. To build the
-constraints, we would first group the rows by set identifier, aggregate the
-corresponding item identifiers, and then add the constraint for each set. If
-this requirement constitutes only a small portion of the model, the tabular
-approach is acceptable. However, if the model relies on many such sets or lists,
-I recommend switching to a more object-oriented representation, as used in the
-nurse rostering problem in this chapter.
+Припустімо, що ми маємо не лише заборонені пари, а довільні набори предметів,
+які не можна вибирати разом. Щоб виразити це у класичному табличному форматі,
+ми введемо унікальний ідентифікатор для кожного набору й таблицю зв’язків, яка
+відображає ідентифікатори предметів на ідентифікатори наборів. Для побудови
+обмежень ми спершу згрупуємо рядки за ідентифікатором набору, агрегуємо
+відповідні ідентифікатори предметів, а потім додамо обмеження для кожного
+набору. Якщо ця вимога — лише мала частина моделі, табличний підхід прийнятний.
+Однак, якщо модель спирається на багато таких наборів чи списків, я рекомендую
+переходити до більш об’єктного представлення, як у задачі графіків медсестер у
+цьому розділі.
 
-When working with tabular data, it is still important to enforce a strict
-schema, as we did with the Pydantic models above. This can be achieved with
-libraries such as [pandera](https://pandera.readthedocs.io/en/stable/). For
-instance, we can require that the weights and values of the items are
-non-negative integers. Although this may appear trivial, errors can easily
-arise, for example when data is extracted from widely used Excel files somewhere
-in the processing pipeline.
+Працюючи з табличними даними, все одно важливо забезпечити строгі схеми, як ми
+робили це з Pydantic-моделями вище. Це можна реалізувати за допомогою бібліотек
+на кшталт [pandera](https://pandera.readthedocs.io/en/stable/). Наприклад, ми
+можемо вимагати, щоб ваги і значення предметів були невід’ємними цілими числами.
+Хоч це й здається тривіальним, помилки легко виникають, наприклад, коли дані
+витягуються з поширених Excel-файлів десь у ланцюгу обробки.
 
 ```python
 import pandas as pd
@@ -757,65 +729,60 @@ validated_df = schema.validate(df)
 
 > :reference:
 >
-> Princeton Consultants provide an excellent post on
+> Princeton Consultants мають чудовий допис про
 > [Rapid Optimization Model Development with Python and pandas in 7 Steps](https://princetonoptimization.com/blog/rapid-optimization-model-development-python-and-pandas-7-steps/),
-> which offers a more detailed discussion of the model-building process with
-> Pandas. In my own work, I am often involved in projects where the data is more
-> graph-like or hierarchical, in which case Pydantic tends to be a more natural
-> representation for building optimization models. I explicitly added this
-> subsection to emphasize that using nested data with Pydantic is not the only
-> approach, and it is not always the best one. Ultimately, you should choose the
-> representation that best matches your data and your team. If necessary, use
-> multiple representations in parallel, as the additional memory overhead is
-> usually negligible.
+> який детальніше розглядає процес побудови моделей з Pandas. У своїй практиці я
+> часто працюю з проєктами, де дані більш графові або ієрархічні, і в таких
+> випадках Pydantic є природнішим представленням для побудови оптимізаційних
+> моделей. Я спеціально додав цю підсекцію, щоб підкреслити: використання
+> вкладених даних з Pydantic — не єдиний і не завжди найкращий підхід. Зрештою,
+> потрібно обрати представлення, яке найкраще відповідає вашим даним і вашій
+> команді. За потреби можна використовувати кілька представлень паралельно, адже
+> додаткові витрати пам’яті зазвичай незначні.
 
-## Solver-Agnostic Validation
+## Валідація, незалежна від розв’язувача
 
-<!-- Writing validation functions early clarifies the constraints and enables TDD -->
+<!-- Раннє написання функцій валідації прояснює обмеження і вмикає TDD -->
 
-With the data schemas defined, we can now implement validation functions that
-check whether a proposed solution satisfies all constraints. This is the first
-concrete step toward a test-driven workflow.
+Маючи визначені схеми даних, ми можемо реалізувати функції валідації, які
+перевіряють, чи запропонований розв’язок задовольняє всі обмеження. Це перший
+конкретний крок до робочого процесу на основі тестів.
 
-<!-- Emphasizes the value of validation for synchronization with stakeholders -->
+<!-- Підкреслює цінність валідації для синхронізації зі стейкхолдерами -->
 
-These validation functions are solver-independent, meaning they do not rely on
-any specific algorithm or library like CP-SAT. This makes them ideal for
-communicating and verifying the specification with domain experts or clients. In
-fact, someone with only basic programming skills could review or even contribute
-to these checks, reducing misunderstandings about the problem's requirements.
+Ці функції валідації не залежать від розв’язувача, тобто не спираються на
+конкретний алгоритм або бібліотеку на кшталт CP-SAT. Це робить їх ідеальними для
+комунікації та перевірки специфікації разом із доменними експертами чи
+клієнтами. Ба більше, людина з базовими навичками програмування може прочитати
+чи навіть доповнити такі перевірки, зменшуючи непорозуміння щодо вимог.
 
-<!-- Clarifies that defining the objective function explicitly is a big step forward -->
+<!-- Прояснює, що явне визначення цілі — великий крок уперед -->
 
-In addition to feasibility, we also define the objective function here. That
-might seem unusual for validation logic, but it provides a clear and unambiguous
-specification of what we are trying to optimize. In practice, the objective
-function is often the most volatile part of the specification—frequently revised
-as new goals, costs, or incentives are introduced. By expressing it in code, we
-make it easier to reason about and iterate on collaboratively.
+Окрім здійсненності, тут же визначаємо й цільову функцію. Це може здаватися
+незвичним для логіки валідації, але дає чітку й однозначну специфікацію того,
+що саме ми оптимізуємо. На практиці цільова функція часто є наймінливішою
+частиною специфікації — її переглядають, коли додаються нові цілі, витрати чи
+стимули. Виражаючи її у коді, ми полегшуємо спільне обговорення й ітерації.
 
 > :warning:
 >
-> Crafting an effective objective function requires experience. I have often
-> observed less experienced practitioners reaching incorrect conclusions about
-> its proper formulation. Common errors include unintentionally encoding parts
-> of the objective as constraints or defining the objective in a way that allows
-> undesirable trade-offs between its components. If a client provides an
-> objective function, do not implement it blindly; instead, analyze it carefully
-> before proceeding.
+> Створення ефективної цільової функції потребує досвіду. Я часто бачив, як менш
+> досвідчені практики робили неправильні висновки щодо її правильної постановки.
+> Поширені помилки — ненавмисне кодування частин цілі як обмежень або визначення
+> цілі так, що це дозволяє небажані компроміси між її компонентами. Якщо клієнт
+> надає цільову функцію, не реалізуйте її сліпо — спершу ретельно проаналізуйте.
 
-<!-- Summarizes the benefits -->
+<!-- Підсумовує переваги -->
 
-By writing these checks up front, we make the problem precise and executable.
-Even without an optimization engine, we already know how to distinguish valid
-from invalid solutions and how to compare two feasible solutions in terms of
-quality. This gives us a solid foundation for developing and testing
-optimization algorithms in the next steps. If we are lucky, we could even use it
-as a feedback loop for an AI assistant to code the solution for us, although my
-experiences with that have been mixed so far.
+Пишучи ці перевірки заздалегідь, ми робимо задачу точною й виконуваною. Навіть
+без оптимізаційного рушія ми вже знаємо, як відрізнити валідні розв’язки від
+невалідних і як порівнювати два здійсненні розв’язки за якістю. Це дає нам
+міцну основу для розробки та тестування оптимізаційних алгоритмів у наступних
+кроках. Якщо пощастить, це навіть може бути циклом зворотного зв’язку для
+AI-асистента, який напише розв’язок за нас, хоча мій досвід тут поки змішаний.
 
-The following Python module provides these validation checks and a function to
-compute the objective value:
+Наступний модуль Python надає ці перевірки валідації та функцію для обчислення
+значення цілі:
 
 ```python
 """
@@ -939,76 +906,74 @@ def assert_solution_is_feasible(
             )
 ```
 
-<!-- validation functions are solver-independent and prioritize clarity -->
+<!-- Функції валідації незалежні від розв’язувача та пріоритизують ясність -->
 
-The main advantage of these validation functions is that they are completely
-independent of any solver or optimization model. This means we do not need to
-optimize their performance—they are meant to be correct, clear, and easy to
-understand. Precise and informative error messages are essential, as these will
-guide you when tests fail.
+Головна перевага цих функцій валідації — вони повністю незалежні від будь-якого
+розв’язувача чи оптимізаційної моделі. Це означає, що нам не потрібно
+оптимізувати їхню продуктивність — вони мають бути правильними, зрозумілими та
+легкими для читання. Точні й інформативні повідомлення про помилки критично
+важливі, адже саме вони підкажуть, що пішло не так, коли тести падають.
 
-<!-- validation is especially valuable for complex problems -->
+<!-- Валідація особливо цінна для складних задач -->
 
-For simple problems, this level of validation may appear excessive, especially
-since CP-SAT already uses a declarative modeling style. However, these functions
-provide an independent specification of the problem, which is valuable for
-catching misunderstandings and hidden assumptions early.
+Для простих задач такий рівень валідації може здаватися надмірним, особливо
+тому, що CP-SAT уже використовує декларативний стиль моделювання. Проте ці
+функції дають незалежну специфікацію задачі, що допомагає рано виявляти
+непорозуміння та приховані припущення.
 
-<!-- validation and CP-SAT complement each other -->
+<!-- Валідація і CP-SAT доповнюють одна одну -->
 
-For more complex problems, these validation functions are often simpler and more
-intuitive than the corresponding CP-SAT constraints. For example, when enforcing
-minimum rest times between shifts, the validation logic directly checks for
-violations, whereas CP-SAT encodes permissible patterns of assignments. In that
-sense, validation and CP-SAT complement each other: one detects what is wrong,
-the other defines what is allowed.
+Для складніших задач ці функції валідації часто простіші та інтуїтивніші за
+відповідні обмеження CP-SAT. Наприклад, при мінімальному часі відпочинку між
+змінами логіка валідації прямо перевіряє порушення, тоді як CP-SAT кодує
+допустимі шаблони призначень. У цьому сенсі валідація і CP-SAT доповнюють
+одна одну: одна визначає, що неправильно, інша — що дозволено.
 
-<!-- allows you to completely change the optimization algorithm -->
+<!-- Дозволяє повністю змінити оптимізаційний алгоритм -->
 
-Lastly, it is quite possible that a pure CP-SAT model will not scale
-sufficiently, despite all optimizations and you will have to decompose the
-problem. These validation functions would remain useful and safeguard you while,
-e.g., replacing the vanilla CP-SAT model with a large neighborhood search or a
-metaheuristic approach.
+Нарешті, цілком можливо, що чиста CP-SAT модель не масштабуватиметься
+достатньо, попри всі оптимізації, і тоді доведеться декомпозувати задачу. Ці
+функції валідації залишаться корисними й захистять вас, наприклад, коли ви
+замінюєте базову CP-SAT модель на large neighborhood search чи метаевристичний
+підхід.
 
 > [!TIP]
 >
-> You could also add unit tests for these validation functions to ensure that
-> they raise the expected errors for invalid inputs. However, I would consider
-> this unnecessary in most cases, as the complementary nature of validation
-> functions and CP-SAT constraints will likely catch most inconsistencies. If a
-> test fails, always verify whether the test itself might be incorrect.
+> Ви також можете додати юніт-тести для цих функцій валідації, щоб переконатися,
+> що вони піднімають очікувані помилки для некоректних входів. Однак у більшості
+> випадків я вважаю це зайвим, адже комплементарність функцій валідації та
+> обмежень CP-SAT, імовірно, виявить більшість несумісностей. Якщо тест падає,
+> завжди перевіряйте, чи сам тест випадково не неправильний.
 
-## Decision Variables
+## Змінні рішення
 
-<!-- Transition from specification to modeling -->
+<!-- Перехід від специфікації до моделювання -->
 
-Up to this point, we have defined the **parameters** of the problem (through our
-Pydantic schemas) and created **validation functions** that serve as a
-solver-independent specification of the constraints and objectives. These
-validation functions essentially describe what a valid solution must look like
-and how we measure its quality.
+До цього моменту ми визначили **параметри** задачі (через Pydantic-схеми) й
+створили **функції валідації**, що служать незалежною від розв’язувача
+специфікацією обмежень і цілей. Ці функції по суті описують, як має виглядати
+валідний розв’язок і як вимірюється його якість.
 
-<!-- Motivation for CP-SAT model -->
+<!-- Мотивація для моделі CP-SAT -->
 
-The next step is to turn this high-level specification into a formal
-optimization model using CP-SAT. To do so, we start by defining **decision
-variables**, which represent the core choices of our problem. For the nurse
-rostering problem, a natural decision variable is:
+Наступний крок — перетворити цю високорівневу специфікацію на формальну
+оптимізаційну модель у CP-SAT. Для цього ми починаємо з визначення **змінних
+рішення**, які представляють основні вибори задачі. Для графіка медсестер
+природна змінна рішення така:
 
-> **Is nurse $i$ assigned to shift $j$?**
+> **Чи призначена медсестра $i$ на зміну $j$?**
 
-This can be represented by a Boolean variable $x_{i,j}$ that is true if nurse
-$i$ works shift $j$, and false otherwise.
+Її можна представити бінарною змінною $x_{i,j}$, яка дорівнює true, якщо
+медсестра $i$ працює зміну $j$, і false — інакше.
 
-<!-- Variable container as a design pattern -->
+<!-- Контейнер змінних як шаблон проєктування -->
 
-Instead of managing these variables as a raw two-dimensional array, we structure
-them using **variable containers**. For each nurse, we create a container that
-holds their assignment variables and provides useful methods for counting
-shifts, iterating over assignments, and extracting the solution. This approach
-keeps the model modular, makes constraints easier to implement, and supports
-reusability when we later add new constraints or objectives.
+Замість того щоб керувати цими змінними як сирим двовимірним масивом, ми
+структуруємо їх у **контейнери змінних**. Для кожної медсестри створюємо
+контейнер, який містить змінні призначень і надає зручні методи для підрахунку
+змін, ітерації по призначеннях та витягування розв’язку. Такий підхід зберігає
+модель модульною, спрощує реалізацію обмежень і підтримує повторне використання
+при додаванні нових обмежень чи цілей.
 
 ```python
 """
@@ -1070,58 +1035,55 @@ class NurseDecisionVars:
         return [shift_uid for shift_uid in self._x if solver.value(self._x[shift_uid])]
 ```
 
-<!-- Allows refactoring and performance hacks -->
+<!-- Дозволяє рефакторинг і оптимізаційні трюки -->
 
-By encapsulating the decision variables in this manner, the process of
-constructing constraints and objectives is simplified. Each constraint module
-can focus on a single nurse or a subset of shifts without dealing with the
-low-level details of variable creation or indexing. The behavior of the
-`NurseDecisionVars` class can later be modified, for example, to avoid creating
-variables for shifts irrelevant to a given nurse and instead return a constant
-`0` when such shifts are queried. These shifts can also be skipped in
-`iter_shifts` to improve loop efficiency. Such refactoring is straightforward
-with this container-based design but would be considerably more complex when
-using, for instance, a raw two-dimensional array.
+Інкапсулюючи змінні рішення таким чином, ми спрощуємо процес побудови обмежень
+і цілей. Кожен модуль обмежень може зосередитися на одній медсестрі або підмножині
+змін, не занурюючись у низькорівневі деталі створення змінних чи індексації.
+Поведінку класу `NurseDecisionVars` можна згодом змінити, наприклад, щоб не
+створювати змінні для змін, нерелевантних конкретній медсестрі, і повертати
+константу `0`, коли такі зміни запитуються. Такі зміни також можна пропускати в
+`iter_shifts`, щоб підвищити ефективність циклів. Подібний рефакторинг простий
+за контейнерного дизайну, але значно складніший при використанні, наприклад,
+сирого двовимірного масиву.
 
-## Modules
+## Модулі
 
-<!-- Introduce modular design -->
+<!-- Вступ до модульного дизайну -->
 
-Now that we have defined the decision variables, the next step is to translate
-the problem constraints and objectives into an optimization model. For the nurse
-rostering problem, we have multiple constraints that are logically independent.
-Instead of writing them directly into a monolithic solver script, we will
-implement each constraint or objective as a separate **module**.
+Тепер, коли ми визначили змінні рішення, наступний крок — перенести обмеження й
+цілі у оптимізаційну модель. Для задачі графіка медсестер є кілька логічно
+незалежних обмежень. Замість того щоб писати їх у монолітному скрипті розв’язувача,
+ми реалізуємо кожне обмеження або ціль як окремий **модуль**.
 
-<!-- Why modularity is valuable -->
+<!-- Чому модульність цінна -->
 
-This modular approach offers several benefits:
+Такий модульний підхід дає кілька переваг:
 
-- It keeps the model organized and readable.
-- Each module can be tested individually (aligned with our TDD approach).
-- Adding, removing, or modifying a constraint or objective later becomes
-  trivial—simply add or replace a module.
+- Модель лишається організованою та читабельною.
+- Кожен модуль можна тестувати окремо (що відповідає підходу TDD).
+- Додавати, вилучати чи змінювати обмеження або цілі згодом дуже просто — досить
+  додати чи замінити модуль.
 
-<!-- Abstract base class introduction -->
+<!-- Вступ до абстрактного базового класу -->
 
-To ensure all modules follow the same structure, we define an **abstract base
-class** that specifies the interface for implementing constraints and
-objectives. This base class defines a single method, `build`, which applies the
-module’s constraints and optionally returns a sub-objective expression. These
-sub-objectives will later be combined to form the global objective function.
+Щоб усі модулі дотримувалися однакової структури, ми визначаємо **абстрактний
+базовий клас**, який задає інтерфейс реалізації обмежень і цілей. Цей клас має
+єдиний метод `build`, що застосовує обмеження модуля і, за потреби, повертає
+підцільовий вираз. Ці підцілі згодом об’єднуються в глобальну цільову функцію.
 
-<!-- Linking to decision variables -->
+<!-- Зв’язок із змінними рішення -->
 
-The `build` method takes three arguments:
+Метод `build` приймає три аргументи:
 
-1. The **instance**, which contains the problem parameters.
-2. The **CP-SAT model**, which we modify by adding constraints.
-3. A list of **decision variable containers** (one per nurse), which gives easy
-   access to all variables related to that nurse.
+1. **Екземпляр**, що містить параметри задачі.
+2. **Модель CP-SAT**, яку ми модифікуємо, додаючи обмеження.
+3. Список **контейнерів змінних рішення** (по одному на медсестру), що дає
+   зручний доступ до змінних, пов’язаних із цією медсестрою.
 
-<!-- Code explanation -->
+<!-- Пояснення коду -->
 
-Here is the abstract base class for all modules:
+Ось абстрактний базовий клас для всіх модулів:
 
 ```python
 import abc
@@ -1145,12 +1107,11 @@ class ShiftAssignmentModule(abc.ABC):
         return 0
 ```
 
-For testing, we will use a few auxiliary helper classes that significantly
-reduce boilerplate code when validating CP-SAT models. These helpers provide an
-intuitive way to assert whether a model is feasible or infeasible after
-constraints have been added.
+Для тестування ми використаємо кілька допоміжних класів, які суттєво зменшують
+boilerplate-код під час валідації CP-SAT моделей. Ці утиліти дають інтуїтивний
+спосіб перевірити, чи модель є здійсненною або ні після додавання обмежень.
 
-You can install these helpers via `pip install cpsat-utils`
+Ці утиліти можна встановити через `pip install cpsat-utils`
 
 ```python
 from cpsat_utils.testing import (
@@ -1171,20 +1132,19 @@ with AssertModelInfeasible() as model:
 assert_objective(model=model, expected=-1.0)
 ```
 
-These helpers are particularly useful for **test-driven development (TDD)**
-because they keep the tests concise and focused on **what should happen**,
-rather than on the mechanics of solving and checking the model. By wrapping the
-solver logic inside a context manager, you avoid repetitive setup code and make
-tests easier to read and maintain.
+Ці утиліти особливо корисні для **test-driven development (TDD)**, адже вони
+роблять тести лаконічними й зосередженими на **тому, що має відбутися**, а не на
+механіці розв’язання та перевірки моделі. Обгортаючи логіку розв’язувача у
+контекст-менеджер, ви уникаєте повторюваного налаштування і робите тести
+читабельнішими та легшими в підтримці.
 
-We will write tests using [**pytest**](https://docs.pytest.org/en/stable/), a
-widely used testing framework for Python. With pytest, you simply write
-functions that start with `test_`, and the framework will automatically discover
-and execute them. To run all tests, just type `pytest` in your terminal, and it
-will find all test files (named either `test_*.py` or `*_test.py`) and run the
-contained tests.
+Ми писатимемо тести з використанням [**pytest**](https://docs.pytest.org/en/stable/),
+широко вживаного фреймворку тестування для Python. У pytest достатньо писати
+функції, що починаються з `test_`, і фреймворк автоматично їх знайде й виконає.
+Щоб запустити всі тести, просто введіть `pytest` у терміналі — він знайде всі
+тестові файли (названі `test_*.py` або `*_test.py`) і виконає тести в них.
 
-Here is a minimal example:
+Ось мінімальний приклад:
 
 ```python
 # ./tests/test_example.py
@@ -1197,15 +1157,15 @@ def test_example():
     assert False  # Make sure you get an error here to confirm the test framework is working.
 ```
 
-In order to get some simple test data, we will also write some simple data
-generation functions.
+Щоб отримати прості тестові дані, ми також напишемо кілька простих функцій
+генерації даних.
 
-1. **create_shifts**: Generates a list of shifts with consecutive start times.
-2. **create_nurse**: Creates a nurse with a specified name and blocked shifts.
+1. **create_shifts**: генерує список змін із послідовними часами початку.
+2. **create_nurse**: створює медсестру із заданим іменем та заблокованими змінами.
 
-The code is quite simple and you can find it below:
+Код досить простий, його наведено нижче:
 
-<details><summary>Click to expand the code for data generation</summary>
+<details><summary>Натисніть, щоб розгорнути код генерації даних</summary>
 
 ```python
 # ./tests/generate.py
@@ -1270,23 +1230,22 @@ def create_nurse(
 
 </details>
 
-### No Blocked Shifts
+### Без заблокованих змін
 
-When we begin implementing constraints, it is wise to start with the simplest
-rule possible. For our nurse rostering problem, one such rule is that **a nurse
-cannot be assigned to a shift if they are explicitly blocked from working that
-shift.** This models situations such as vacations, sick leave, or other forms of
-unavailability. If this constraint is violated, the schedule is invalid, no
-matter how good it is otherwise.
+Коли ми починаємо реалізовувати обмеження, мудро стартувати з найпростішого
+правила. Для задачі графіка медсестер таким правилом є те, що **медсестру не
+можна призначати на зміну, якщо вона явно заблокована для цієї зміни.** Це
+моделює відпустки, лікарняні чи інші форми недоступності. Якщо це обмеження
+порушено, графік невалідний, незалежно від інших якостей.
 
-We will now apply a test-driven approach to implement this constraint.
+Тепер застосуємо підхід TDD, щоб реалізувати це обмеження.
 
-#### Step 1: Writing the First Test (Trivial Feasibility)
+#### Крок 1: написання першого тесту (тривіальна здійсненність)
 
-Our first test checks the trivial case: a nurse with **no blocked shifts**
-should not cause any infeasibility. We do not even need to fix any assignments
-in this case. The purpose is to verify that the model remains valid when there
-are no constraints to enforce.
+Перший тест перевіряє тривіальний випадок: медсестра **без заблокованих змін**
+не повинна спричиняти не здійсненність. У цьому випадку навіть не потрібно
+фіксувати жодних призначень. Мета — переконатися, що модель лишається
+валідною, коли обмеження ще не накладені.
 
 ```python
 def test_no_blocked_shifts_trivial():
@@ -1302,8 +1261,8 @@ def test_no_blocked_shifts_trivial():
         NoBlockedShiftsModule().build(instance, model, [nurse_vars])
 ```
 
-This test will of course fail because we have not yet implemented the
-`NoBlockedShiftsModule`. Let us do that next.
+Цей тест, звісно, впаде, бо ми ще не реалізували `NoBlockedShiftsModule`.
+Зробімо це далі.
 
 ```python
 class NoBlockedShiftsModule(ShiftAssignmentModule):
@@ -1321,15 +1280,15 @@ class NoBlockedShiftsModule(ShiftAssignmentModule):
         return 0
 ```
 
-Now it should pass, as we actually do not enforce any constraints yet. Let us
-create a second test that will check that we cannot assign a nurse to a shift
-they are blocked from.
+Тепер він має пройти, бо насправді ми ще не накладаємо жодних обмежень.
+Створімо другий тест, який перевіряє, що ми не можемо призначити медсестру на
+зміну, для якої вона заблокована.
 
-#### Step 2: Testing Infeasibility for Blocked Shifts
+#### Крок 2: перевірка не здійсненності для заблокованих змін
 
-If a nurse is **blocked from working a shift** but we force them to be assigned
-to it, the model should become infeasible. This confirms that our constraint
-actually prevents invalid assignments.
+Якщо медсестра **заблокована для зміни**, але ми примусово призначаємо її на
+цю зміну, модель має стати не здійсненною. Це підтверджує, що обмеження
+справді запобігає невалідним призначенням.
 
 ```python
 def test_no_blocked_shifts_infeasible():
@@ -1346,9 +1305,8 @@ def test_no_blocked_shifts_infeasible():
         nurse_vars.fix(shifts[0].uid, True)  # Force assignment to a blocked shift
 ```
 
-This test should now fail, as we have not yet implemented the logic to enforce
-the blocked shifts constraint. Let us implement the logic in the
-`NoBlockedShiftsModule`.
+Цей тест тепер має падати, бо ми ще не реалізували логіку, що забезпечує
+обмеження заблокованих змін. Реалізуємо її в `NoBlockedShiftsModule`.
 
 ```python
 class NoBlockedShiftsModule(ShiftAssignmentModule):
@@ -1372,11 +1330,11 @@ class NoBlockedShiftsModule(ShiftAssignmentModule):
         return 0  # no objective contribution
 ```
 
-#### Step 3: Testing Feasibility on Non-Blocked Shifts
+#### Крок 3: перевірка здійсненності на незаблокованих змінах
 
-Finally, we check that a nurse can still work on **other, non-blocked shifts**.
-Here we assign the nurse to a shift that is allowed, and we expect the model to
-remain feasible.
+Нарешті, перевіримо, що медсестра може працювати на **інших, незаблокованих
+змінах**. Тут ми призначаємо медсестру на дозволену зміну й очікуємо, що
+модель залишиться здійсненною.
 
 ```python
 def test_no_blocked_shifts_feasible():
@@ -1393,37 +1351,37 @@ def test_no_blocked_shifts_feasible():
         nurse_vars.fix(shifts[1].uid, True)  # Assign allowed shift
 ```
 
-Our `NoBlockedShiftsModule` should cover that case as well. In the following
-modules, we will not perform the TDD cycle in detail, but we will still describe
-the key tests and the implementation of each module. This will keep the focus on
-the constraints and objectives rather than the testing mechanics.
+Наш `NoBlockedShiftsModule` має покривати і цей випадок. У наступних модулях ми
+не будемо детально проходити цикл TDD, але все одно опишемо ключові тести й
+реалізацію кожного модуля. Так ми збережемо фокус на обмеженнях і цілях, а не
+на механіці тестування.
 
 > [!TIP]
 >
-> How do you find good test cases? A good rule of thumb is to start with simple
-> cases that cover the basic functionality. Then add edge cases from both sides:
-> create one case that is right on the edge of feasibility, and another that is
-> just outside it. Any scenario that could be off by one is an excellent
-> candidate for an edge case.
+> Як знаходити хороші тестові кейси? Корисне правило: почніть із простих випадків,
+> які покривають базову функціональність. Потім додайте граничні випадки з обох
+> боків: створіть один сценарій на межі здійсненності та ще один — трохи за
+> межами. Будь-який сценарій з потенційним «off-by-one» — чудовий кандидат для
+> граничного випадку.
 
-### Minimum Off Time
+### Мінімальний час відпочинку
 
-The **minimum off time constraint** enforces that a nurse cannot work two shifts
-that are too close together. Formally, for each nurse and for every pair of
-shifts, if the time between the end of one shift and the start of the next is
-less than the required rest period, both cannot be assigned to the nurse.
+**Обмеження мінімального часу відпочинку** забороняє медсестрі працювати дві
+зміни надто близько одна до одної. Формально, для кожної медсестри й кожної
+пари змін, якщо час між завершенням однієї та початком наступної менший за
+потрібний період відпочинку, обидві не можуть бути призначені цій медсестрі.
 
-#### Key Tests
+#### Ключові тести
 
-To verify this constraint, we first test with simple assignment patterns:
+Щоб перевірити це обмеження, спершу тестуємо прості шаблони призначень:
 
-- `[None, True, True, None]`: infeasible (two consecutive shifts without rest).
-- `[True, False, True]`: feasible if the gap is long enough.
-- `[True, True]`: infeasible if two consecutive shifts overlap or violate the
-  minimum rest.
+- `[None, True, True, None]`: не здійсненно (дві послідовні зміни без відпочинку).
+- `[True, False, True]`: здійсненно, якщо проміжок достатньо довгий.
+- `[True, True]`: не здійсненно, якщо дві послідовні зміни перекриваються або
+  порушують мінімальний відпочинок.
 
-Using a helper function, we can easily run these tests with different
-parameters:
+Використовуючи допоміжну функцію, можна легко запускати ці тести з різними
+параметрами:
 
 ```python
 def run_min_rest_test(
@@ -1446,7 +1404,7 @@ def run_min_rest_test(
             nurse_vars.fix(s.uid, assign)
 ```
 
-The individual tests can then be defined as follows:
+Окремі тести можна визначити так:
 
 ```python
 def test_min_time_between_shifts_infeasible_pattern():
@@ -1468,27 +1426,26 @@ def test_min_time_between_shifts_feasible_pattern():
     )
 ```
 
-Additional test cases (e.g., single-shift, all-false, and variable-length gaps)
-are available in the full test file but omitted here for clarity.
+Додаткові тестові кейси (наприклад, одна зміна, всі false, та різні інтервали)
+є в повному тестовому файлі, але тут ми їх опускаємо для ясності.
 
 > [!WARNING]
 >
-> For testing feasibility, you should fix as many assignments as possible, as
-> each fixed assignment makes it harder for the solver to maneuver around the
-> constraints. For testing infeasibility, you should fix as few assignments as
-> necessary, allowing the solver enough freedom to explore potential ways of
-> circumventing the constraints.
+> Для перевірки здійсненності слід фіксувати якомога більше призначень, адже
+> кожне зафіксоване призначення зменшує свободу розв’язувача обходити обмеження.
+> Для перевірки не здійсненності, навпаки, фіксуйте якнайменше призначень, щоб
+> розв’язувач мав достатньо свободи шукати можливі шляхи обходу обмежень.
 
-#### Implementation
+#### Реалізація
 
-For the implementation, we find for each shift of a nurse all subsequent shifts
-that would violate the minimum rest time if both were assigned. If the first
-shift is assigned, then none of these subsequent shifts can be assigned. Here we
-can optimize the model building by leveraging the fact that the shifts are
-sorted by start time.
+Для реалізації ми знаходимо для кожної зміни медсестри всі наступні зміни, які
+порушили б мінімальний час відпочинку, якщо обидві призначені. Якщо перша
+зміна призначена, то жодна з цих наступних змін не може бути призначена. Тут
+ми можемо оптимізувати побудову моделі, використовуючи факт, що зміни
+відсортовані за часом початку.
 
-A simpler, but less efficient, implementation would check all pairs of shifts
-for each nurse, and enforce that only one of them can be assigned.
+Простіша, але менш ефективна реалізація перевіряла б усі пари змін для кожної
+медсестри й накладала обмеження, що тільки одна з них може бути призначена.
 
 ```python
 class MinTimeBetweenShifts(ShiftAssignmentModule):
@@ -1523,17 +1480,17 @@ class MinTimeBetweenShifts(ShiftAssignmentModule):
         return 0  # no objective contribution
 ```
 
-### Demand Satisfaction
+### Задоволення попиту
 
-In the real world, every shift requires a minimum number of nurses to ensure
-safe and efficient operations. This requirement is captured as the **demand** of
-the shift. The demand satisfaction constraint enforces that each shift is
-assigned at least as many nurses as its demand specifies.
+У реальному світі кожна зміна потребує мінімальної кількості медсестер для
+безпеки та ефективності. Цю вимогу описує **попит** зміни. Обмеження
+задоволення попиту забезпечує, що кожній зміні призначено щонайменше стільки
+медсестер, скільки вимагає її попит.
 
-To verify this behavior, we use simple tests. In the first test, we create one
-shift with a demand of 2 and two available nurses, which is feasible. In the
-second test, we block the assignment of one of the nurses, which violates the
-demand requirement and should make the model infeasible.
+Щоб перевірити цю поведінку, використаємо прості тести. У першому тесті ми
+створюємо одну зміну з попитом 2 і двома доступними медсестрами — це здійсненно.
+У другому тесті ми блокуємо призначення однієї з медсестер, що порушує вимогу
+попиту і робить модель не здійсненною.
 
 ```python
 from nurserostering.modules import DemandSatisfactionModule
@@ -1569,9 +1526,9 @@ def test_demand_satisfaction_understaffed():
         nurse_vars2.fix(shifts[0].uid, False)
 ```
 
-The corresponding implementation of the constraint is equally straightforward:
-we simply add a constraint that the total number of assigned nurses for a shift
-must be at least the shift’s demand.
+Відповідна реалізація обмеження така ж пряма: ми просто додаємо обмеження, що
+загальна кількість призначених медсестер на зміну має бути не меншою за попит
+цієї зміни.
 
 ```python
 class DemandSatisfactionModule(ShiftAssignmentModule):
@@ -1594,17 +1551,17 @@ class DemandSatisfactionModule(ShiftAssignmentModule):
         return 0
 ```
 
-### Prefer Staff
+### Перевага штатних працівників
 
-While the previous modules defined hard constraints that must be satisfied, this
-module introduces a **soft constraint**. We prefer to assign internal staff
-nurses over contractors, as contractors may be more expensive or less desirable
-for other reasons. Instead of enforcing this rule strictly, we **penalize** the
-use of contractors in the objective function. This way, the solver will try to
-minimize the number of contractor assignments while still satisfying all hard
-constraints.
+Тоді як попередні модулі визначали жорсткі обмеження, які мають бути виконані,
+цей модуль вводить **м’яке обмеження**. Ми віддаємо перевагу призначенню
+штатних медсестер над контрактними, адже контрактні можуть бути дорожчими або
+менш бажаними з інших причин. Замість жорсткого правила ми **штрафуємо**
+використання контрактних у цільовій функції. Так розв’язувач намагатиметься
+мінімізувати кількість контрактних призначень, водночас задовольняючи всі
+жорсткі обмеження.
 
-**Example Test:**
+**Приклад тесту:**
 
 ```python
 from nurserostering.modules import PreferStaffModule, DemandSatisfactionModule
@@ -1641,7 +1598,7 @@ def test_prefer_staff_module():
     assert solver.value(vars_contractor.is_assigned_to(shifts[0].uid)) == 0
 ```
 
-**Implementation:**
+**Реалізація:**
 
 ```python
 class PreferStaffModule(ShiftAssignmentModule):
@@ -1662,26 +1619,25 @@ class PreferStaffModule(ShiftAssignmentModule):
         return expr
 ```
 
-### Preferences Objective
+### Ціль за вподобаннями
 
-While many of the previous modules focused on enforcing constraints,
-`MaximizePreferences` is different: it defines what we actually want to
-optimize. Nurses often have preferences for specific shifts—perhaps due to
-personal schedules, skill matching, or desired working hours. A good schedule
-should take these preferences into account as much as possible.
+Хоча багато попередніх модулів фокусувалися на обмеженнях, `MaximizePreferences`
+інший: він визначає те, що ми насправді хочемо оптимізувати. Медсестри часто
+мають вподобання щодо конкретних змін — наприклад, через особисті графіки,
+відповідність навичок чи бажані години роботи. Хороший графік має враховувати
+ці вподобання якомога більше.
 
-The `MaximizePreferences` module encodes this by assigning a **negative
-contribution** (a reward) to the objective function whenever a nurse is assigned
-to one of their preferred shifts. As our interface will minimize by default, we
-negate the weight so that preferred assignments reduce the total objective
-value. Note that we could have easily specified that the expression returned by
-`build` should be maximized.
+Модуль `MaximizePreferences` кодує це, додаючи **негативний внесок** (нагороду)
+до цільової функції, коли медсестру призначено на одну з її бажаних змін. Оскільки
+наш інтерфейс мінімізує за замовчуванням, ми беремо вагу зі знаком мінус, щоб
+бажані призначення зменшували загальне значення цілі. Зауважте, що ми могли
+так само легко вказати, що вираз, який повертає `build`, треба максимізувати.
 
-This module is therefore not a soft constraint but a **true objective**: among
-all feasible schedules, it guides the solver to find one that maximizes nurse
-satisfaction.
+Отже, цей модуль — не м’яке обмеження, а **справжня ціль**: серед усіх
+здійсненних графіків він спрямовує розв’язувач до максимізації задоволеності
+медсестер.
 
-**Example Test:**
+**Приклад тесту:**
 
 ```python
 from nurserostering.modules import MaximizePreferences, DemandSatisfactionModule
@@ -1718,7 +1674,7 @@ def test_maximize_preferences_module():
     ), "Nurse should be assigned to their preferred shift"
 ```
 
-**Implementation:**
+**Реалізація:**
 
 ```python
 class MaximizePreferences(ShiftAssignmentModule):
@@ -1738,15 +1694,14 @@ class MaximizePreferences(ShiftAssignmentModule):
         return expr
 ```
 
-## Full Solver
+## Повний розв’язувач
 
-<!-- Introduces the solver class as the orchestration of all modules -->
+<!-- Представляє клас розв’язувача як оркестрацію всіх модулів -->
 
-At this point, we have implemented all the necessary modules: the constraints,
-soft constraints, and objectives. The next step is to combine these components
-into a complete optimization model. The `NurseRosteringModel` class is
-responsible for orchestrating all modules, building the CP-SAT model, and
-extracting the solution.
+На цьому етапі ми реалізували всі необхідні модулі: обмеження, м’які обмеження
+та цілі. Наступний крок — об’єднати ці компоненти в повну оптимізаційну модель.
+Клас `NurseRosteringModel` відповідає за оркестрацію модулів, побудову CP-SAT
+моделі та витягування розв’язку.
 
 ```python
 from ortools.sat.python import cp_model
@@ -1820,13 +1775,13 @@ class NurseRosteringModel:
         )
 ```
 
-<!-- Introduces the example test instance -->
+<!-- Представляє приклад тестового інстансу -->
 
-To demonstrate the full workflow, we can test the solver with a small but
-non-trivial instance. The following test sets up 7 days with 3 shifts per day
-(morning, day, and night), resulting in 21 shifts. The nurses have a mix of
-preferences, blocked shifts, and max shift limits, creating an interesting
-scheduling challenge.
+Щоб продемонструвати повний робочий процес, протестуємо розв’язувач на
+невеликому, але нетривіальному інстансі. Наступний тест налаштовує 7 днів із
+3 змінами на день (ранкова, денна, нічна), що дає 21 зміну. Медсестри мають
+різні вподобання, заблоковані зміни та обмеження, що створює цікаву задачу
+складання графіка.
 
 ```python
 def test_fixed_instance():
@@ -1929,36 +1884,36 @@ def test_fixed_instance():
     assert_solution_is_feasible(instance, solution)
 ```
 
-#### Nurses
+#### Медсестри
 
-| Name & Description                            | Staff/Contractor | Min Rest | Preferences         | Blocked Shifts |
-| --------------------------------------------- | ---------------- | -------- | ------------------- | -------------- |
-| **Alice** (prefers mornings, no Sundays)      | Staff            | ≥ 10h    | 7 shifts (weight 3) | 3 shifts       |
-| **Bob** (prefers nights)                      | Staff            | ≥ 10h    | 7 shifts (weight 3) | —              |
-| **Clara** (prefers weekends, blocks weekdays) | Staff            | ≥ 10h    | 6 shifts (weight 2) | 15 shifts      |
-| **Dan** (no preferences)                      | Staff            | ≥ 8h     | —                   | —              |
-| **Eve** (contractor, prefers day shifts)      | Contractor       | ≥ 10h    | 7 shifts (weight 2) | —              |
-| **Frank** (prefers day shifts)                | Staff            | ≥ 10h    | 7 shifts (weight 2) | —              |
-| **Grace** (prefers mornings)                  | Staff            | ≥ 10h    | 7 shifts (weight 3) | —              |
-| **Heidi** (contractor, no preferences)        | Contractor       | ≥ 8h     | —                   | —              |
+| Ім’я та опис                                   | Штат/Контракт    | Мін. відпочинок | Вподобання          | Заблоковані зміни |
+| --------------------------------------------- | ---------------- | --------------- | ------------------- | ---------------- |
+| **Alice** (надає перевагу ранкам, без неділь)  | Штат             | ≥ 10 год        | 7 змін (вага 3)     | 3 зміни          |
+| **Bob** (надає перевагу ночам)                 | Штат             | ≥ 10 год        | 7 змін (вага 3)     | —                |
+| **Clara** (надає перевагу вихідним, блокує будні) | Штат          | ≥ 10 год        | 6 змін (вага 2)     | 15 змін          |
+| **Dan** (без уподобань)                        | Штат             | ≥ 8 год         | —                   | —                |
+| **Eve** (контрактна, надає перевагу денним)    | Контракт         | ≥ 10 год        | 7 змін (вага 2)     | —                |
+| **Frank** (надає перевагу денним)              | Штат             | ≥ 10 год        | 7 змін (вага 2)     | —                |
+| **Grace** (надає перевагу ранкам)              | Штат             | ≥ 10 год        | 7 змін (вага 3)     | —                |
+| **Heidi** (контрактна, без уподобань)          | Контракт         | ≥ 8 год         | —                   | —                |
 
-#### Shift Coverage
+#### Покриття змін
 
-| Day | Morning (S1)        | Day (S2)   | Night (S3) |
-| --- | ------------------- | ---------- | ---------- |
-| D1  | Alice, Grace        | Dan, Frank | Bob        |
-| D2  | Alice, Grace        | Dan, Frank | Bob        |
-| D3  | Alice, Grace        | Eve, Frank | Bob        |
-| D4  | Alice, Clara, Grace | Dan, Frank | Bob        |
-| D5  | Clara, Grace        | Eve, Frank | Bob        |
-| D6  | Alice, Grace        | Eve, Frank | Bob        |
-| D7  | Alice, Grace        | Dan, Frank | Bob        |
+| День | Ранок (S1)          | День (S2)  | Ніч (S3)   |
+| ---- | ------------------- | ---------- | ---------- |
+| Д1   | Alice, Grace        | Dan, Frank | Bob        |
+| Д2   | Alice, Grace        | Dan, Frank | Bob        |
+| Д3   | Alice, Grace        | Eve, Frank | Bob        |
+| Д4   | Alice, Clara, Grace | Dan, Frank | Bob        |
+| Д5   | Clara, Grace        | Eve, Frank | Bob        |
+| Д6   | Alice, Grace        | Eve, Frank | Bob        |
+| Д7   | Alice, Grace        | Dan, Frank | Bob        |
 
-## Automatic Test Extraction from Production
+## Автоматичне вилучення тестів із продакшну
 
-Because we use pydantic for input and output, serializing test cases from
-production is straightforward. You can save instances and solutions to JSON and
-re-load them later for regression tests.
+Оскільки ми використовуємо pydantic для входів і виходів, серіалізація тестових
+кейсів із продакшну доволі проста. Ви можете зберігати інстанси й розв’язки у
+JSON та завантажувати їх пізніше для регресійних тестів.
 
 ```python
 # export instance and solution to JSON
@@ -1968,7 +1923,7 @@ with open("solution.json", "w") as f:
     f.write(solution.model_dump_json())
 ```
 
-You can then load these files in your tests:
+Потім ці файли можна завантажувати у тестах:
 
 ```python
 from nurserostering.data_schema import NurseRosteringInstance, NurseRosteringSolution
@@ -1992,91 +1947,89 @@ def test_load_instance_and_solution():
     assert new_solution.objective_value == solution.objective_value, "Objective value should match"
 ```
 
-Actually, you can also just dump them into a folder and then make the test
-iterate over all the files in that folder. Instead of just writing the objective
-value into the solution, you could also add the time it took to solve the
-instance, which can be useful for performance testing. With a bunch of such
-files collected, you could then start to refactor and optimize your code, with a
-minimum of regression risk in correctness or performance. However, keep in mind
-that the performance of CP-SAT (and other such solvers) can vary between runs,
-so do not be too strict with the performance tests.
+Насправді можна просто складати їх у папку і змусити тест проходити всі файли в
+цій папці. Замість того щоб записувати лише значення цілі в розв’язок, можна
+також зберігати час розв’язання інстансу, що корисно для тестування
+продуктивності. Зібравши набір таких файлів, можна почати рефакторити й
+оптимізувати код із мінімальним ризиком регресій у коректності чи швидкодії.
+Втім, пам’ятайте, що продуктивність CP-SAT (і подібних розв’язувачів) може
+варіюватися між запусками, тож не будьте надто строгими в performance-тестах.
 
-Instead of relying solely on historical data for testing, you can **shadow**
-your production model with a development or experimental model. This approach
-allows you not only to verify correctness but also to directly compare the
-performance of both models, providing strong confidence that your modifications
-enhance the model without disrupting production. If you already have a
-monitoring tool in place, integrating _shadow solutions_ is likely
-straightforward. This technique is so popular that
-[nextmv](https://www.nextmv.io/docs/using-nextmv/experiments/shadow) offers
-built-in support for it.
+Замість того щоб покладатися лише на історичні дані для тестування, можна
+**підтінювати** продакшн-модель розробницькою або експериментальною. Такий
+підхід дозволяє не лише перевіряти коректність, а й безпосередньо порівнювати
+продуктивність обох моделей, що дає високу впевненість: зміни покращують
+модель, не ламаючи продакшн. Якщо у вас уже є інструмент моніторингу,
+інтегрувати _shadow solutions_ зазвичай просто. Ця техніка настільки популярна,
+що [nextmv](https://www.nextmv.io/docs/using-nextmv/experiments/shadow) має
+вбудовану підтримку.
 
-## Property-based Testing
+## Тестування на основі властивостей
 
-As a final point, I briefly discuss property-based testing. Richard Oberdieck, a
-senior optimizer with expertise in testing, favors this approach and considers
-unit-based testing less suitable for his purposes. He argues that optimization
-models are difficult to decompose and that testing individual equations has
-limited value.
+Насамкінець коротко обговоримо тестування на основі властивостей. Річард
+Обердік, старший оптимізатор із досвідом у тестуванні, віддає перевагу цьому
+підходу і вважає юніт-тести менш придатними для своїх цілей. Він стверджує, що
+оптимізаційні моделі важко декомпозувати, а тестування окремих рівнянь має
+обмежену цінність.
 
-The problem in this chapter has been deliberately simplified. In typical
-projects, my unit tests target constraints or modules that consist of sets of
-lower-level constraints and equations. Many of the tests presented here are
-indeed excessive for the simplified setting.
+Задачу в цьому розділі навмисно спрощено. У типових проєктах мої юніт-тести
+націлені на обмеження або модулі, що складаються з наборів нижчорівневих
+обмежень і рівнянь. Багато тестів, наведених тут, справді надлишкові для
+спрощеного сценарію.
 
-These observations underscore that no single workflow fits all applications; you
-should not force my personal style onto your needs. I also vary my approach
-substantially depending on the problem and context. Property-based testing may
-be a strong fit for your needs; therefore, I now briefly outline its core ideas.
+Ці спостереження підкреслюють, що не існує універсального робочого процесу
+для всіх застосувань; не варто нав’язувати мій особистий стиль своїм потребам.
+Я сам суттєво змінюю підхід залежно від задачі та контексту. Тестування на
+основі властивостей може добре підійти вам, тому коротко окреслимо його
+ключові ідеї.
 
-Property-based testing is a methodology in which you specify general properties
-that your code must satisfy and then rely on a tool to automatically generate a
-wide range of test cases to verify these properties. This approach is
-particularly valuable for optimization problems, where the solution space is
-large and complex. Conceptually, it resembles automated sampling of possible
-inputs and checking whether the corresponding outputs fulfill the required
-criteria.
+Тестування на основі властивостей — це методологія, де ви задаєте загальні
+властивості, які має задовольняти код, а інструмент автоматично генерує широкий
+набір тестових випадків для перевірки цих властивостей. Цей підхід особливо
+цінний для оптимізаційних задач, де простір розв’язків великий і складний.
+Концептуально він нагадує автоматизоване вибіркове семплювання можливих входів
+і перевірку, чи відповідні виходи задовольняють потрібні критерії.
 
-Unlike naive random testing, libraries such as Hypothesis use _strategies_ to
-systematically generate inputs and, if a failure occurs, they attempt to
-**shrink** the failing case to a minimal counterexample. Hypothesis also stores
-examples so that failures can be reproduced deterministically.
+На відміну від наївного випадкового тестування, бібліотеки на кшталт Hypothesis
+використовують _стратегії_ для систематичного генерування входів і, якщо
+виникає збій, намагаються **звужити** (shrink) невдалий випадок до мінімального
+контрприкладу. Hypothesis також зберігає приклади, щоб збої можна було
+відтворювати детерміновано.
 
-If, like me, you were initially taught that tests should be deterministic, this
-may appear unsettling. However, in practice you only need to encounter a bug
-once; afterward, you can add a deterministic regression test to ensure it does
-not reoccur. When you are uncertain which edge cases to test, property-based
-testing provides an effective way to uncover them.
+Якщо вас, як і мене, спочатку вчили, що тести мають бути детермінованими, це
+може здатися тривожним. Але на практиці достатньо один раз натрапити на баг —
+потім ви додаєте детермінований регресійний тест, щоб він не повторився. Коли
+ви не впевнені, які граничні випадки тестувати, property-based тестування дає
+ефективний спосіб їх виявити.
 
-One widely used Python library for property-based testing is
-[Hypothesis](https://hypothesis.readthedocs.io/en/latest/). It enables you to
-define strategies for generating test data and then automatically executes your
-tests with a diverse set of inputs.
+Однією з найпоширеніших бібліотек Python для property-based тестування є
+[Hypothesis](https://hypothesis.readthedocs.io/en/latest/). Вона дозволяє
+визначати стратегії генерації тестових даних і автоматично запускає тести на
+різноманітних входах.
 
-> :video: A clear and engaging introduction to property-based testing with
-> Hypothesis is provided in this
-> [21-minute YouTube video](https://www.youtube.com/watch?v=mkgd9iOiICc) by
+> :video: Чіткий і захопливий вступ до property-based тестування з Hypothesis
+> можна знайти в цьому
+> [21-хвилинному YouTube-відео](https://www.youtube.com/watch?v=mkgd9iOiICc) від
 > ArjanCode.
 
-With property-based testing, the guiding questions typically take the following
-form:
+У property-based тестуванні керівні питання зазвичай мають такий вигляд:
 
-- _For any valid instance of my optimization problem, does the solver return a
-  feasible solution (or report infeasibility correctly)?_
-- _For any valid instance of the nurse rostering problem, is there always
-  sufficient staffing to cover every shift?_
+- _Для будь-якого валідного інстансу моєї оптимізаційної задачі, чи повертає
+  розв’язувач здійсненний розв’язок (або коректно повідомляє про не здійсненність)?_
+- _Для будь-якого валідного інстансу задачі графіка медсестер, чи завжди
+  достатньо персоналу, щоб покрити кожну зміну?_
 
-The phrase “for any valid instance” is central: you must specify to Hypothesis
-how to generate inputs that satisfy schema invariants. Hypothesis then attempts
-to falsify your assumption by searching for counterexamples, often targeting
-edge cases. This approach **complements unit tests**: you still want a small set
-of clear, deterministic unit tests for well-understood components, while using
-property-based tests to explore a much wider space of inputs without bloating
-the test suite.
+Фраза «для будь-якого валідного інстансу» є ключовою: ви повинні вказати
+Hypothesis, як генерувати входи, що задовольняють інваріанти схеми. Hypothesis
+потім намагається спростувати ваше припущення, шукаючи контрприклади, часто
+націлюючись на крайові випадки. Цей підхід **доповнює юніт-тести**: вам усе ще
+потрібен невеликий набір чітких, детермінованих юніт-тестів для добре
+зрозумілих компонентів, а property-based тести дозволяють досліджувати набагато
+ширший простір входів без роздування тестового набору.
 
-Let us begin with a simple example of a property-based test to illustrate the
-basic concept. In this case, we test the built-in `sorted` function and verify
-three properties:
+Почнімо з простого прикладу property-based тесту, щоб проілюструвати базову
+ідею. У цьому випадку ми тестуємо вбудовану функцію `sorted` і перевіряємо три
+властивості:
 
 ```python
 from collections import Counter
@@ -2097,14 +2050,14 @@ def test_sort_properties(xs):
     assert Counter(sorted_xs) == Counter(xs)
 ```
 
-In this example, we verify that _for any list of integers_, applying `sorted`
-preserves the list length, produces a sequence in non-decreasing order, and
-returns a permutation of the input. Hypothesis automatically generates a wide
-variety of integer lists, runs the test against them, and shrinks any failures
-to the smallest counterexample.
+У цьому прикладі ми перевіряємо, що _для будь-якого списку цілих чисел_ застосування
+`sorted` зберігає довжину списку, дає невід’ємно зростаючу послідовність і
+повертає перестановку вхідних елементів. Hypothesis автоматично генерує
+різноманітні списки цілих чисел, запускає тест і звужує будь-які збої до
+найменшого контрприкладу.
 
 <details>
-<summary>Here would be the inputs that hypothesis tested automatically:</summary>
+<summary>Ось які входи hypothesis тестував автоматично:</summary>
 
 - `[]`
 - `[0]`
@@ -2208,15 +2161,15 @@ to the smallest counterexample.
 - `[6213, 10059, -61, -106, -83, -83, -83]`
 </details>
 
-We now apply property-based testing to the nurse rostering problem. The central
-challenge is to define a strategy that generates valid instances of the problem.
-In particular, the generated instances must satisfy the data schema: unique
-UIDs; valid time intervals for shifts; and consistent references between nurses,
-shifts, and assignments. Because constructing instances that are always feasible
-is difficult, we instead check the following property: within a fixed time
-limit, the solver either returns a feasible solution that passes an independent
-validator or reports the instance as infeasible or unknown. This choice may miss
-false infeasibilities but suffices for this illustrative example.
+Тепер застосуємо property-based тестування до задачі графіка медсестер. Головний
+виклик — визначити стратегію, яка генерує валідні інстанси задачі. Зокрема,
+згенеровані інстанси мають відповідати схемі даних: унікальні UID-и; валідні
+часові інтервали для змін; і узгоджені посилання між медсестрами, змінами та
+призначеннями. Оскільки сконструювати інстанси, що завжди здійсненні, важко,
+ми перевіряємо таку властивість: протягом фіксованого ліміту часу розв’язувач
+або повертає здійсненний розв’язок, який проходить незалежну валідацію, або
+повідомляє, що інстанс не здійсненний чи невідомий. Такий вибір може не
+виявити хибні не здійсненності, але для ілюстративного прикладу достатній.
 
 ```python
 from datetime import datetime, timedelta
@@ -2336,38 +2289,36 @@ def test_solver_finds_feasible_solution(instance):
 
 > :reference:
 >
-> See Richard Oberdieck’s
-> [example repository](https://github.com/RichardOberdieck/opti_test), which
-> demonstrates property-based testing for an optimization problem using
-> Hypothesis. Consult the
+> Див. репозиторій Річарда Обердіка
+> [прикладовий репозиторій](https://github.com/RichardOberdieck/opti_test), який
+> демонструє property-based тестування для оптимізаційної задачі з Hypothesis.
+> Перегляньте
 > [/docs](https://github.com/RichardOberdieck/opti_test/tree/main/docs)
-> directory for additional textual explanation; note that the documentation is
-> incomplete at present.
+> каталог для додаткових пояснень; зауважте, що документація наразі неповна.
 
-## Conclusion
+## Висновок
 
-In this chapter, we developed a complete nurse rostering solver using CP-SAT
-within a test-driven framework. The modular design enabled us to separate
-constraints from objectives, create targeted tests, and iterate with confidence.
-While this methodology is not always the fastest path to a working solution, it
-proves highly effective for problems that evolve over time.
+У цьому розділі ми розробили повний розв’язувач графіка медсестер на CP-SAT у
+рамках test-driven підходу. Модульний дизайн дозволив відокремити обмеження від
+цілей, створити сфокусовані тести й ітеративно вдосконалювати рішення з
+впевненістю. Хоч цей підхід не завжди найшвидший шлях до робочого розв’язку,
+він дуже ефективний для задач, що еволюціонують з часом.
 
-We also highlighted alternative approaches—such as tabular data representations
-and property-based testing—emphasizing that you should select the methods that
-best suit your specific context. The key takeaway is that software engineering
-principles can be successfully applied to optimization modeling, thereby
-enhancing both reliability and maintainability.
+Ми також підкреслили альтернативні підходи — такі як табличне представлення
+даних і property-based тестування — наголошуючи, що варто обирати методи, які
+найкраще відповідають вашому контексту. Ключовий висновок: принципи інженерії
+ПЗ можна успішно застосовувати до оптимізаційного моделювання, підвищуючи
+надійність і підтримуваність.
 
 > [!TIP]
 >
-> This chapter primarily emphasized correctness. However, once your solution is
-> working correctly, you may discover that it does not scale sufficiently well.
-> In the chapter [Benchmarking your Model](#08-benchmarking), you will learn how
-> to benchmark models to evaluate improvements in performance and scalability.
-> The testing framework developed here helps maintain correctness during
-> performance optimization. Frequently, enhancing efficiency involves slight
-> modifications to the problem formulation—such as approximating non-linear
-> elements with linear ones or relaxing constraints that can usually be repaired
-> in postprocessing with minimal loss of solution quality. Adapting these
-> changes may require adjustments to your tests, but typically you can reuse
-> many of them.
+> Цей розділ переважно зосереджувався на коректності. Однак, щойно розв’язок
+> працює правильно, може виявитися, що він недостатньо масштабується. У розділі
+> [Бенчмаркінг вашої моделі](#08-benchmarking) ви дізнаєтеся, як бенчмаркувати
+> моделі для оцінки покращень продуктивності та масштабованості. Розроблений
+> тут тестовий фреймворк допомагає підтримувати коректність під час
+> оптимізації продуктивності. Часто підвищення ефективності передбачає невеликі
+> зміни постановки задачі — наприклад, наближення нелінійних елементів лінійними
+> або послаблення обмежень, які зазвичай можна виправити в постобробці з мінімальною
+> втратою якості розв’язку. Адаптація цих змін може вимагати корекцій у тестах,
+> але зазвичай багато з них можна використати повторно.

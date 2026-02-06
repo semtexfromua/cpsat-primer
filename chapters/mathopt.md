@@ -1,53 +1,54 @@
-## MathOpt as a Modeling Layer
+## MathOpt як шар моделювання
 
 <a name="chapters-mathopt"></a>
 
-Google OR-Tools recently introduced a new modeling layer called
-[MathOpt](https://developers.google.com/optimization/math_opt). It provides a
-solver-agnostic API for defining and solving mathematical optimization problems,
-especially linear programs (LPs) and mixed-integer programs (MIPs). It is meant
-as a simpler and more modern alternative to the older `pywraplp` interface, with
-a stronger focus on usability and performance.
+Нещодавно Google OR-Tools представив новий шар моделювання під назвою
+[MathOpt](https://developers.google.com/optimization/math_opt). Він надає
+агностичний до розв’язувачів API для формулювання та розв’язання задач
+математичної оптимізації, зокрема лінійних програм (LP) і змішаних
+цілочисельних програм (MIP). Він задуманий як простіша і сучасніша альтернатива
+старішому інтерфейсу `pywraplp`, з більшим фокусом на зручність використання та
+продуктивність.
 
-This is exciting because many optimization problems can naturally be formulated
-as LPs or MIPs, and CP-SAT is not always the right tool for those. As discussed
-earlier, working with continuous variables and coefficients in CP-SAT is not
-very convenient, since they have to be discretized carefully. With MathOpt, you
-can directly use continuous variables and floating-point coefficients when using
-a solver that supports them (for example, HiGHS or Gurobi). For certain types of
-problems, LP/MIP solvers can also be much more efficient than CP-SAT. When you
-model your problem with MathOpt, you can easily switch between different solvers
-and see which one works best for your case.
+Це важливо, адже багато оптимізаційних задач природно формулюються як LP або MIP,
+і CP-SAT не завжди є правильним інструментом для них. Як уже обговорювали,
+працювати з неперервними змінними та коефіцієнтами в CP-SAT не дуже зручно, адже
+їх потрібно ретельно дискретизувати. З MathOpt ви можете напряму використовувати
+неперервні змінні та коефіцієнти з плаваючою комою, якщо обираєте розв’язувач,
+який їх підтримує (наприклад, HiGHS або Gurobi). Для певних типів задач
+LP/MIP-розв’язувачі також можуть бути значно ефективнішими за CP-SAT. Моделюючи
+задачу в MathOpt, ви легко перемикаєтеся між різними розв’язувачами та можете
+подивитися, який найкраще підходить саме вам.
 
-What is the catch when using MathOpt? It introduces a small amount of overhead
-compared to calling a solver’s native API directly, and it currently supports
-only linear constraints—that is, the ones you would add in CP-SAT using the
-`add` method, excluding the `!=`, `<`, and `>` operators. MathOpt itself
-supports continuous and unbounded variables as well as floating-point
-coefficients, but these features are not available when you select CP-SAT as the
-backend. If your model contains continuous variables, you will get an error,
-since CP-SAT only supports integer variables and coefficients.
+Який підвох під час використання MathOpt? Він додає невеликий оверхед у порівнянні
+з прямим викликом нативного API розв’язувача й наразі підтримує лише лінійні
+обмеження — тобто ті, які ви додаєте в CP-SAT через метод `add`, виключаючи
+оператори `!=`, `<` і `>`. Сам MathOpt підтримує неперервні та необмежені змінні,
+а також коефіцієнти з плаваючою комою, але ці можливості недоступні, коли ви
+обираєте CP-SAT як бекенд. Якщо ваша модель містить неперервні змінні, ви
+отримаєте помилку, адже CP-SAT підтримує лише цілочисельні змінні та
+коефіцієнти.
 
-If you want to compare the performance of CP-SAT with a MIP solver, you still
-need to discretize continuous variables and coefficients when your problem
-requires it. Fortunately, many practical problems are purely integral, so you
-might not even notice this limitation in practice.
+Якщо ви хочете порівняти продуктивність CP-SAT з MIP-розв’язувачем, вам і надалі
+потрібно дискретизувати неперервні змінні та коефіцієнти, коли цього вимагає
+задача. На щастя, багато практичних задач є суто цілочисельними, тож на практиці
+ви можете навіть не помітити цього обмеження.
 
 > [!NOTE]
 >
-> Another modeling language aimed at the constraint programming community is
-> [CPMpy](https://cpmpy.readthedocs.io/en/latest/index.html), which directly
-> supports CP-SAT as a solver backend. In contrast, modeling tools commonly used
-> in the mathematical optimization community—such as
-> [Pyomo](https://pyomo.org/), [GAMS](https://www.gams.com/), and
-> [AMPL](https://ampl.com/)—do not support CP-SAT.
+> Інша мова моделювання, орієнтована на спільноту програмування з обмеженнями, —
+> [CPMpy](https://cpmpy.readthedocs.io/en/latest/index.html), яка напряму
+> підтримує CP-SAT як бекенд-розв’язувач. Натомість інструменти моделювання,
+> поширені в спільноті математичної оптимізації — такі як
+> [Pyomo](https://pyomo.org/), [GAMS](https://www.gams.com/) та
+> [AMPL](https://ampl.com/) — не підтримують CP-SAT.
 
-In the following, I give a brief overview of the MathOpt API.
+Далі наведено короткий огляд API MathOpt.
 
-### Import and Model Creation
+### Імпорт і створення моделі
 
-As in CP-SAT, you first need to import the MathOpt module and create a model
-instance.
+Як і в CP-SAT, спершу потрібно імпортувати модуль MathOpt і створити екземпляр
+моделі.
 
 ```python
 from ortools.math_opt.python import mathopt as mo
@@ -55,70 +56,69 @@ from ortools.math_opt.python import mathopt as mo
 model = mo.Model(name="optional_name")
 ```
 
-### Variables
+### Змінні
 
-Next, you can start adding variables to the model. MathOpt supports continuous,
-binary, and integer variables. By default, continuous and integer variables are
-non-negative (i.e., they have a lower bound of 0). You can specify different
-bounds using the `lb` and `ub` parameters.
+Далі можна почати додавати змінні до моделі. MathOpt підтримує неперервні,
+булеві та цілочисельні змінні. За замовчуванням неперервні та цілочисельні
+змінні є невід’ємними (тобто мають нижню межу 0). Ви можете задати інші межі
+через параметри `lb` та `ub`.
 
 ```python
-x = model.add_variable(lb=0.0, ub=10.0, name="x")  # Continuous variable in [0, 10]
-# Unlike CP-SAT, you do not have to name variables
-nameless_x = model.add_variable(lb=0.0, ub=10.0)  # Nameless variable
-x_unbounded = model.add_variable(lb=-math.inf, ub=math.inf, name="x_unbounded")  # Unbounded continuous variable
+x = model.add_variable(lb=0.0, ub=10.0, name="x")  # Неперервна змінна в [0, 10]
+# На відміну від CP-SAT, імена змінним задавати не обов’язково
+nameless_x = model.add_variable(lb=0.0, ub=10.0)  # Змінна без імені
+x_unbounded = model.add_variable(lb=-math.inf, ub=math.inf, name="x_unbounded")  # Необмежена неперервна змінна
 ```
 
-To create binary or integer variables, use the corresponding methods:
+Щоб створити булеві або цілочисельні змінні, використовуйте відповідні методи:
 
 ```python
-y = model.add_binary_variable(name="y")  # Binary variable in {0, 1}
-z = model.add_integer_variable(lb=0, ub=100, name="z")  # Integer variable in [0, 100]
-# Integer variable with no upper bound
+y = model.add_binary_variable(name="y")  # Булева змінна з {0, 1}
+z = model.add_integer_variable(lb=0, ub=100, name="z")  # Цілочисельна змінна в [0, 100]
+# Цілочисельна змінна без верхньої межі
 z_unbounded = model.add_integer_variable(name="z_unbounded")
-# or explicitly
+# або явно
 z_unbounded = model.add_integer_variable(lb=0, ub=math.inf, name="z_unbounded")
 ```
 
 > [!WARNING]
 >
-> The default lower bound is 0 for all variables, and the upper bound is
-> infinity for continuous and integer variables. If you want a variable that can
-> take negative values, you must explicitly set the lower bound to `-math.inf`
-> or another negative number.
+> Нижня межа за замовчуванням дорівнює 0 для всіх змінних, а верхня межа —
+> нескінченність для неперервних і цілочисельних змінних. Якщо вам потрібна
+> змінна, що може набувати від’ємних значень, потрібно явно задати нижню межу
+> `-math.inf` або інше від’ємне число.
 
-### Constraints
+### Обмеження
 
-You can add linear constraints to the model using the `add_linear_constraint`
-method. There are two ways to do this: the inequality/equality form and the
-boxed form.
+Лінійні обмеження можна додавати в модель через метод `add_linear_constraint`.
+Є два способи: форма нерівності/рівності та «boxed» форма.
 
 ```python
-# Inequality/equality form using Python operators
+# Форма нерівності/рівності з використанням операторів Python
 model.add_linear_constraint(2 * x + 3 * y <= 10, name="constraint1")
 model.add_linear_constraint(x + y + z == 5, name="constraint2")
 model.add_linear_constraint(z - 2 * x >= 0, name="constraint3")
 
-# Boxed form
+# Boxed форма
 model.add_linear_constraint(lb=0, expr=2 * x + 3 * y, ub=10, name="constraint1_boxed")
-model.add_linear_constraint(lb=5, expr=x + y + z, ub=5, name="constraint2_boxed")  # equality
-model.add_linear_constraint(lb=0, expr=z - 2 * x, ub=math.inf, name="constraint3_boxed")  # inequality
+model.add_linear_constraint(lb=5, expr=x + y + z, ub=5, name="constraint2_boxed")  # рівність
+model.add_linear_constraint(lb=0, expr=z - 2 * x, ub=math.inf, name="constraint3_boxed")  # нерівність
 
-# Constraints do not have to be named
+# Обмеження не обов’язково мають бути іменованими
 model.add_linear_constraint(4 * x + y <= 20)
 ```
 
-If you want to sum over a list of terms, you can use standard Python sums as in
-CP-SAT. However, MathOpt provides a more efficient function, `mo.fast_sum`,
-which is optimized for performance.
+Якщо потрібно сумувати список термінів, можна використовувати звичайну суму в
+Python, як і в CP-SAT. Але MathOpt надає більш ефективну функцію `mo.fast_sum`,
+яка оптимізована під продуктивність.
 
 ```python
-terms = [i * x for i in range(1, 11)]  # Create a list of terms
+terms = [i * x for i in range(1, 11)]  # Створюємо список термінів
 model.add_linear_constraint(mo.fast_sum(terms) <= 100, name="sum_constraint")
 ```
 
-You can also use expression handles, which can make the model more readable and
-easier to maintain.
+Також можна використовувати «хендли» виразів, що робить модель читабельнішою та
+простішою в підтримці.
 
 ```python
 in_vars = [mo.variable(name=f"in_{i}") for i in range(1, 6)]
@@ -128,41 +128,41 @@ outgoing_flow = mo.fast_sum(out_vars)
 model.add_linear_constraint(incoming_flow == outgoing_flow, name="flow_conservation")
 ```
 
-### Objective
+### Цільова функція
 
-You can define the model’s objective using the `set_objective` method and
-specify whether you want to maximize or minimize it.
+Цільову функцію можна задати через метод `set_objective` і вказати, чи потрібно
+максимізувати або мінімізувати.
 
 ```python
-model.set_objective(3 * x + 4 * y + 2 * z, is_maximize=True)  # Maximize
-model.set_objective(x + 2 * z, is_maximize=False)  # Minimize
+model.set_objective(3 * x + 4 * y + 2 * z, is_maximize=True)  # Максимізувати
+model.set_objective(x + 2 * z, is_maximize=False)  # Мінімізувати
 ```
 
-### Solving
+### Розв’язання
 
-To solve the model, use the `mo.solve` function, which takes the model, the
-solver type, and optional solver parameters.
+Щоб розв’язати модель, використовуйте функцію `mo.solve`, яка приймає модель,
+тип розв’язувача та необов’язкові параметри розв’язувача.
 
 ```python
 params = mo.SolveParameters(
-    time_limit=timedelta(seconds=30),  # Time limit of 30 seconds
-    relative_gap_tolerance=0.01,  # 1% relative gap tolerance
-    enable_output=True  # Enable solver output
+    time_limit=timedelta(seconds=30),  # Ліміт часу 30 секунд
+    relative_gap_tolerance=0.01,  # 1% відносний допуск за розривом
+    enable_output=True  # Увімкнути вивід розв’язувача
 )
 result = mo.solve(model, solver_type=mo.SolverType.HIGHS, params=params)
 ```
 
-MathOpt currently supports the following solvers: `GSCIP`, `GUROBI`, `GLOP`,
-`CP_SAT`, `PDLP`, `GLPK`, `OSQP`, `ECOS`, `SCS`, `HIGHS`, and `SANTORINI`. If
-you do not have a Gurobi license, I recommend using HiGHS or GSCIP, both of
-which are open-source mixed-integer programming solvers.
+Наразі MathOpt підтримує такі розв’язувачі: `GSCIP`, `GUROBI`, `GLOP`,
+`CP_SAT`, `PDLP`, `GLPK`, `OSQP`, `ECOS`, `SCS`, `HIGHS` та `SANTORINI`. Якщо у
+вас немає ліцензії Gurobi, рекомендую використовувати HiGHS або GSCIP — обидва
+це open-source MIP-розв’язувачі.
 
-### Inspecting Results
+### Перегляд результатів
 
-After solving the model, you can inspect the results through the `SolveResult`
-object returned by `mo.solve`.
+Після розв’язання моделі можна переглянути результати через об’єкт `SolveResult`,
+який повертає `mo.solve`.
 
-Check the termination reason:
+Перевіряємо причину завершення:
 
 ```python
 term = result.termination
@@ -171,7 +171,7 @@ if term.detail:
     print(f"Detail: {term.detail}")
 ```
 
-Check whether a primal feasible solution was found:
+Перевіряємо, чи знайдено допустиме первинне рішення:
 
 ```python
 if result.has_primal_feasible_solution():
@@ -182,9 +182,9 @@ else:
     print("No primal feasible solution found.")
 ```
 
-The `variable_values()` method returns a mapping from variables to their values.
-You can also pass a list of variables to get their values in the same order,
-which can be convenient if you only need a subset.
+Метод `variable_values()` повертає відображення зі змінних на їхні значення.
+Також можна передати список змінних, щоб отримати значення в тому ж порядку, що
+зручно, якщо потрібна лише підмножина.
 
 ```python
 values = result.variable_values([x, y, z])
@@ -193,38 +193,37 @@ print(f"x: {values[0]}, y: {values[1]}, z: {values[2]}")
 
 > [!NOTE]
 >
-> If you are solving an LP and the underlying solver supports dual values, you
-> can also access the dual values of the constraints using the `dual_values()`
-> method of the `SolveResult` object. Remember that in this case, you need to
-> keep the handle to the constraints when you create them, e.g.,
-> `constraint = model.add_linear_constraint(...)`. There are further features
-> available, such as callbacks and lazy constraints, which we do not cover here.
-> However, the
-> [examples](https://github.com/google/or-tools/tree/stable/ortools/math_opt/samples/python)
-> show some nice use cases.
+> Якщо ви розв’язуєте LP і базовий розв’язувач підтримує двоїсті значення, ви
+> також можете отримати двоїсті значення обмежень за допомогою методу
+> `dual_values()` об’єкта `SolveResult`. Пам’ятайте, що в такому разі потрібно
+> зберігати хендл на обмеження під час створення, наприклад,
+> `constraint = model.add_linear_constraint(...)`. Існують і додаткові
+> можливості, як-от callbacks і ліниві обмеження, які ми тут не розглядаємо.
+> Однак у
+> [прикладах](https://github.com/google/or-tools/tree/stable/ortools/math_opt/samples/python)
+> можна знайти гарні кейси.
 
-### Examples
+### Приклади
 
-Let us look at two examples that demonstrate how to model and solve optimization
-problems with MathOpt.
+Розгляньмо два приклади, що демонструють, як моделювати та розв’язувати задачі
+оптимізації за допомогою MathOpt.
 
-#### Simplified Stigler Diet Problem
+#### Спрощена задача дієти Стиглера
 
-The **Simplified Stigler Diet Problem** is a classical optimization problem in
-which the goal is to select nonnegative servings of various foods to minimize
-the total cost while satisfying minimum nutritional requirements for calories,
-protein, and calcium. This model serves as a small, illustrative example of how
-mathematical optimization can be applied to dietary planning. The units and
-values used here are for demonstration purposes only and should not be
-interpreted as nutritional facts.
+**Спрощена задача дієти Стиглера** — це класична оптимізаційна задача, де потрібно
+вибрати невід’ємні порції різних продуктів, щоб мінімізувати загальну вартість і
+водночас задовольнити мінімальні харчові вимоги за калоріями, білками та кальцієм.
+Ця модель слугує невеликим ілюстративним прикладом застосування математичної
+оптимізації в плануванні харчування. Одиниці виміру та значення тут наведено лише
+для демонстрації і їх не слід сприймати як дієтичні факти.
 
 ```python
 from ortools.math_opt.python import mathopt as mo
 from datetime import timedelta
-# --- Data -----------------------------------------------------------------
+# --- Дані -----------------------------------------------------------------
 foods = ["Wheat Flour", "Milk", "Cabbage", "Beef"]
 
-# Cost per serving (EUR)
+# Вартість на порцію (EUR)
 cost = {
     "Wheat Flour": 0.36,
     "Milk": 0.23,
@@ -232,31 +231,31 @@ cost = {
     "Beef": 1.20,
 }
 
-# Nutrients per serving (approximate / illustrative)
+# Поживні речовини на порцію (приблизно / ілюстративно)
 #               Calories  Protein(g)  Calcium(mg)
 calories =     {"Wheat Flour": 364.0, "Milk": 150.0, "Cabbage": 25.0,  "Beef": 250.0}
 protein =      {"Wheat Flour": 10.0,  "Milk": 8.0,   "Cabbage": 1.3,   "Beef": 26.0}
 calcium =      {"Wheat Flour": 15.0,  "Milk": 285.0, "Cabbage": 40.0,  "Beef": 20.0}
 
-# Minimum requirements
+# Мінімальні вимоги
 req = {
     "Calories": 2000.0,   # kcal
     "Protein": 55.0,      # g
     "Calcium": 800.0,     # mg
 }
 
-# --- Model ----------------------------------------------------------------
+# --- Модель ---------------------------------------------------------------
 model = mo.Model(name="stigler_diet")
 
-# Decision: servings of each food (continuous, ≥ 0)
-# You could switch to integers to create a MIP variant.
+# Рішення: порції кожного продукту (неперервні, ≥ 0)
+# За бажанням можна перейти на цілі змінні, щоб отримати MIP-варіант.
 servings = {f: model.add_variable(lb=0.0, name=f"servings[{f}]") for f in foods}
 
-# Optional upper bounds to keep results tidy
+# Необов’язкові верхні межі, щоб результати виглядали охайно
 for f in foods:
     model.add_linear_constraint(servings[f] <= 20.0, name=f"cap[{f}]")
 
-# --- Nutrient constraints --------------------------------------------------
+# --- Обмеження на поживні речовини ----------------------------------------
 model.add_linear_constraint(
     mo.fast_sum(calories[f] * servings[f] for f in foods) >= req["Calories"],
     name="nutrients[Calories]",
@@ -270,22 +269,22 @@ model.add_linear_constraint(
     name="nutrients[Calcium]",
 )
 
-# --- Objective: minimize total cost ---------------------------------------
+# --- Ціль: мінімізувати загальну вартість ---------------------------------
 model.set_objective(
     mo.fast_sum(cost[f] * servings[f] for f in foods),
     is_maximize=False,
 )
 
-# --- Solve ----------------------------------------------------------------
+# --- Розв’язання -----------------------------------------------------------
 params = mo.SolveParameters(
     time_limit=timedelta(seconds=10),
-    relative_gap_tolerance=1e-6,  # LP, so we can be tight
+    relative_gap_tolerance=1e-6,  # LP, тож можемо бути строгими
     enable_output=False,
 )
 
 result = mo.solve(model, solver_type=mo.SolverType.HIGHS, params=params)
 
-# --- Report ----------------------------------------------------------------
+# --- Звіт ------------------------------------------------------------------
 term = result.termination
 print(f"Termination: {term.reason.name}")
 
@@ -295,7 +294,7 @@ if not result.has_primal_feasible_solution():
 
 print(f"Minimum cost: €{result.objective_value():.2f}")
 
-# Extract chosen servings (suppress near-zeros)
+# Витягуємо вибрані порції (ігноруємо майже нульові)
 values = result.variable_values()
 print("\nServings:")
 for f in foods:
@@ -303,7 +302,7 @@ for f in foods:
     if abs(qty) > 1e-9:
         print(f"  {f:12s}: {qty:8.3f}")
 
-# Compute realized totals
+# Обчислюємо фактичні підсумки
 tot_cal = sum(calories[f] * values.get(servings[f], 0.0) for f in foods)
 tot_pro = sum(protein[f]  * values.get(servings[f], 0.0) for f in foods)
 tot_calcium = sum(calcium[f] * values.get(servings[f], 0.0) for f in foods)
@@ -314,25 +313,25 @@ print(f"  Protein : {tot_pro:.1f}  ({req['Protein']})")
 print(f"  Calcium : {tot_calcium:.1f}  ({req['Calcium']})")
 ```
 
-#### Set Cover
+#### Покриття множинами
 
-The **Set Cover Problem** is a classic combinatorial optimization problem. Given
-a universe $U$ of elements and a collection of subsets $S \subseteq 2^U$, each
-with an associated integer cost, the goal is to select a minimum-cost collection
-of subsets such that every element in $U$ is covered by at least one selected
-subset.
+**Задача покриття множинами (Set Cover)** — це класична комбінаторна
+оптимізаційна задача. Дано універсум елементів $U$ і набір підмножин
+$S \subseteq 2^U$, кожна з яких має цілочисельну вартість; потрібно вибрати
+мінімально-вартісну колекцію підмножин так, щоб кожен елемент з $U$ був
+покритий принаймні однією обраною підмножиною.
 
-This problem appears in resource allocation, scheduling, and network design. A
-standard integer formulation is:
+Ця задача трапляється в розподілі ресурсів, плануванні та проєктуванні мереж.
+Стандартне цілочисельне формулювання таке:
 
-- **Variables:** For each subset $S$, a binary variable $z[S] \in \{0, 1\}$
-  indicates whether subset $S$ is chosen.
-- **Constraints:** For each element $u \in U$, the sum of $z[S]$ over all
-  subsets $S$ containing $u$ must be at least 1.
-- **Objective:** Minimize the total cost $\sum_{S} \text{cost}[S] \cdot z[S]$.
+- **Змінні:** для кожної підмножини $S$ бінарна змінна $z[S] \in \{0, 1\}$
+  показує, чи обрано підмножину $S$.
+- **Обмеження:** для кожного елемента $u \in U$ сума $z[S]$ по всіх підмножинах
+  $S$, що містять $u$, має бути не меншою за 1.
+- **Ціль:** мінімізувати загальну вартість $\sum_{S} \text{cost}[S] \cdot z[S]$.
 
-Since all variables are integral, this problem can be modeled using CP-SAT and
-compared directly with MIP solvers such as Gurobi or HiGHS.
+Оскільки всі змінні цілочисельні, цю задачу можна моделювати у CP-SAT і напряму
+порівнювати з MIP-розв’язувачами, такими як Gurobi або HiGHS.
 
 ```python
 from ortools.math_opt.python import mathopt as mo
@@ -351,23 +350,23 @@ cost = {"S1": 4, "S2": 2, "S3": 3, "S4": 3, "S5": 2, "S6": 4}
 
 model = mo.Model(name="set_cover_cp_sat")
 
-# Decision variables
+# Змінні рішення
 z = {s: model.add_binary_variable(name=f"pick[{s}]") for s in subsets}
 
-# Cover constraints
+# Обмеження покриття
 for u in U:
     model.add_linear_constraint(
         mo.fast_sum(z[s] for s in subsets if u in subsets[s]) >= 1,
         name=f"cover[{u}]",
     )
 
-# Objective
+# Ціль
 model.set_objective(
     mo.fast_sum(cost[s] * z[s] for s in subsets),
     is_maximize=False,
 )
 
-# Solve with CP-SAT
+# Розв’язання з CP-SAT
 params = mo.SolveParameters(time_limit=timedelta(seconds=10), enable_output=True)
 result = mo.solve(model, solver_type=mo.SolverType.CP_SAT, params=params)
 
