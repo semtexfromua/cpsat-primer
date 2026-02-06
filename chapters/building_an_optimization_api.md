@@ -252,19 +252,17 @@ services:
 
 ### Розв’язувач
 
-In this section, we will explore the implementation of the optimization
-algorithm that we will deploy as an API. Specifically, we will focus on a simple
-implementation of the Traveling Salesman Problem (TSP) using the `add_circuit`
-constraint from the CP-SAT solver in OR-Tools.
+У цьому розділі ми розглянемо реалізацію оптимізаційного алгоритму, який будемо
+деплоїти як API. Зокрема, зосередимося на простій реалізації задачі комівояжера
+(TSP) з використанням обмеження `add_circuit` із CP-SAT в OR-Tools.
 
-The solver is the core component of our application, responsible for finding the
-optimal solution to the TSP instance provided by the user. The algorithm is
-implemented directly in the API project for simplicity. However, for more
-complex optimization algorithms, it is advisable to separate the algorithm into
-a distinct module or project. This separation facilitates isolated testing and
-benchmarking of the algorithm and improves the development process, especially
-when working in a team where different teams might maintain the API and the
-optimization algorithm.
+Розв’язувач є ядром застосунку і відповідає за пошук оптимального розв’язку для
+екземпляра TSP, наданого користувачем. Алгоритм реалізовано безпосередньо в
+API-проєкті для простоти. Однак для складніших оптимізаційних алгоритмів
+рекомендовано відокремлювати алгоритм в окремий модуль або проєкт. Такий поділ
+полегшує ізольоване тестування й бенчмаркінг алгоритму та покращує процес
+розробки, особливо коли в команді різні підгрупи підтримують API та алгоритм
+оптимізації.
 
 ```python
 # ./app/solver.py
@@ -372,25 +370,25 @@ class TspSolver:
 
 > [!TIP]
 >
-> CP-SAT itself uses Protobuf for its input, output, and configuration. Having
-> well-defined data models can help prevent many "garbage in, garbage out"
-> issues and ease integration with other systems. It also facilitates testing
-> and debugging, as you can simply serialize a specific scenario. For
-> configuration, having default values is very helpful, as it allows you to
-> extend the configuration without breaking backward compatibility. This can be
-> a significant advantage, as you usually do not know all requirements upfront.
-> Pydantic performs this job very well and can be used for the web API as well.
-> Protobuf, while not Python-specific and therefore more versatile, is more
-> complex to use and lacks the same flexibility as Pydantic.
+> CP-SAT сам використовує Protobuf для входів, виходів і конфігурації. Чітко
+> визначені моделі даних допомагають уникати проблем типу «garbage in, garbage out»
+> і полегшують інтеграцію з іншими системами. Це також спрощує тестування й
+> налагодження, адже можна просто серіалізувати конкретний сценарій. Для
+> конфігурації наявність значень за замовчуванням дуже корисна, бо дозволяє
+> розширювати конфігурацію без порушення зворотної сумісності. Це суттєва
+> перевага, оскільки вимоги зазвичай не відомі заздалегідь. Pydantic чудово
+> справляється з цим завданням і може використовуватися також у веб-API.
+> Protobuf, хоча й не специфічний для Python і тому універсальніший, складніший
+> у використанні й не має такої гнучкості, як Pydantic.
 
-## Request and Response Models
+## Моделі запитів і відповідей
 
-In this section, we will define the request and response models for the API.
-These models will facilitate the communication between the client and the server
-by ensuring that the data exchanged is structured and validated correctly.
+У цьому розділі ми визначимо моделі запитів і відповідей для API. Ці моделі
+полегшують комунікацію між клієнтом і сервером, гарантуючи, що дані
+обмінюються у структурованому та валідованому вигляді.
 
-The models are defined in the `models.py` file and include the necessary data
-structures for submitting a TSP job request and tracking the status of the job.
+Моделі визначено у файлі `models.py`, і вони містять потрібні структури даних
+для надсилання запиту на задачу TSP та відстеження статусу задачі.
 
 ```python
 # ./app/models.py
@@ -404,9 +402,9 @@ from uuid import UUID, uuid4
 from solver import OptimizationParameters, TspInstance
 ```
 
-The `TspJobRequest` model encapsulates the information required to submit a TSP
-job to the API. It includes the TSP instance, optimization parameters, and an
-optional webhook URL for notifications upon job completion.
+Модель `TspJobRequest` інкапсулює інформацію, потрібну для надсилання задачі TSP
+до API. Вона містить екземпляр TSP, параметри оптимізації та необов’язковий
+webhook URL для сповіщень після завершення задачі.
 
 ```python
 class TspJobRequest(BaseModel):
@@ -424,7 +422,7 @@ class TspJobRequest(BaseModel):
     )
 ```
 
-An request could look as follows:
+Приклад запиту може виглядати так:
 
 ```json
 {
@@ -442,9 +440,9 @@ An request could look as follows:
 },
 ```
 
-The `TspJobStatus` model is used to track the status of a TSP job. It provides
-fields to monitor various stages of the job lifecycle, from submission to
-completion.
+Модель `TspJobStatus` використовується для відстеження статусу задачі TSP. Вона
+містить поля для моніторингу різних етапів життєвого циклу задачі — від
+надсилання до завершення.
 
 ```python
 class TspJobStatus(BaseModel):
@@ -468,19 +466,20 @@ class TspJobStatus(BaseModel):
     )
 ```
 
-These models ensure that the data exchanged between the client and the server is
-well-defined and validated.
+Ці моделі гарантують, що дані між клієнтом і сервером є чітко визначеними та
+валідованими.
 
-## Database
+## База даних
 
-In this section, we will implement a database proxy to store the tasks and
-solutions. For simplicity, we use Redis, which serves as both our database and
-task queue. This approach minimizes the need to set up additional databases and
-leverages Redis's key-value storage and automatic data expiration features.
+У цьому розділі ми реалізуємо проксі для бази даних, щоб зберігати задачі та
+розв’язки. Для простоти використовуємо Redis, який слугує і базою даних, і
+чергою задач. Такий підхід мінімізує потребу в додаткових базах даних і
+використовує можливості Redis як key-value сховища та автоматичного
+протермінування даних.
 
-The `TspJobDbConnection` class encapsulates the interactions with the Redis
-database. It provides methods to register new jobs, update job statuses,
-retrieve job requests, statuses, and solutions, list all jobs, and delete jobs.
+Клас `TspJobDbConnection` інкапсулює взаємодію з базою Redis. Він надає методи
+для реєстрації нових задач, оновлення статусів, отримання запитів, статусів і
+розв’язків, перегляду списку задач та їх видалення.
 
 ```python
 # ./app/db.py
@@ -500,9 +499,9 @@ from typing import Optional, List
 import logging
 ```
 
-The class is initialized with a Redis client and an expiration time for the
-stored data. The `_get_data` method is a helper that retrieves and parses JSON
-data from Redis by key.
+Клас ініціалізується Redis-клієнтом і часом протермінування для збережених
+даних. Метод `_get_data` є допоміжним і отримує та парсить JSON-дані з Redis за
+ключем.
 
 ```python
 class TspJobDbConnection:
@@ -523,8 +522,8 @@ class TspJobDbConnection:
         return None
 ```
 
-The `get_request`, `get_status`, and `get_solution` methods retrieve a TSP job
-request, status, and solution, respectively, by their task ID.
+Методи `get_request`, `get_status` і `get_solution` відповідно отримують запит,
+статус і розв’язок задачі TSP за її ідентифікатором.
 
 ```python
 def get_request(self, task_id: UUID) -> Optional[TspJobRequest]:
@@ -545,9 +544,8 @@ def get_solution(self, task_id: UUID) -> Optional[TspSolution]:
     return TspSolution(**data) if data else None
 ```
 
-The `set_solution` method stores a TSP solution in Redis with an expiration
-time. The `register_job` method registers a new TSP job request and status in
-Redis.
+Метод `set_solution` зберігає розв’язок TSP у Redis з часом протермінування.
+Метод `register_job` реєструє новий запит TSP і статус у Redis.
 
 ```python
 def set_solution(self, task_id: UUID, solution: TspSolution) -> None:
@@ -582,8 +580,8 @@ def register_job(self, request: TspJobRequest) -> TspJobStatus:
     return job_status
 ```
 
-The `update_job_status` method updates the status of an existing TSP job. The
-`list_jobs` method lists all TSP job statuses.
+Метод `update_job_status` оновлює статус наявної задачі TSP. Метод `list_jobs`
+повертає список статусів усіх задач.
 
 ```python
 def update_job_status(self, job_status: TspJobStatus) -> None:
@@ -610,8 +608,7 @@ def list_jobs(self) -> List[TspJobStatus]:
         return []
 ```
 
-The `delete_job` method deletes a TSP job request, status, and solution from
-Redis.
+Метод `delete_job` видаляє запит, статус і розв’язок задачі TSP з Redis.
 
 ```python
 def delete_job(self, task_id: UUID) -> None:
@@ -626,21 +623,20 @@ def delete_job(self, task_id: UUID) -> None:
         logging.error("Redis error: %s", e)
 ```
 
-## Configuration
+## Конфігурація
 
-The database and task queue require a connection to be established before they
-can be used. We provide `get_db_connection` and `get_task_queue` functions in
-the `config.py` file for three primary reasons:
+Базі даних і черзі задач потрібне підключення перед використанням. Ми надаємо
+функції `get_db_connection` і `get_task_queue` у файлі `config.py` з трьох
+основних причин:
 
-- To ensure that the database and task queue are properly set up with the
-  correct connection details. If we change the Redis host, we only need to
-  update it in one place.
-- To integrate these functions into FastAPI's dependency injection system,
-  ensuring that the database and task queue are available to the API endpoints
-  without establishing the connection in each endpoint. This approach also
-  facilitates testing with a different database.
-- To allow both the FastAPI application and the workers to use the same
-  configuration functions, despite having different entry points.
+- щоб гарантувати коректне налаштування бази даних і черги задач із правильними
+  параметрами підключення; якщо зміниться хост Redis, достатньо оновити його в
+  одному місці;
+- щоб інтегрувати ці функції в систему ін’єкції залежностей FastAPI, забезпечивши
+  доступність бази й черги в ендпойнтах без встановлення підключення в кожному
+  з них; це також полегшує тестування з іншою базою даних;
+- щоб і застосунок FastAPI, і воркери використовували однакові конфігураційні
+  функції, попри різні точки входу.
 
 ```python
 # ./app/config.py
@@ -669,18 +665,17 @@ def get_task_queue() -> Queue:
     return Queue(connection=redis_client)
 ```
 
-## Tasks
+## Задачі
 
-With the database in place, we can create the tasks that will run the
-optimization. The optimization will run in a separate process and use the
-database to communicate with the web server. To keep things simple, we will pass
-only the job reference to the task. The task will fetch the necessary data from
-the database and update the database with the results. Additionally, by
-including an `if __name__ == "__main__":` block, we allow the tasks to be run
-via an external task queue as system commands.
+Маючи базу даних, ми можемо створити задачі, що запускатимуть оптимізацію.
+Оптимізація працюватиме в окремому процесі та використовуватиме базу даних для
+комунікації з вебсервером. Для простоти ми передаватимемо в задачу лише
+посилання на роботу. Задача отримає потрібні дані з бази та оновить базу
+результатами. Додатково, завдяки блоку `if __name__ == "__main__":`, ці задачі
+можна запускати через зовнішню чергу як системні команди.
 
-The `tasks.py` file contains functions and logic for running the optimization
-job in a separate worker process.
+Файл `tasks.py` містить функції й логіку для запуску оптимізації в окремому
+процесі воркера.
 
 ```python
 # ./app/tasks.py
@@ -698,9 +693,8 @@ import httpx
 import logging
 ```
 
-The `send_webhook` function sends a POST request to the specified webhook URL
-with the job status. This allows for asynchronous notifications when the
-computation is complete.
+Функція `send_webhook` надсилає POST-запит на вказаний webhook URL зі статусом
+задачі. Це дозволяє асинхронні сповіщення після завершення обчислень.
 
 ```python
 def send_webhook(job_request: TspJobRequest, job_status: TspJobStatus) -> None:
@@ -719,9 +713,9 @@ def send_webhook(job_request: TspJobRequest, job_status: TspJobStatus) -> None:
             logging.error(f"An error occurred: {e}")
 ```
 
-The `run_optimization_job` function fetches the job request from the database,
-runs the optimization algorithm, and stores the solution back in the database.
-It also updates the job status and sends a webhook notification upon completion.
+Функція `run_optimization_job` отримує запит із бази даних, запускає
+оптимізаційний алгоритм і зберігає розв’язок назад у базі. Вона також оновлює
+статус задачі та надсилає webhook-сповіщення після завершення.
 
 ```python
 def run_optimization_job(
@@ -753,14 +747,14 @@ def run_optimization_job(
 
 ## API
 
-In this final section, we will build the actual API using FastAPI. This API will
-expose endpoints to submit TSP job requests, check job statuses, retrieve
-solutions, cancel jobs, and list all jobs. FastAPI provides an efficient and
-easy-to-use framework for building web APIs with Python.
+У цьому фінальному розділі ми зберемо реальний API на FastAPI. Цей API
+надаватиме ендпойнти для надсилання запитів на TSP, перевірки статусів,
+отримання розв’язків, скасування задач і перегляду списку всіх задач. FastAPI —
+ефективний і простий у використанні фреймворк для побудови веб-API на Python.
 
-The `main.py` file contains the FastAPI application setup and the API routes.
-For simplicity, all routes are included in a single file, but in larger
-projects, it is advisable to separate them into different modules.
+Файл `main.py` містить налаштування застосунку FastAPI та маршрути API. Для
+простоти всі маршрути зібрані в одному файлі, але в більших проєктах їх варто
+розділяти на модулі.
 
 ```python
 # ./app/main.py
@@ -778,8 +772,8 @@ from config import get_db_connection, get_task_queue
 from tasks import run_optimization_job
 ```
 
-The FastAPI application is initialized with a title and description. An API
-router is created to group the routes related to the TSP solver.
+Застосунок FastAPI ініціалізується з назвою та описом. API-роутер створюється
+для групування маршрутів, пов’язаних із TSP-розв’язувачем.
 
 ```python
 app = FastAPI(
@@ -790,9 +784,9 @@ app = FastAPI(
 tsp_solver_v1_router = APIRouter(tags=["TSP_solver_v1"])
 ```
 
-The `post_job` endpoint allows users to submit a new TSP job. The job is
-registered in the database, and the optimization task is enqueued in the task
-queue for asynchronous processing.
+Ендпойнт `post_job` дозволяє користувачам надсилати нову задачу TSP. Задача
+реєструється в базі даних, а оптимізаційна робота ставиться в чергу для
+асинхронної обробки.
 
 ```python
 @tsp_solver_v1_router.post("/jobs", response_model=TspJobStatus)
@@ -816,8 +810,7 @@ def post_job(
     return job_status
 ```
 
-The `get_job` endpoint returns the status of a specific job identified by its
-task ID.
+Ендпойнт `get_job` повертає статус конкретної задачі за її ID.
 
 ```python
 @tsp_solver_v1_router.get("/jobs/{task_id}", response_model=TspJobStatus)
@@ -831,8 +824,7 @@ def get_job(task_id: UUID, db_connection=Depends(get_db_connection)):
     return status
 ```
 
-The `get_solution` endpoint returns the solution of a specific job if it is
-available.
+Ендпойнт `get_solution` повертає розв’язок конкретної задачі, якщо він доступний.
 
 ```python
 @tsp_solver_v1_router.get("/jobs/{task_id}/solution", response_model=TspSolution)
@@ -846,8 +838,8 @@ def get_solution(task_id: UUID, db_connection=Depends(get_db_connection)):
     return solution
 ```
 
-The `cancel_job` endpoint deletes or cancels a job. It does not immediately stop
-the job if it is already running.
+Ендпойнт `cancel_job` видаляє або скасовує задачу. Якщо вона вже виконується,
+це не зупиняє її миттєво.
 
 ```python
 @tsp_solver_v1_router.delete("/jobs/{task_id}")
@@ -858,7 +850,7 @@ def cancel_job(task_id: UUID, db_connection=Depends(get_db_connection)):
     db_connection.delete_job(task_id)
 ```
 
-The `list_jobs` endpoint returns a list of all jobs and their statuses.
+Ендпойнт `list_jobs` повертає список усіх задач та їхніх статусів.
 
 ```python
 @tsp_solver_v1_router.get("/jobs", response_model=list[TspJobStatus])
@@ -869,31 +861,31 @@ def list_jobs(db_connection=Depends(get_db_connection)):
     return db_connection.list_jobs()
 ```
 
-Finally, we include the API router in the FastAPI application under the
-`/tsp_solver/v1` prefix.
+Насамкінець ми додаємо API-роутер до застосунку FastAPI під префіксом
+`/tsp_solver/v1`.
 
 ```python
 app.include_router(tsp_solver_v1_router, prefix="/tsp_solver/v1")
 ```
 
-### Running the Application
+### Запуск застосунку
 
-After you have run `docker-compose up -d --build`, you can access the API at
-`http://localhost:80/docs`. This will open the Swagger UI, where you can test
-the API. You can submit a job, check the status, and retrieve the solution. You
-can also cancel a job or list all jobs.
+Після виконання `docker-compose up -d --build` ви можете відкрити API за адресою
+`http://localhost:80/docs`. Це відкриє Swagger UI, де можна протестувати API.
+Ви можете надіслати задачу, перевірити статус і отримати розв’язок. Також можна
+скасувати задачу або переглянути список усіх задач.
 
 | ![Swagger UI](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/swagger_optimization_api.png) |
 | :-------------------------------------------------------------------------------------------------------------: |
-|               FastAPI comes with a built-in Swagger UI that allows you to interact with the API.                |
+|               FastAPI має вбудований Swagger UI, який дозволяє взаємодіяти з API.               |
 
 | ![Swagger UI - Job Submission](https://raw.githubusercontent.com/d-krupke/cpsat-primer/main/images/swagger_try_it_out.png) |
 | :------------------------------------------------------------------------------------------------------------------------: |
-|                           By clicking on "try it out" you can directly submit a job to the API.                            |
+|                           Натиснувши "try it out", ви можете напряму надіслати задачу до API.                           |
 
 <details>
 <summary>
-Here is an instance to try it out: (click to expand)
+Ось інстанс для спроби: (натисніть, щоб розгорнути)
 </summary>
 
 ```json
